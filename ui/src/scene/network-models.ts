@@ -140,11 +140,7 @@ const BUILDERS: Record<NetworkKind, (content: THREE.Group) => void> = {
  * (Re)builds a network element for its phase. The phase only drives the
  * material opacity (planned → semi-transparent, finished → opaque).
  */
-export function buildNetworkContent(
-  content: THREE.Group,
-  kind: NetworkKind,
-  phase: number,
-): void {
+export function buildNetworkContent(content: THREE.Group, kind: NetworkKind, phase: number): void {
   BUILDERS[kind](content);
 
   const clamped = Math.max(0, Math.min(2, phase));
