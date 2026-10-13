@@ -24,14 +24,7 @@ export type BuildingKind = "house" | "building" | "lot";
 
 /** Kinds of network & telecom elements (PLAN.md Fase 6, DESIGN.md §4.1). */
 export type NetworkKind =
-  | "antenna"
-  | "router"
-  | "switch"
-  | "olt"
-  | "onu"
-  | "splitter"
-  | "pole"
-  | "box";
+  "antenna" | "router" | "switch" | "olt" | "onu" | "splitter" | "pole" | "box";
 
 export const NETWORK_KINDS: ReadonlySet<string> = new Set<NetworkKind>([
   "antenna",
@@ -185,12 +178,16 @@ const cableTool: { cableType: CableType; route: CableRoute } = {
   route: "underground",
 };
 
+/** Bumped on every notification — the React snapshot (`state/use-store.ts`). */
+let version = 0;
+
 const listeners = new Set<Listener>();
 const selectionListeners = new Set<Listener>();
 const entities = new Map<string, EntityInfo>();
 const cables = new Map<string, CableInfo>();
 
 function notify(): void {
+  version++;
   listeners.forEach((l) => l());
 }
 
@@ -387,6 +384,11 @@ export const store = {
   },
 
   // ---- Subscriptions ----
+
+  /** Changes on every notification; state objects are mutated in place. */
+  get version(): number {
+    return version;
+  },
 
   /** Subscribes to any state change; returns an unsubscribe function. */
   subscribe(l: Listener): () => void {
