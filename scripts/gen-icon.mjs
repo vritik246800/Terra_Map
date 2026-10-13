@@ -1,4 +1,4 @@
-// One-off: generate src-tauri/icons/icon.ico (PNG-in-ICO, 256x256 rounded square, accent blue).
+// One-off: generate src-tauri/icons/icon.ico + icon.png (PNG-in-ICO, 256x256 rounded square, accent blue).
 import { deflateSync } from "node:zlib";
 import { mkdirSync, writeFileSync } from "node:fs";
 
@@ -66,4 +66,6 @@ entry.writeUInt32LE(22, 12); // offset
 
 mkdirSync("src-tauri/icons", { recursive: true });
 writeFileSync("src-tauri/icons/icon.ico", Buffer.concat([header, entry, png]));
-console.log("icon.ico written,", png.length, "bytes PNG payload");
+// macOS/Linux: generate_context! loads icon.png as the default window icon.
+writeFileSync("src-tauri/icons/icon.png", png);
+console.log("icon.ico + icon.png written,", png.length, "bytes PNG");
