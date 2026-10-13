@@ -13,7 +13,6 @@
  * explicitly.
  */
 import { cloneTransform, CUSTOM_GLB_KIND, store, type BuildingKind } from "../state/store";
-import type { CableRegistry } from "./cables";
 import type { EntityRegistry } from "./entities";
 
 /** True when the event target is (or is inside) a UI control. */
