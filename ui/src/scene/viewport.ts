@@ -1,8 +1,9 @@
 /**
  * Viewport 3D (PLAN.md Fases 2–3, DESIGN.md §5 and §14).
  *
- * The WebGL canvas mounts inside `.viewport-canvas`. The `.minimap` glass
- * overlay remains a placeholder (expand behavior A20 is a later phase).
+ * The WebGL canvas mounts inside `.viewport-canvas` (returned as `canvasHost`);
+ * the React `Viewport` component owns the surrounding `<main>` and the
+ * minimap overlay and attaches `canvasHost` on mount.
  *
  * This module owns the Three.js scene: renderer (antialias, PCF soft shadows,
  * pixelRatio ≤ 2), perspective camera starting at the isometric view,
@@ -67,30 +68,16 @@ function addHelpers(scene: THREE.Scene): { grid: THREE.GridHelper; axes: THREE.A
 }
 
 export interface ViewportHandles {
-  root: HTMLElement;
+  /** `.viewport-canvas` host; attached to the DOM by `components/Viewport.tsx`. */
+  canvasHost: HTMLElement;
   terrain: Terrain;
   registry: EntityRegistry;
   cables: CableRegistry;
 }
 
 export function createViewport(): ViewportHandles {
-  const root = document.createElement("main");
-  root.className = "viewport";
-  root.setAttribute("aria-label", "Viewport 3D");
-
   const canvasHost = document.createElement("div");
   canvasHost.className = "viewport-canvas";
-
-  const minimap = document.createElement("div");
-  minimap.className = "minimap glass";
-  minimap.setAttribute("aria-label", "Minimap");
-
-  const minimapLabel = document.createElement("span");
-  minimapLabel.className = "minimap-label";
-  minimapLabel.textContent = "Minimap";
-
-  minimap.appendChild(minimapLabel);
-  root.append(canvasHost, minimap);
 
   // ---- Renderer / scene / camera ----
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -146,7 +133,7 @@ export function createViewport(): ViewportHandles {
     controls,
     getObject: (id) => registry.getObject(id) ?? cables.getObject(id),
   });
-  initEntityShortcuts({ registry, cables });
+  initEntityShortcuts({ registry });
   initBrush({ canvas: renderer.domElement, camera, scene, controls, terrain });
   initEntityDragDrop({ canvas: renderer.domElement, camera, scene, terrain, registry });
   initCableTool({
@@ -189,5 +176,5 @@ export function createViewport(): ViewportHandles {
   });
   resizeObserver.observe(canvasHost);
 
-  return { root, terrain, registry, cables };
+  return { canvasHost, terrain, registry, cables };
 }
