@@ -11,7 +11,7 @@
 import * as THREE from "three";
 
 import { store } from "../state/store";
-import { showToast } from "../ui/toast";
+import { showToast } from "../state/toasts";
 import type { CableRegistry } from "../scene/cables";
 import type { EntityRegistry } from "../scene/entities";
 import { shouldIgnoreShortcut } from "../scene/shortcuts";
