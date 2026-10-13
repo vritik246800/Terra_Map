@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "modeling",
+  "productName": "Terra_Map",
   "version": "0.1.0",
-  "identifier": "com.modeling.app",
+  "identifier": "com.terramap.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Simulador de Terrenos e Redes",
+        "title": "Terra_Map",
         "width": 1440,
         "height": 900,
         "minWidth": 1280,
@@ -26,6 +26,6 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon.ico"]
+    "icon": ["icons/icon.png", "icons/icon.ico"]
   }
 }
