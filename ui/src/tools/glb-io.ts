@@ -23,7 +23,7 @@ import type { EntityRegistry } from "../scene/entities";
 import { isUiControlFocused } from "../scene/shortcuts";
 import type { Terrain } from "../scene/terrain";
 import { identityTransform, store } from "../state/store";
-import { showToast } from "../ui/toast";
+import { showToast } from "../state/toasts";
 import { playDropBounce } from "./drag-drop";
 
 export interface GlbActions {
