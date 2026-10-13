@@ -81,7 +81,7 @@ mod tests {
     use super::*;
 
     fn temp_path(name: &str) -> PathBuf {
-        std::env::temp_dir().join(format!("modeling-glb-test-{}-{name}", std::process::id()))
+        std::env::temp_dir().join(format!("terra-map-glb-test-{}-{name}", std::process::id()))
     }
 
     #[test]
