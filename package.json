@@ -1,0 +1,13 @@
+{
+  "name": "modeling",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "npm --prefix ui run dev",
+    "build": "npm --prefix ui run build",
+    "typecheck": "npm --prefix ui run typecheck",
+    "lint": "npm --prefix ui run lint",
+    "format": "npm --prefix ui run format",
+    "format:check": "npm --prefix ui run format:check"
+  }
+}

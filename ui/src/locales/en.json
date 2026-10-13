@@ -1,0 +1,9 @@
+{
+  "app": {
+    "title": "Terrain and Network Simulator"
+  },
+  "core": {
+    "connecting": "Connecting to the Rust core…",
+    "unavailable": "Rust core unavailable (running outside Tauri)."
+  }
+}

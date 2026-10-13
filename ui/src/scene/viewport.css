@@ -1,0 +1,36 @@
+/* Viewport styles (Fase 2).
+ * Grid placement, position and overflow of `.viewport` are handled by the
+ * global stylesheet — do not duplicate them here. Colors/radius only via
+ * the DESIGN.md §7 tokens. */
+
+.viewport-canvas {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+}
+
+.viewport-canvas canvas {
+  display: block;
+}
+
+.minimap {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  width: 180px;
+  height: 180px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 8px;
+  box-sizing: border-box;
+  pointer-events: none; /* placeholder overlay — never blocks the scene below */
+}
+
+.minimap-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+  user-select: none;
+}

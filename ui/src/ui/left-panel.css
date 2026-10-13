@@ -1,0 +1,136 @@
+/* Left catalog panel — styles only via tokens from style.css (DESIGN.md §7).
+   Grid placement and panel width are handled by global CSS. */
+
+.panel-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+/* --- Collapsible group --- */
+
+.catalog-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.catalog-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.catalog-group-header:hover {
+  background: var(--surface-strong);
+}
+
+.catalog-group-header:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.catalog-group-chevron {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Height is animated via GSAP (A15); overflow hidden clips during the tween. */
+.catalog-group-items {
+  overflow: hidden;
+}
+
+.catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 2px 6px;
+  list-style: none;
+}
+
+/* --- Catalog item (list card) --- */
+
+.catalog-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: grab;
+  /* A3 (DESIGN.md §8.1): hover elevation, 150ms ease-out. */
+  transition:
+    box-shadow 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.catalog-item:hover {
+  box-shadow: var(--shadow-2);
+  transform: scale(1.02);
+}
+
+.catalog-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Active state: current terrain preset / active tool (Fase 3). */
+.catalog-item.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Disabled state: "Modelo personalizado" before the first .glb import (Fase 5). */
+.catalog-item.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.catalog-item.is-disabled:hover {
+  box-shadow: var(--shadow-1);
+  transform: none;
+}
+
+/* --- Saved terrain presets sub-list (Fase 3) --- */
+
+.catalog-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0 0 0 14px;
+  list-style: none;
+}
+
+.catalog-preset-empty {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-item {
+    transition: none;
+  }
+}

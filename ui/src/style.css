@@ -1,0 +1,178 @@
+/* ============================================================
+   Global styles — Fase 1: layout base + design tokens.
+   Visual source of truth: Docs/DESIGN.md §5, §7, §16, §17.
+   Component-specific styles live next to their TS modules.
+   ============================================================ */
+
+/* ---- Design tokens (DESIGN §7.1, §7.2, §7.4) — light theme ---- */
+:root {
+  /* Colors (§7.1) */
+  --bg: #f5f5f7;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-strong: #ffffff;
+  --text: #1d1d1f;
+  --text-muted: #6e6e73;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --danger: #ff3b30;
+  --ok: #34c759;
+  --warn: #ff9500;
+  --border: rgba(0, 0, 0, 0.08);
+
+  /* Shape & elevation (§7.2) */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --blur: blur(20px) saturate(180%);
+
+  /* Typography (§7.4) */
+  --font-base: -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", monospace;
+}
+
+/* ---- Dark theme overrides (DESIGN §16) ---- */
+[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --surface: rgba(44, 44, 46, 0.72);
+  --surface-strong: #2c2c2e;
+  --text: #f5f5f7;
+  --text-muted: #98989d;
+  --accent: #0a84ff;
+  --border: rgba(255, 255, 255, 0.12);
+}
+
+/* ---- Base resets ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+#app {
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* ---- Accessibility: visible focus (DESIGN §17) ---- */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- Glass effect (DESIGN §7.3) ---- */
+.glass {
+  background: var(--surface);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+/* ---- App layout grid (PLAN Fase 1 / DESIGN §5) ---- */
+.app {
+  display: grid;
+  grid-template: "top top top" 52px "left view right" 1fr / 260px 1fr 300px;
+  background: var(--bg);
+  height: 100vh;
+}
+
+.navbar-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+}
+
+.panel-left {
+  grid-area: left;
+  margin: 8px;
+  overflow-y: auto;
+}
+
+.viewport {
+  grid-area: view;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.panel-right {
+  grid-area: right;
+  margin: 8px;
+  overflow-y: auto;
+}
+
+/* ---- Circular button: position only; appearance lives in its module ---- */
+.fab {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 40;
+}
+
+/* ---- Panel toggle buttons (top bar): only visible on small screens ---- */
+.panel-toggle {
+  display: none;
+}
+
+/* ---- Responsive collapse (PLAN Fase 1): panels become off-canvas overlays ---- */
+@media (max-width: 1100px) {
+  .app {
+    grid-template: "top" 52px "view" 1fr / 1fr;
+  }
+
+  .panel-toggle {
+    display: inline-flex;
+  }
+
+  .panel-left,
+  .panel-right {
+    position: fixed;
+    top: 60px;
+    bottom: 8px;
+    margin: 0;
+    z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 250ms ease,
+      opacity 250ms ease;
+  }
+
+  .panel-left {
+    left: 8px;
+    width: 260px;
+    transform: translateX(calc(-100% - 8px));
+  }
+
+  .panel-right {
+    right: 8px;
+    width: 300px;
+    transform: translateX(calc(100% + 8px));
+  }
+
+  .panel-left.open,
+  .panel-right.open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

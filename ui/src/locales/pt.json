@@ -1,0 +1,9 @@
+{
+  "app": {
+    "title": "Simulador de Terrenos e Redes"
+  },
+  "core": {
+    "connecting": "A ligar ao núcleo Rust…",
+    "unavailable": "Núcleo Rust indisponível (a correr fora do Tauri)."
+  }
+}

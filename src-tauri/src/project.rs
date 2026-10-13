@@ -1,0 +1,220 @@
+//! Project & preset persistence (DESIGN.md §3, §4 `TerrainPreset`, §18).
+//!
+//! Fase 3 scope: terrain presets only. A preset is a JSON file in
+//! `<app_data_dir>/presets/` with the shape:
+//!
+//! ```json
+//! {
+//!   "name": "As minhas montanhas",
+//!   "preset": "mountains",
+//!   "params": { "seed": 42, "amplitude": 40, "frequency": 1, "size": 200, "resolution": 128 },
+//!   "heightmap": "base64:…"   // float32 little-endian, row-major res² values
+//! }
+//! ```
+//!
+//! Full project save/load arrives in Fase 8 and reuses this module.
+
+use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Manager};
+
+use crate::error::AppError;
+
+const PRESETS_DIR: &str = "presets";
+const PRESET_EXTENSION: &str = "json";
+
+/// Generation parameters stored with a preset (DESIGN.md §4 `TerrainPreset`).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TerrainPresetParams {
+    pub seed: u32,
+    pub amplitude: f64,
+    pub frequency: f64,
+    pub size: u32,
+    pub resolution: u32,
+}
+
+/// A terrain preset file as stored on disk.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TerrainPresetFile {
+    pub name: String,
+    /// Base preset id (`flat | mountains | valley | custom`) the heightmap came from.
+    pub preset: String,
+    pub params: TerrainPresetParams,
+    /// `base64:` + float32 LE heightmap; absent for presets without sculpting.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heightmap: Option<String>,
+}
+
+/// Summary of a saved preset, used to fill the catalog list.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PresetSummary {
+    pub name: String,
+    pub preset: String,
+    /// File stem on disk, used to load/delete it later.
+    pub file: String,
+}
+
+/// Turns a display name into a safe file stem ("As minhas montanhas!" →
+/// "as-minhas-montanhas"). Errors when nothing usable remains.
+fn preset_file_stem(name: &str) -> Result<String, AppError> {
+    let mut stem = String::with_capacity(name.len());
+    let mut last_dash = false;
+    for ch in name.chars().flat_map(char::to_lowercase) {
+        if ch.is_ascii_alphanumeric() {
+            stem.push(ch);
+            last_dash = false;
+        } else if !last_dash && !stem.is_empty() {
+            stem.push('-');
+            last_dash = true;
+        }
+    }
+    let stem = stem.trim_end_matches('-').to_string();
+    if stem.is_empty() {
+        return Err(AppError::InvalidPresetName(name.to_string()));
+    }
+    Ok(stem)
+}
+
+/// `<app_data_dir>/presets`, created on demand.
+fn presets_dir(app: &AppHandle) -> Result<PathBuf, AppError> {
+    let base = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| AppError::NoAppDataDir)?;
+    let dir = base.join(PRESETS_DIR);
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+/// Validates a preset name coming from the UI.
+fn validate_name(name: &str) -> Result<(), AppError> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() || trimmed.len() > 80 {
+        return Err(AppError::InvalidPresetName(name.to_string()));
+    }
+    Ok(())
+}
+
+/// Writes a preset to disk (overwrites an existing preset with the same stem).
+pub fn save_terrain_preset(app: &AppHandle, preset: &TerrainPresetFile) -> Result<(), AppError> {
+    validate_name(&preset.name)?;
+    let stem = preset_file_stem(&preset.name)?;
+    let path = presets_dir(app)?.join(format!("{stem}.{PRESET_EXTENSION}"));
+    let json = serde_json::to_string_pretty(preset)?;
+    std::fs::write(path, json)?;
+    Ok(())
+}
+
+/// Lists saved presets, ordered by name. Unreadable/invalid files are skipped
+/// (a stray file must not break the catalog).
+pub fn list_terrain_presets(app: &AppHandle) -> Result<Vec<PresetSummary>, AppError> {
+    let dir = presets_dir(app)?;
+    let mut presets = Vec::new();
+    for entry in std::fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.extension().and_then(|e| e.to_str()) != Some(PRESET_EXTENSION) {
+            continue;
+        }
+        let Ok(raw) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(file) = serde_json::from_str::<TerrainPresetFile>(&raw) else {
+            continue;
+        };
+        presets.push(PresetSummary {
+            name: file.name,
+            preset: file.preset,
+            file: path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default()
+                .to_string(),
+        });
+    }
+    presets.sort_by_key(|p| p.name.to_lowercase());
+    Ok(presets)
+}
+
+/// Loads a preset by its file stem (as returned by `list_terrain_presets`).
+pub fn load_terrain_preset(app: &AppHandle, file: &str) -> Result<TerrainPresetFile, AppError> {
+    // The stem is generated by `preset_file_stem`, so refuse anything else
+    // outright (defends against path traversal from the frontend).
+    if file.is_empty() || file != preset_file_stem(file)? {
+        return Err(AppError::InvalidPresetName(file.to_string()));
+    }
+    let path = presets_dir(app)?.join(format!("{file}.{PRESET_EXTENSION}"));
+    if !path.is_file() {
+        return Err(AppError::PresetNotFound(file.to_string()));
+    }
+    let raw = std::fs::read_to_string(path)?;
+    let preset = serde_json::from_str(&raw)?;
+    Ok(preset)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stem_sanitizes_names() {
+        assert_eq!(
+            preset_file_stem("As minhas montanhas!").unwrap(),
+            "as-minhas-montanhas"
+        );
+        assert_eq!(preset_file_stem("  Vale 42  ").unwrap(), "vale-42");
+        assert_eq!(preset_file_stem("já_viste").unwrap(), "j-viste");
+        assert!(preset_file_stem("!!!").is_err());
+        assert!(preset_file_stem("").is_err());
+    }
+
+    #[test]
+    fn preset_file_json_round_trip() {
+        let preset = TerrainPresetFile {
+            name: "Teste".into(),
+            preset: "mountains".into(),
+            params: TerrainPresetParams {
+                seed: 42,
+                amplitude: 40.0,
+                frequency: 1.0,
+                size: 200,
+                resolution: 128,
+            },
+            heightmap: Some("base64:AAAA".into()),
+        };
+        let json = serde_json::to_string(&preset).unwrap();
+        let back: TerrainPresetFile = serde_json::from_str(&json).unwrap();
+        assert_eq!(preset, back);
+    }
+
+    #[test]
+    fn preset_file_without_heightmap_omits_field() {
+        let preset = TerrainPresetFile {
+            name: "Plano".into(),
+            preset: "flat".into(),
+            params: TerrainPresetParams {
+                seed: 1,
+                amplitude: 0.0,
+                frequency: 1.0,
+                size: 200,
+                resolution: 64,
+            },
+            heightmap: None,
+        };
+        let json = serde_json::to_string(&preset).unwrap();
+        assert!(!json.contains("heightmap"));
+        // And it still deserializes (forward/backward compatible).
+        let back: TerrainPresetFile = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.heightmap, None);
+    }
+
+    #[test]
+    fn name_validation() {
+        assert!(validate_name("Montanhas").is_ok());
+        assert!(validate_name("   ").is_err());
+        assert!(validate_name(&"x".repeat(81)).is_err());
+    }
+}

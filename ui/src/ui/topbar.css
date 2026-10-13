@@ -1,0 +1,83 @@
+/* Top bar — layout only; colors/radius come from the global tokens. */
+
+.navbar-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--text);
+}
+
+.navbar-top svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.navbar-top-toggles,
+.navbar-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-toggle,
+.tb-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+.panel-toggle {
+  padding: 6px;
+}
+
+.panel-toggle:hover,
+.tb-btn:hover {
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-1);
+}
+
+.panel-toggle:focus-visible,
+.tb-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.project-title {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  transition:
+    background 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+.project-title:hover {
+  background: var(--surface-strong);
+}
+
+.project-title:focus {
+  background: var(--surface-strong);
+  box-shadow: 0 0 0 2px var(--accent);
+}
