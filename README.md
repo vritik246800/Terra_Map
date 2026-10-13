@@ -49,13 +49,14 @@ Terra_Map/
 │   ├── capabilities/
 │   ├── icons/
 │   └── tauri.conf.json
-├── ui/                     # frontend
+├── ui/                     # frontend React + TypeScript
 │   ├── src/
-│   │   ├── main.ts
+│   │   ├── main.tsx        # cria a cena 3D e monta <App />
+│   │   ├── App.tsx         # layout
+│   │   ├── components/     # barra superior, painéis, viewport, spinner, toasts, menu de atalhos
 │   │   ├── scene/          # viewport, câmara, terreno, entidades, cabos, selecção, gizmo
 │   │   ├── tools/          # pincel, arrastar e largar, cabo, marcador, import/export .glb
-│   │   ├── ui/             # navbars, painéis, spinner, toast, menu de atalhos
-│   │   ├── state/          # store
+│   │   ├── state/          # store, hook useStore, fila de toasts
 │   │   ├── anim/           # animações (GSAP, anime.js, movimento reduzido)
 │   │   ├── net/            # ponte para o núcleo Rust
 │   │   └── locales/        # pt, en
