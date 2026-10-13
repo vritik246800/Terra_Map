@@ -1,5 +1,5 @@
 [package]
-name = "modeling"
+name = "terra-map"
 version = "0.1.0"
 description = "Simulador de terrenos, infraestruturas e redes de telecomunicação"
 edition = "2021"
