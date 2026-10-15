@@ -133,8 +133,15 @@ export function createViewport(): ViewportHandles {
     controls,
     getObject: (id) => registry.getObject(id) ?? cables.getObject(id),
   });
-  initEntityShortcuts({ registry });
-  initBrush({ canvas: renderer.domElement, camera, scene, controls, terrain });
+  initEntityShortcuts({ registry, cables });
+  initBrush({
+    canvas: renderer.domElement,
+    camera,
+    scene,
+    controls,
+    terrain,
+    onStrokeEnd: () => cables.rebuildAll(),
+  });
   initEntityDragDrop({ canvas: renderer.domElement, camera, scene, terrain, registry });
   initCableTool({
     canvas: renderer.domElement,
