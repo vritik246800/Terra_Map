@@ -1,32 +1,68 @@
 /**
  * Right properties panel (DESIGN.md §5).
  *
- * Content priority: brush settings while the brush tool is active; otherwise
- * the selected entity editor (Fase 4: phase stepper, X/Y/Z spinners, floors,
- * collision badge); otherwise the custom-terrain params when that preset is
- * active; otherwise the empty state.
+ * Content priority: brush settings while the brush tool is active; cable
+ * type/route pickers while the cable tool is active and a hint while the
+ * marker tool is active (Fase 6); otherwise the selected entity editor
+ * (Fase 4: phase stepper, X/Y/Z spinners, floors, collision badge; Fase 6:
+ * marker label/note, dynamic props of network elements) or the selected
+ * cable editor (Fase 6: endpoints, type, route, length, dynamic props);
+ * otherwise the custom-terrain params when that preset is active; otherwise
+ * the empty state.
  *
  * A7 cross-fade plays only when the content kind changes (signature: brush /
- * entity:<id> / custom / empty); other store changes just re-render, and the
- * spinners keep their DOM nodes, so focus and ↑/↓ editing survive.
+ * cableTool / markerTool / entity:<id> / cable:<id> / custom / empty); other
+ * store changes just re-render, and the spinners keep their DOM nodes, so
+ * focus and ↑/↓ editing survive.
  */
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { a7In, a7Out } from "../anim/ui";
 import { DEFAULT_FLOORS } from "../scene/buildings";
+import type { CableRegistry } from "../scene/cables";
 import type { EntityRegistry } from "../scene/entities";
-import { cloneTransform, CUSTOM_GLB_KIND, type TransformData } from "../state/store";
+import {
+  cloneTransform,
+  CUSTOM_GLB_KIND,
+  isNetworkKind,
+  MARKER_KIND,
+  type CableRoute,
+  type CableType,
+  type TransformData,
+} from "../state/store";
 import { useStore } from "../state/use-store";
 import type { TerrainActions } from "../tools/terrain-actions";
+import { DynamicPropsEditor } from "./DynamicPropsEditor";
 import { Spinner } from "./Spinner";
 import "./right-panel.css";
 
-/** pt-PT labels for entity kinds (Fase 4 infrastructures + Fase 5 .glb). */
+/** pt-PT labels for entity kinds (Fase 4 infrastructures, Fase 5 .glb, Fase 6 network + marker). */
 const KIND_LABELS: Record<string, string> = {
   house: "Casa",
   building: "Prédio",
   lot: "Lote",
   [CUSTOM_GLB_KIND]: "Modelo personalizado",
+  antenna: "Antena",
+  router: "Router",
+  switch: "Switch",
+  olt: "OLT",
+  onu: "ONU",
+  splitter: "Splitter",
+  pole: "Poste",
+  box: "Caixa de distribuição",
+  [MARKER_KIND]: "Marcador",
+};
+
+/** pt-PT labels for cable types and routes (Fase 6, DESIGN.md §4.1). */
+const CABLE_TYPE_LABELS: Record<CableType, string> = {
+  fiber: "Fibra",
+  copper: "Cobre",
+  coax: "Coaxial",
+};
+const CABLE_ROUTE_LABELS: Record<CableRoute, string> = {
+  underground: "Subterrâneo",
+  aerial: "Aéreo",
+  direct: "Direto",
 };
 
 /** Construction phase labels (DESIGN.md §6: fundações → estrutura → acabamento). */
@@ -120,6 +156,73 @@ function BrushSection() {
   );
 }
 
+/** Segmented picker (Fase 6): same look as the phase stepper, one active option. */
+function SegmentedPicker<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: Record<T, string>;
+  value: T;
+  onChange(next: T): void;
+}) {
+  return (
+    <div className="segmented-picker">
+      <span className="segmented-picker__label">{label}</span>
+      <div className="phase-stepper" role="group" aria-label={label}>
+        {(Object.keys(options) as T[]).map((option) => (
+          <button
+            key={option}
+            type="button"
+            className={`phase-stepper__button${option === value ? " phase-stepper__button--active" : ""}`}
+            aria-pressed={option === value}
+            onClick={() => onChange(option)}
+          >
+            {options[option]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Cable tool settings (Fase 6): type and route of the next cable. */
+function CableToolSection() {
+  const store = useStore();
+  return (
+    <Section title="Ferramenta cabo">
+      <SegmentedPicker
+        label="Tipo"
+        options={CABLE_TYPE_LABELS}
+        value={store.cableTool.cableType}
+        onChange={store.setCableType}
+      />
+      <SegmentedPicker
+        label="Percurso"
+        options={CABLE_ROUTE_LABELS}
+        value={store.cableTool.route}
+        onChange={store.setCableRoute}
+      />
+      <p className="properties-section__hint">
+        Clique no elemento de origem e depois no destino. Esc cancela.
+      </p>
+    </Section>
+  );
+}
+
+/** Marker tool hint (Fase 6): the tool has no settings. */
+function MarkerToolSection() {
+  return (
+    <Section title="Ferramenta marcador">
+      <p className="properties-section__hint">
+        Clique no terreno ou num elemento para colocar um pin com etiqueta. Esc cancela.
+      </p>
+    </Section>
+  );
+}
+
 /** Custom terrain params (Fase 3): seed/amplitude/frequency/size. */
 function CustomSection({ actions }: { actions: TerrainActions }) {
   const store = useStore();
@@ -199,6 +302,16 @@ function EntityEditor({ registry, id }: { registry: EntityRegistry; id: string }
     registry.updateCollisionWarnings();
   }
 
+  // Fase 6 (markers): the label rebuilds the 3D sprite; the note is data only.
+  function writeLabel(label: string): void {
+    store.updateEntity(id, { label });
+    registry.applyPhase(id);
+  }
+
+  function writeNote(note: string): void {
+    store.updateEntity(id, { note });
+  }
+
   return (
     <div className="properties-info">
       <dl className="properties-list">
@@ -219,8 +332,8 @@ function EntityEditor({ registry, id }: { registry: EntityRegistry; id: string }
         </p>
       )}
 
-      {/* Lots ignore the phase (§6); imported .glb models have none (Fase 5). */}
-      {info.kind !== "lot" && info.kind !== CUSTOM_GLB_KIND && (
+      {/* Lots ignore the phase (§6); imported .glb models and markers have none (Fases 5–6). */}
+      {info.kind !== "lot" && info.kind !== CUSTOM_GLB_KIND && info.kind !== MARKER_KIND && (
         <Section title="Fase">
           <div className="phase-stepper" role="group" aria-label="Fase de construção">
             {PHASE_LABELS.map((label, phase) => (
@@ -247,6 +360,45 @@ function EntityEditor({ registry, id }: { registry: EntityRegistry; id: string }
             max={50}
             step={1}
             onChange={(v) => writeFloors(Math.round(v))}
+          />
+        </Section>
+      )}
+
+      {/* Fase 6: marker pins carry a label (3D sprite) and a note. */}
+      {info.kind === MARKER_KIND && (
+        <Section title="Marcador">
+          <label className="properties-field">
+            <span className="properties-field__label">Etiqueta</span>
+            <input
+              type="text"
+              className="properties-input"
+              value={info.label ?? ""}
+              maxLength={48}
+              onChange={(e) => writeLabel(e.target.value)}
+            />
+          </label>
+          <label className="properties-field">
+            <span className="properties-field__label">Nota</span>
+            <input
+              type="text"
+              className="properties-input"
+              value={info.note ?? ""}
+              maxLength={200}
+              onChange={(e) => writeNote(e.target.value)}
+            />
+          </label>
+          {info.targetId && (
+            <p className="properties-section__hint">Colocado em: {info.targetId}</p>
+          )}
+        </Section>
+      )}
+
+      {/* Fase 6: dynamic key-value props of network elements (DESIGN.md §4.2). */}
+      {isNetworkKind(info.kind) && (
+        <Section title="Propriedades dinâmicas">
+          <DynamicPropsEditor
+            props={info.dynamicProps}
+            onChange={(dynamicProps) => store.updateEntity(id, { dynamicProps })}
           />
         </Section>
       )}
@@ -281,13 +433,83 @@ function EntityEditor({ registry, id }: { registry: EntityRegistry; id: string }
   );
 }
 
+/**
+ * Cable editor (Fase 6): id, endpoints and world length, type/route pickers
+ * (the mesh is rebuilt so the color/path follow) and dynamic props
+ * (DESIGN.md §4.2: bandwidth, attenuation, costPerMeter…).
+ */
+function CableEditor({ cables, id }: { cables: CableRegistry; id: string }) {
+  const store = useStore();
+  const info = store.getCableInfo(id);
+  if (!info) return null;
+
+  const length = cables.getLength(id);
+
+  function writeType(cableType: CableType): void {
+    store.updateCable(id, { cableType });
+    cables.rebuildMesh(id); // color follows the type
+  }
+
+  function writeRoute(route: CableRoute): void {
+    store.updateCable(id, { route });
+    cables.rebuildMesh(id); // path follows the route
+  }
+
+  return (
+    <div className="properties-info">
+      <dl className="properties-list">
+        {[
+          ["ID", id],
+          ["Tipo", "Cabo"],
+          ["Ligação", `${info.fromId} → ${info.toId}`],
+          ["Comprimento", length === undefined ? "—" : `${length.toFixed(1)} m`],
+        ].map(([label, value]) => (
+          <div key={label} className="properties-row">
+            <dt className="properties-row__label">{label}</dt>
+            <dd className="properties-row__value">{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <Section title="Tipo de cabo">
+        <SegmentedPicker
+          label="Tipo de cabo"
+          options={CABLE_TYPE_LABELS}
+          value={info.cableType}
+          onChange={writeType}
+        />
+      </Section>
+
+      <Section title="Percurso">
+        <SegmentedPicker
+          label="Percurso"
+          options={CABLE_ROUTE_LABELS}
+          value={info.route}
+          onChange={writeRoute}
+        />
+      </Section>
+
+      <Section title="Propriedades dinâmicas">
+        <DynamicPropsEditor
+          props={info.dynamicProps}
+          onChange={(dynamicProps) => store.updateCable(id, { dynamicProps })}
+        />
+      </Section>
+
+      <p className="properties-section__hint">Delete elimina o cabo selecionado.</p>
+    </div>
+  );
+}
+
 export function RightPanel({
   actions,
   registry,
+  cables,
   open,
 }: {
   actions: TerrainActions;
   registry: EntityRegistry;
+  cables: CableRegistry;
   open: boolean;
 }) {
   const store = useStore();
@@ -296,11 +518,17 @@ export function RightPanel({
   const signature =
     store.tool === "brush"
       ? "brush"
-      : selected && store.getEntityInfo(selected)
-        ? `entity:${selected}`
-        : store.terrainPreset === "custom"
-          ? "custom"
-          : "empty";
+      : store.tool === "cable"
+        ? "cableTool"
+        : store.tool === "marker"
+          ? "markerTool"
+          : selected && store.getEntityInfo(selected)
+            ? `entity:${selected}`
+            : selected && store.getCableInfo(selected)
+              ? `cable:${selected}`
+              : store.terrainPreset === "custom"
+                ? "custom"
+                : "empty";
 
   // `shown` lags `signature` by the A7 fade-out, then the new content fades in.
   const [shown, setShown] = useState(signature);
@@ -323,9 +551,13 @@ export function RightPanel({
 
   let content: ReactNode;
   if (shown === "brush") content = <BrushSection />;
+  else if (shown === "cableTool") content = <CableToolSection />;
+  else if (shown === "markerTool") content = <MarkerToolSection />;
   else if (shown === "custom") content = <CustomSection actions={actions} />;
   else if (shown.startsWith("entity:"))
     content = <EntityEditor key={shown} registry={registry} id={shown.slice("entity:".length)} />;
+  else if (shown.startsWith("cable:"))
+    content = <CableEditor key={shown} cables={cables} id={shown.slice("cable:".length)} />;
   else content = <EmptyState />;
 
   return (
