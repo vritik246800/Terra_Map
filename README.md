@@ -2,7 +2,7 @@
 
 Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **terreno** (plano, montanhas, vale), colocar **infraestruturas** (casas, prédios, lotes) por arrastar e largar, montar **redes de telecomunicação** (antenas, OLT, splitters, ONU, cabos de fibra, cobre e coaxial) e **simular** a rede — caminho óptimo por cabo com o **algoritmo de Dijkstra**, latência, débito, cobertura de antena e link budget.
 
-> Estado: **em desenvolvimento**. Fases 0–5 feitas (layout, viewport 3D, terrenos, infraestruturas, import/export `.glb`). Redes, simulador e projecto `.json` por fazer. O frontend vai passar de TypeScript simples para **React** (planeado, ainda sem código).
+> Estado: **em desenvolvimento**. Fases 0–6 feitas (layout, viewport 3D, terrenos, infraestruturas, import/export `.glb`, redes e telecomunicação); frontend em **React**. Simulador e projecto `.json` por fazer.
 
 ## Funcionalidades
 
@@ -13,10 +13,10 @@ Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **ter
 - **Terrenos**: presets plano, montanhas, vale e personalizado (seed, amplitude, frequência), gerados no núcleo Rust por ruído Perlin; pincel de escultura (`B`, `Shift` para baixar) com falloff gaussiano; gradiente de cor por altitude; guardar e carregar presets; importar heightmap PNG.
 - **Infraestruturas**: casa, prédio (pisos ajustáveis) e lote; arrastar e largar com encaixe no relevo; fases de construção (fundações, estrutura, acabamento); posição, rotação e escala por spinners e setas (`Shift` ×10, `Alt` ÷10); gizmo de transformação; duplicar e eliminar; aviso de colisão.
 - **Modelos `.glb`**: exportar a maquete ou a selecção, importar com validação; o modelo importado entra no catálogo como reutilizável.
+- **Redes e telecomunicação**: antenas, routers, switches, OLT, ONU, splitters, postes e caixas de distribuição por arrastar e largar; ferramenta Cabo (`C`) com percursos subterrâneo (segue o relevo), aéreo (catenária) ou directo, em fibra, cobre ou coaxial; marcadores (`M`) com etiqueta e nota; propriedades dinâmicas chave-valor por elemento e por cabo; grafo da rede em memória.
 
 ### Planeado
 
-- **Redes e telecomunicação**: antenas, routers, switches, OLT, ONU, splitters, postes, caixas; cabos subterrâneos (seguem o relevo), aéreos (catenária) ou directos; marcadores; propriedades dinâmicas por elemento.
 - **Simulador**: Dijkstra no núcleo Rust com peso por distância, custo, latência ou atenuação; latência e débito ponta-a-ponta; link budget; heatmap de cobertura; simulação de falha de nó ou cabo; exportar resultados em CSV.
 - **Projecto**: guardar e abrir `.json` versionado, autosave, aviso de alterações por guardar.
 - **Depois**: undo/redo, camadas, ciclo dia/noite, água, estradas, vegetação, régua, perfil do terreno, BOM e relatório PDF, tema escuro, inglês.
@@ -26,7 +26,7 @@ Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **ter
 | Área | Escolha |
 |---|---|
 | Núcleo | [Rust](https://www.rust-lang.org) + [Tauri v2](https://v2.tauri.app) (ficheiros, presets, geração de terreno, Dijkstra) |
-| Frontend | TypeScript strict + [Vite](https://vite.dev) — migração para [React](https://react.dev) planeada |
+| Frontend | [React](https://react.dev) + TypeScript strict + [Vite](https://vite.dev) |
 | 3D | [three.js](https://threejs.org) (`OrbitControls`, `TransformControls`, `GLTFLoader`, `GLTFExporter`) |
 | Animação | [GSAP](https://gsap.com) (interface) e [anime.js](https://animejs.com) (3D e micro-interacções) |
 | Dados | projectos em JSON (serde), modelos em `.glb` |
@@ -95,6 +95,7 @@ cargo tauri build         # instalador de produção
 | `Ctrl/Cmd + E` / `I` | exportar / importar `.glb` |
 | `Ctrl/Cmd + D` · `Delete` | duplicar · eliminar |
 | `B` (+ `Shift`) | pincel: elevar (baixar) terreno |
+| `C` · `M` | ferramenta cabo · ferramenta marcador |
 | `W` / `E` / `T` | gizmo: mover / rodar / escalar |
 | `↑` / `↓` (+ `Shift`, `Alt`) | ajustar o spinner focado (×10, ÷10) |
 | `F` · `1` / `2` / `3` · `Home` | focar selecção · vistas topo / frente / iso · repor câmara |
