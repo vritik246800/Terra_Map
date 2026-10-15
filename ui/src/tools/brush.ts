@@ -34,6 +34,12 @@ export interface BrushDeps {
   scene: THREE.Scene;
   controls: OrbitControls;
   terrain: Terrain;
+  /**
+   * Fase 6: called once at the end of each stroke gesture — underground
+   * cables re-follow the freshly sculpted relief (viewport wires it to
+   * `CableRegistry.rebuildAll`).
+   */
+  onStrokeEnd?: () => void;
 }
 
 /**
@@ -124,6 +130,7 @@ export function initBrush(deps: BrushDeps): () => void {
     stroking = false; // gesture end
     lastDab = null;
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+    deps.onStrokeEnd?.(); // Fase 6: underground cables re-follow the relief
   }
 
   function onPointerLeave(): void {
