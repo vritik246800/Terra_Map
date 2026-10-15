@@ -1,0 +1,93 @@
+/* Dynamic key-value properties editor (Fase 6, DESIGN.md §4.2).
+ * Rows reuse the panel look (surface-strong cards, radius-sm, mono values). */
+
+.dyn-props {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dyn-props__entry {
+  display: flex;
+  flex-direction: column;
+}
+
+.dyn-props__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dyn-props__row > .spinner {
+  flex: 1;
+  min-width: 0;
+}
+
+.dyn-props__key {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dyn-props__row > .properties-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.dyn-props__toggle {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.dyn-props__toggle--on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.dyn-props__remove {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dyn-props__remove:hover {
+  background: rgba(255, 59, 48, 0.12); /* --danger at low alpha */
+  color: var(--danger);
+}
+
+.dyn-props__add {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.dyn-props__add > .properties-action {
+  grid-column: 1 / -1;
+}
+
+.dyn-props__add > .properties-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
