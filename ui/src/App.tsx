@@ -38,7 +38,12 @@ export function App({ viewport, terrainActions, glbActions }: AppProps) {
         />
         <LeftPanel actions={terrainActions} open={openPanels.left} />
         <Viewport canvasHost={viewport.canvasHost} />
-        <RightPanel actions={terrainActions} registry={viewport.registry} open={openPanels.right} />
+        <RightPanel
+          actions={terrainActions}
+          registry={viewport.registry}
+          cables={viewport.cables}
+          open={openPanels.right}
+        />
       </div>
       <FabMenu />
       <Toasts />
