@@ -119,6 +119,11 @@ export class CableRegistry {
     for (const cable of store.cablesOf(entityId)) this.rebuildMesh(cable.id);
   }
 
+  /** Rebuilds every cable (e.g. after a brush stroke changed the relief). */
+  rebuildAll(): void {
+    for (const id of this.objects.keys()) this.rebuildMesh(id);
+  }
+
   /** Rebuilds the mesh after a type/route change (cable editor in the panel). */
   rebuildMesh(id: string): void {
     const info = store.getCableInfo(id);
