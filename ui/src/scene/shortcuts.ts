@@ -3,8 +3,9 @@
  * entity action shortcuts of Fase 4 (DESIGN.md §10):
  *
  *  - `Ctrl/Cmd + D`: duplicate the selected entity (+2 m offset in X/Z,
- *    snapped to the terrain);
- *  - `Delete` / `Backspace`: remove the selected entity.
+ *    snapped to the terrain); Fase 6: dynamic props and the marker
+ *    label/note copy over — cables are not duplicated;
+ *  - `Delete` / `Backspace`: remove the selected entity or cable (Fase 6).
  *
  * A shortcut is ignored when the focus is inside a UI control (input, button,
  * select, textarea, contenteditable — e.g. spinners in the properties panel).
@@ -12,7 +13,14 @@
  * (DESIGN.md §10); `Ctrl/Cmd + D` is the exception and checks its modifier
  * explicitly.
  */
-import { cloneTransform, CUSTOM_GLB_KIND, store, type BuildingKind } from "../state/store";
+import {
+  cloneTransform,
+  CUSTOM_GLB_KIND,
+  MARKER_KIND,
+  store,
+  type EntityKind,
+} from "../state/store";
+import type { CableRegistry } from "./cables";
 import type { EntityRegistry } from "./entities";
 
 /** True when the event target is (or is inside) a UI control. */
@@ -36,15 +44,18 @@ export function shouldIgnoreShortcut(e: KeyboardEvent): boolean {
  * Wires the entity action shortcuts (Fase 4). Returns a cleanup function
  * that removes the listener.
  */
-export function initEntityShortcuts(deps: { registry: EntityRegistry }): () => void {
-  const { registry } = deps;
+export function initEntityShortcuts(deps: {
+  registry: EntityRegistry;
+  cables: CableRegistry;
+}): () => void {
+  const { registry, cables } = deps;
 
   /** Ctrl/Cmd+D: spawns a copy of the selected entity +2 m in X and Z. */
   function duplicateSelected(): void {
     const id = store.selected;
     if (!id) return;
     const info = store.getEntityInfo(id);
-    if (!info) return;
+    if (!info) return; // cables (Fase 6) are not duplicated
 
     const transform = cloneTransform(info.transform);
     transform.position.x += 2;
@@ -58,21 +69,34 @@ export function initEntityShortcuts(deps: { registry: EntityRegistry }): () => v
             const template = registry.getEntityTemplate(id);
             return template ? registry.spawnCustomGlb(template, transform) : null;
           })()
-        : registry.spawn(info.kind as BuildingKind, transform, info.phase);
+        : registry.spawn(info.kind as EntityKind, transform, info.phase);
     if (!copy) return;
     if (Object.keys(info.params).length > 0) {
       // spawn only seeds default params; copy the originals and rebuild.
       store.updateEntity(copy.id, { params: { ...info.params } });
       registry.applyPhase(copy.id);
     }
+    // Fase 6: dynamic props copy over (network elements).
+    if (Object.keys(info.dynamicProps).length > 0) {
+      store.updateEntity(copy.id, { dynamicProps: { ...info.dynamicProps } });
+    }
+    // Fase 6: markers keep the label/note; the label sprite is rebuilt.
+    if (info.kind === MARKER_KIND) {
+      store.updateEntity(copy.id, { label: info.label, note: info.note });
+      registry.applyPhase(copy.id);
+    }
     registry.updateCollisionWarnings();
     store.select(copy.id);
   }
 
-  /** Delete/Backspace: removes the selected entity (clears the selection). */
+  /** Delete/Backspace: removes the selected cable (Fase 6) or entity. */
   function deleteSelected(): void {
     const id = store.selected;
     if (!id) return;
+    if (store.getCableInfo(id)) {
+      cables.remove(id);
+      return;
+    }
     registry.remove(id);
   }
 
