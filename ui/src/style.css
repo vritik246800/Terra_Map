@@ -14,10 +14,14 @@
   --text-muted: #6e6e73;
   --accent: #0071e3;
   --accent-hover: #0077ed;
+  --accent-soft: rgba(0, 113, 227, 0.18); /* A8 flash (Fase 9) */
+  --on-accent: #ffffff; /* text on --accent / --danger */
   --danger: #ff3b30;
+  --danger-soft: rgba(255, 59, 48, 0.08); /* warning backgrounds */
   --ok: #34c759;
   --warn: #ff9500;
   --border: rgba(0, 0, 0, 0.08);
+  --backdrop: rgba(0, 0, 0, 0.24); /* modals (Fase 8) */
 
   /* Shape & elevation (§7.2) */
   --radius-sm: 8px;
@@ -41,7 +45,9 @@
   --text: #f5f5f7;
   --text-muted: #98989d;
   --accent: #0a84ff;
+  --accent-soft: rgba(10, 132, 255, 0.24);
   --border: rgba(255, 255, 255, 0.12);
+  --backdrop: rgba(0, 0, 0, 0.48);
 }
 
 /* ---- Base resets ---- */
@@ -175,4 +181,29 @@ body {
     opacity: 1;
     pointer-events: auto;
   }
+}
+
+/* ---- Presentation mode (Fase 11, A22): full-window viewport, panels fade ---- */
+.navbar-top,
+.panel-left,
+.panel-right,
+.fab {
+  transition: opacity 300ms ease;
+}
+
+.is-presenting .navbar-top,
+.is-presenting .panel-left,
+.is-presenting .panel-right,
+.is-presenting .fab,
+.is-presenting .sim-panel,
+.is-presenting .layers-panel,
+.is-presenting .minimap {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.is-presenting .viewport {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
 }
