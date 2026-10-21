@@ -11,6 +11,7 @@
 import * as THREE from "three";
 
 import { store } from "../state/store";
+import { t } from "../state/i18n";
 import { showToast } from "../state/toasts";
 import type { CableRegistry } from "../scene/cables";
 import type { EntityRegistry } from "../scene/entities";
@@ -88,7 +89,7 @@ export function initCableTool(deps: CableToolDeps): () => void {
       return;
     }
     if (id === pendingFrom) {
-      showToast("Escolhe um elemento diferente para o destino do cabo.", "info");
+      showToast(t("toast.cableSame"), "info");
       return;
     }
 
@@ -97,7 +98,7 @@ export function initCableTool(deps: CableToolDeps): () => void {
     pendingFrom = null;
     store.setTool("select"); // §12: cableDestino → select on creation
     store.select(cable.id);
-    showToast("Cabo criado.", "success");
+    showToast(t("toast.cableCreated"), "success");
   }
 
   function onKeydown(e: KeyboardEvent): void {
