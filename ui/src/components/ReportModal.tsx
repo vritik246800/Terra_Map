@@ -7,30 +7,31 @@
 import { useEffect, useState } from "react";
 
 import type { ReportData, Scenario } from "../net/bridge";
+import { fmt, t, type MessageKey } from "../state/i18n";
 import { errorText } from "../state/toasts";
 import { useStore } from "../state/use-store";
 import type { ReportActions } from "../tools/report";
 import { Modal } from "./Modal";
 
-/** Scenario metric keys (written by `tools/report.ts`): pt-PT label, decimals. */
-const METRICS: ReadonlyArray<[key: string, label: string, decimals: number]> = [
-  ["buildings", "Edifícios", 0],
-  ["elements", "Elementos de rede", 0],
-  ["cableM", "Cabo (m)", 1],
-  ["cost", "Custo da BOM (€)", 2],
-  ["latencyMs", "Latência (ms)", 3],
-  ["bandwidthMbps", "Débito (Mbps)", 1],
-  ["attenuationDb", "Atenuação (dB)", 2],
+/** Scenario metric keys (written by `tools/report.ts`) and their decimals; labels: `report.metrics.*`. */
+const METRICS: ReadonlyArray<[key: string, decimals: number]> = [
+  ["buildings", 0],
+  ["elements", 0],
+  ["cableM", 1],
+  ["cost", 2],
+  ["latencyMs", 3],
+  ["bandwidthMbps", 1],
+  ["attenuationDb", 2],
 ];
-const CABLE_LABELS: Record<string, string> = {
-  fiber: "Cabo de fibra",
-  copper: "Cabo de cobre",
-  coax: "Cabo coaxial",
+const CABLE_LABELS: Record<string, MessageKey> = {
+  fiber: "report.cableFiber",
+  copper: "report.cableCopper",
+  coax: "report.cableCoax",
 };
 /** Same cap as the core (`project_file.rs`). */
 const MAX_SCENARIOS = 50;
 
-const eur = (v: number) => `${v.toFixed(2)} €`;
+const eur = (v: number) => `${fmt(v, 2)} €`;
 
 function Table({
   head,
@@ -79,21 +80,21 @@ function Scenarios({ report, data }: { report: ReportActions; data: ReportData }
   const [name, setName] = useState("");
   const current = report.metrics(data);
   const columns: Array<Scenario & { index?: number }> = [
-    { name: "Atual", metrics: current },
+    { name: t("report.current"), metrics: current },
     ...store.scenarios.map((sc, index) => ({ ...sc, index })),
   ];
   const keys = METRICS.filter(([key]) => columns.some((c) => c.metrics.some((m) => m.key === key)));
   const full = store.scenarios.length >= MAX_SCENARIOS;
 
   function save(): void {
-    const trimmed = name.trim() || `Cenário ${store.scenarios.length + 1}`;
+    const trimmed = name.trim() || t("report.scenarioDefault", { n: store.scenarios.length + 1 });
     store.addScenario({ name: trimmed, metrics: current });
     setName("");
   }
 
   return (
     <section className="report-section">
-      <h3 className="report-section__title">Cenários</h3>
+      <h3 className="report-section__title">{t("report.scenarios")}</h3>
       <form
         className="report-scenario-form"
         onSubmit={(e) => {
@@ -104,21 +105,21 @@ function Scenarios({ report, data }: { report: ReportActions; data: ReportData }
         <input
           type="text"
           className="properties-input"
-          placeholder={`Cenário ${store.scenarios.length + 1}`}
-          aria-label="Nome do cenário"
+          placeholder={t("report.scenarioDefault", { n: store.scenarios.length + 1 })}
+          aria-label={t("report.scenarioName")}
           maxLength={80}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <button type="submit" className="modal__button" disabled={full}>
-          Guardar cenário
+          {t("report.saveScenario")}
         </button>
       </form>
       <div className="report-scroll">
         <table className="report-table report-table--compare">
           <thead>
             <tr>
-              <th scope="col">Métrica</th>
+              <th scope="col">{t("report.metric")}</th>
               {columns.map((c) => (
                 <th key={c.index ?? "current"} scope="col">
                   <span className="report-scenario-name">{c.name}</span>
@@ -126,7 +127,7 @@ function Scenarios({ report, data }: { report: ReportActions; data: ReportData }
                     <button
                       type="button"
                       className="report-remove"
-                      aria-label={`Remover o cenário ${c.name}`}
+                      aria-label={t("report.removeScenario", { name: c.name })}
                       onClick={() => store.removeScenario(c.index ?? -1)}
                     >
                       ×
@@ -137,15 +138,13 @@ function Scenarios({ report, data }: { report: ReportActions; data: ReportData }
             </tr>
           </thead>
           <tbody>
-            {keys.map(([key, label, decimals]) => (
+            {keys.map(([key, decimals]) => (
               <tr key={key}>
-                <th scope="row">{label}</th>
+                <th scope="row">{t(`report.metrics.${key}` as MessageKey)}</th>
                 {columns.map((c) => {
                   const v = c.metrics.find((m) => m.key === key)?.value;
                   return (
-                    <td key={c.index ?? "current"}>
-                      {v === undefined ? "—" : v.toFixed(decimals)}
-                    </td>
+                    <td key={c.index ?? "current"}>{v === undefined ? "—" : fmt(v, decimals)}</td>
                   );
                 })}
               </tr>
@@ -153,10 +152,7 @@ function Scenarios({ report, data }: { report: ReportActions; data: ReportData }
           </tbody>
         </table>
       </div>
-      <p className="properties-section__hint">
-        «Guardar cenário» fotografa as métricas atuais no projeto; altera a rede e compara lado a
-        lado com o estado atual.
-      </p>
+      <p className="properties-section__hint">{t("report.scenariosHint")}</p>
     </section>
   );
 }
@@ -181,89 +177,92 @@ export function ReportModal({ report, onClose }: { report: ReportActions; onClos
   const s = data?.stats;
 
   return (
-    <Modal title={`Relatório — ${store.projectName}`} onDismiss={onClose} wide>
+    <Modal title={t("report.title", { name: store.projectName })} onDismiss={onClose} wide>
       {error && (
         <p className="sim-panel__alert" role="alert">
-          Não foi possível calcular o relatório: {error}
+          {t("report.error", { error })}
         </p>
       )}
-      {!data && !error && <p className="modal__text">A calcular…</p>}
+      {!data && !error && <p className="modal__text">{t("common.calculating")}</p>}
       {data && s && (
         <>
           <section className="report-section">
-            <h3 className="report-section__title">Estatísticas</h3>
+            <h3 className="report-section__title">{t("report.stats")}</h3>
             <Table
               total
               rows={[
-                ["Área do terreno", `${s.areaM2.toFixed(0)} m²`],
-                ["Edifícios", String(s.buildings)],
-                ["Elementos de rede", String(s.elements)],
-                ["Marcadores", String(s.markers)],
-                ["Estradas", `${s.roads} (${s.roadLengthM.toFixed(1)} m)`],
+                [t("report.area"), `${fmt(s.areaM2)} m²`],
+                [t("report.buildings"), String(s.buildings)],
+                [t("report.elements"), String(s.elements)],
+                [t("report.markers"), String(s.markers)],
+                [t("report.roads"), `${s.roads} (${fmt(s.roadLengthM, 1)} m)`],
                 ...s.cables.map((c) => [
-                  CABLE_LABELS[c.cableType] ?? c.cableType,
-                  `${c.count} · ${c.meters.toFixed(1)} m`,
+                  CABLE_LABELS[c.cableType] ? t(CABLE_LABELS[c.cableType]) : c.cableType,
+                  `${c.count} · ${fmt(c.meters, 1)} m`,
                 ]),
-                ["Cabo no total", `${s.cableLengthM.toFixed(1)} m`],
+                [t("report.cableTotal"), `${fmt(s.cableLengthM, 1)} m`],
               ]}
             />
           </section>
 
           <section className="report-section">
-            <h3 className="report-section__title">Lista de materiais (BOM)</h3>
+            <h3 className="report-section__title">{t("report.bom")}</h3>
             {data.bom.rows.length === 0 ? (
-              <p className="properties-section__hint">
-                Sem materiais de rede — coloca elementos e cabos de Redes & Telecom.
-              </p>
+              <p className="properties-section__hint">{t("report.bomEmpty")}</p>
             ) : (
               <Table
                 total
-                head={["Elemento", "Quantidade", "Custo unitário", "Total"]}
+                head={[
+                  t("report.item"),
+                  t("report.quantity"),
+                  t("report.unitCost"),
+                  t("report.total"),
+                ]}
                 rows={[
                   ...data.bom.rows.map((r) => [
                     r.item,
-                    `${r.quantity.toFixed(r.unit === "m" ? 1 : 0)} ${r.unit}`,
+                    `${fmt(r.quantity, r.unit === "m" ? 1 : 0)} ${r.unit}`,
                     eur(r.unitCost),
                     eur(r.total),
                   ]),
-                  ["Total do projeto", "", "", eur(data.bom.total)],
+                  [t("report.projectTotal"), "", "", eur(data.bom.total)],
                 ]}
               />
             )}
-            <p className="properties-section__hint">
-              Preços e mão de obra simbólicos: catálogo por tipo ou prop «price»; cabos pelo
-              «costPerMeter».
-            </p>
+            <p className="properties-section__hint">{t("report.pricesNote")}</p>
           </section>
 
           <section className="report-section">
-            <h3 className="report-section__title">Simulação</h3>
+            <h3 className="report-section__title">{t("report.simulation")}</h3>
             {sim ? (
               <Table
                 rows={[
-                  ["Caminho", sim.nodes.join(" → ")],
-                  ["Comprimento", `${sim.metrics.lengthM.toFixed(1)} m`],
-                  ["Latência", `${sim.metrics.latencyMs.toFixed(3)} ms`],
+                  [t("report.path"), sim.nodes.join(" → ")],
+                  [t("report.length"), `${fmt(sim.metrics.lengthM, 1)} m`],
+                  [t("report.latency"), `${fmt(sim.metrics.latencyMs, 3)} ms`],
                   [
-                    "Débito (gargalo)",
-                    sim.metrics.bandwidthMbps === null ? "—" : `${sim.metrics.bandwidthMbps} Mbps`,
+                    t("report.bandwidth"),
+                    sim.metrics.bandwidthMbps === null
+                      ? "—"
+                      : `${fmt(sim.metrics.bandwidthMbps)} Mbps`,
                   ],
-                  ["Custo", eur(sim.metrics.cost)],
-                  ["Atenuação", `${sim.metrics.attenuationDb.toFixed(2)} dB`],
+                  [t("report.cost"), eur(sim.metrics.cost)],
+                  [t("report.attenuation"), `${fmt(sim.metrics.attenuationDb, 2)} dB`],
                   ...(sim.metrics.linkBudget
                     ? [
                         [
-                          "Potência recebida",
-                          `${sim.metrics.linkBudget.prxDbm.toFixed(1)} dBm (folga ${sim.metrics.linkBudget.headroomDb.toFixed(1)} dB)`,
+                          t("report.received"),
+                          t("report.receivedValue", {
+                            prx: fmt(sim.metrics.linkBudget.prxDbm, 1),
+                            headroom: fmt(sim.metrics.linkBudget.headroomDb, 1),
+                          }),
                         ],
                       ]
                     : []),
                 ]}
               />
             ) : (
-              <p className="properties-section__hint">
-                Sem simulação calculada — escolhe origem e destino e calcula o caminho no simulador.
-              </p>
+              <p className="properties-section__hint">{t("report.noSimulation")}</p>
             )}
           </section>
 
@@ -272,14 +271,14 @@ export function ReportModal({ report, onClose }: { report: ReportActions; onClos
       )}
       <div className="modal__actions">
         <button type="button" className="modal__button" onClick={() => void report.exportCsv()}>
-          Exportar CSV
+          {t("report.exportCsv")}
         </button>
         <button
           type="button"
           className="modal__button modal__button--primary"
           onClick={() => void report.exportPdf()}
         >
-          Exportar PDF
+          {t("report.exportPdf")}
         </button>
       </div>
     </Modal>
