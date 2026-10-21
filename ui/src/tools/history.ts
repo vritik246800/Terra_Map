@@ -26,7 +26,8 @@ import type { EntityRegistry } from "../scene/entities";
 import type { RoadRegistry } from "../scene/roads";
 import { isUiControlFocused } from "../scene/shortcuts";
 import type { Terrain, TerrainConfig } from "../scene/terrain";
-import { KIND_LABELS } from "../state/labels";
+import { t, type MessageKey } from "../state/i18n";
+import { kindLabel } from "../state/labels";
 import {
   cloneCableInfo,
   cloneEntityInfo,
@@ -62,7 +63,6 @@ interface TerrainSnap {
 }
 
 interface Entry {
-  label: string;
   time: number;
   entities: Change<EntityInfo>[];
   cables: Change<CableInfo>[];
@@ -105,30 +105,41 @@ function diff<T>(before: Map<string, Snap<T>>, after: Map<string, Snap<T>>): Cha
   return changes;
 }
 
-/** Short pt-PT label of an entry ("Adicionar Casa", "Eliminar 3 elementos"…). */
-function labelOf(
-  entities: Change<EntityInfo>[],
-  cables: Change<CableInfo>[],
-  roads: Change<RoadInfo>[],
-  terrain: boolean,
-  vegetation: boolean,
-): string {
+/**
+ * Short label of an entry ("Adicionar Casa", "Eliminar 3 elementos"…), built
+ * when read so it follows the current language (Fase 13).
+ */
+function labelOf(entry: Entry): string {
+  const { entities, cables, roads } = entry;
   const all = [...entities, ...cables, ...roads];
-  if (all.length === 0) return terrain ? "Terreno" : vegetation ? "Vegetação" : "Alteração";
-  const verb = all.every((c) => !c.before)
-    ? "Adicionar"
-    : all.every((c) => !c.after)
-      ? "Eliminar"
-      : "Editar";
-  if (entities.length === 0 && cables.length === 0)
-    return `${verb} ${roads.length === 1 ? "estrada" : `${roads.length} estradas`}`;
-  if (entities.length === 0)
-    return `${verb} ${cables.length === 1 ? "cabo" : `${cables.length} cabos`}`;
-  if (entities.length === 1) {
-    const info = (entities[0].after ?? entities[0].before)?.info;
-    return `${verb} ${KIND_LABELS[info?.kind ?? ""] ?? info?.kind ?? "elemento"}`;
+  if (all.length === 0) {
+    return t(
+      entry.terrain
+        ? "history.terrain"
+        : entry.vegetation
+          ? "history.vegetation"
+          : "history.change",
+    );
   }
-  return `${verb} ${entities.length} elementos`;
+  const verb = all.every((c) => !c.before)
+    ? "history.add"
+    : all.every((c) => !c.after)
+      ? "history.delete"
+      : "history.edit";
+  const count = (n: number, one: MessageKey, many: MessageKey) =>
+    n === 1 ? t(one) : t(many, { n });
+  let what: string;
+  if (entities.length === 0 && cables.length === 0) {
+    what = count(roads.length, "history.road", "history.roads");
+  } else if (entities.length === 0) {
+    what = count(cables.length, "history.cable", "history.cables");
+  } else if (entities.length === 1) {
+    const kind = (entities[0].after ?? entities[0].before)?.info.kind;
+    what = kind ? kindLabel(kind) : t("history.element");
+  } else {
+    what = t("history.elements", { n: entities.length });
+  }
+  return t(verb, { what });
 }
 
 export function createHistory(deps: {
@@ -232,7 +243,6 @@ export function createHistory(deps: {
     }
 
     const entry: Entry = {
-      label: labelOf(entities, cablesChanged, roadsChanged, !!terrainChange, !!vegetationChange),
       time: performance.now(),
       entities,
       cables: cablesChanged,
@@ -379,7 +389,7 @@ export function createHistory(deps: {
       while (position < target && position < entries.length) redo();
     },
     get labels() {
-      return entries.map((e) => e.label);
+      return entries.map(labelOf);
     },
     get position() {
       return position;
