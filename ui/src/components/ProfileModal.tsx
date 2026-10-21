@@ -8,6 +8,7 @@
 import { useEffect, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import type { ProfilePoint } from "../net/bridge";
+import { fmt, t } from "../state/i18n";
 import { errorText } from "../state/toasts";
 import type { ReportActions } from "../tools/report";
 import { Modal } from "./Modal";
@@ -19,7 +20,7 @@ const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 const DIVISIONS = 4;
 
-const m = (v: number, decimals = 1) => `${v.toFixed(decimals)} m`;
+const m = (v: number, decimals = 1) => `${fmt(v, decimals)} m`;
 
 function Chart({ points }: { points: ProfilePoint[] }) {
   const [index, setIndex] = useState<number | null>(null);
@@ -74,11 +75,11 @@ function Chart({ points }: { points: ProfilePoint[] }) {
       viewBox={`0 0 ${W} ${H}`}
       role="slider"
       tabIndex={0}
-      aria-label="Perfil do terreno — setas percorrem as amostras"
+      aria-label={t("profile.chart")}
       aria-valuemin={0}
       aria-valuemax={last}
       aria-valuenow={index ?? 0}
-      aria-valuetext={at ? tipText : "início"}
+      aria-valuetext={at ? tipText : t("profile.start")}
       onPointerMove={onPointerMove}
       onPointerLeave={() => setIndex(null)}
       onKeyDown={onKeyDown}
@@ -97,7 +98,7 @@ function Chart({ points }: { points: ProfilePoint[] }) {
             />
             <line className="profile-chart__grid" x1={gx} x2={gx} y1={PAD.top} y2={bottom} />
             <text className="profile-chart__axis" x={PAD.left - 6} y={gy + 4} textAnchor="end">
-              {(hi - ((hi - lo) * i) / DIVISIONS).toFixed(1)}
+              {fmt(hi - ((hi - lo) * i) / DIVISIONS, 1)}
             </text>
             <text className="profile-chart__axis" x={gx} y={H - 8} textAnchor="middle">
               {m((length * i) / DIVISIONS, 0)}
@@ -158,25 +159,23 @@ export function ProfileModal({ report, onClose }: { report: ReportActions; onClo
   const heights = points?.map((p) => p.height) ?? [];
 
   return (
-    <Modal title="Perfil do terreno" onDismiss={onClose} wide>
+    <Modal title={t("profile.title")} onDismiss={onClose} wide>
       {error && (
         <p className="sim-panel__alert" role="alert">
-          Não foi possível calcular o perfil: {error}
+          {t("profile.error", { error })}
         </p>
       )}
-      {!points && !error && <p className="modal__text">A calcular…</p>}
-      {points && !usable && (
-        <p className="modal__text">Mede primeiro dois pontos diferentes com a régua (R).</p>
-      )}
+      {!points && !error && <p className="modal__text">{t("common.calculating")}</p>}
+      {points && !usable && <p className="modal__text">{t("profile.tooShort")}</p>}
       {points && usable && (
         <>
           <Chart points={points} />
           <dl className="properties-list profile-stats">
             {[
-              ["Mínimo", m(Math.min(...heights), 2)],
-              ["Máximo", m(Math.max(...heights), 2)],
-              ["Desnível", m(heights[heights.length - 1] - heights[0], 2)],
-              ["Distância", m(points[points.length - 1].distance, 2)],
+              [t("profile.min"), m(Math.min(...heights), 2)],
+              [t("profile.max"), m(Math.max(...heights), 2)],
+              [t("profile.rise"), m(heights[heights.length - 1] - heights[0], 2)],
+              [t("profile.distance"), m(points[points.length - 1].distance, 2)],
             ].map(([label, value]) => (
               <div key={label} className="properties-row">
                 <dt className="properties-row__label">{label}</dt>
@@ -188,7 +187,7 @@ export function ProfileModal({ report, onClose }: { report: ReportActions; onClo
       )}
       <div className="modal__actions">
         <button type="button" className="modal__button modal__button--primary" onClick={onClose}>
-          Fechar
+          {t("common.close")}
         </button>
       </div>
     </Modal>
