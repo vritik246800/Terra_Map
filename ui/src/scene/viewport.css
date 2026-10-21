@@ -82,3 +82,24 @@
   background: var(--accent-soft);
   pointer-events: none;
 }
+
+/* Fase 13: keyboard focus — inner outline + crosshair at the center (DESIGN.md §1.9);
+ * Space "clicks" there. Mouse focus does not match :focus-visible, so no crosshair. */
+.viewport-canvas:focus-visible {
+  outline-offset: -2px;
+}
+
+.viewport-canvas:focus-visible::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    linear-gradient(var(--accent), var(--accent)) center / 2px 100% no-repeat,
+    linear-gradient(var(--accent), var(--accent)) center / 100% 2px no-repeat;
+  filter: drop-shadow(0 0 1px var(--surface-strong));
+}
