@@ -1,15 +1,17 @@
 /**
  * Circular FAB (bottom-right) with a popover menu ("Atalhos", "Guia do
  * programa"). The popover stays mounted and toggles `.open` so A9 can
- * animate it. Item clicks dispatch a `fab:action` CustomEvent on `document`
- * with detail `shortcuts | guide` (modals arrive in Fase 8).
+ * animate it. Items open the "Atalhos" / "Guia do programa" modals through
+ * the store (Fase 8); `?` opens the shortcuts from anywhere (UX.md §4).
  */
 import { useEffect, useRef, useState } from "react";
 
 import { a9Popover } from "../anim/ui";
+import { shouldIgnoreShortcut } from "../scene/shortcuts";
+import { store } from "../state/store";
 import "./fab-menu.css";
 
-export type FabAction = "shortcuts" | "guide";
+type FabAction = "shortcuts" | "guide";
 
 const MENU_ITEMS: ReadonlyArray<{ action: FabAction; label: string }> = [
   { action: "shortcuts", label: "Atalhos" },
@@ -40,6 +42,15 @@ export function FabMenu() {
       a9Popover(popover, false, () => popover.classList.remove("open"));
     }
   }, [open]);
+
+  // `?` opens the shortcuts modal (UX.md §4).
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent): void {
+      if (e.key === "?" && !shouldIgnoreShortcut(e)) store.openModal("shortcuts");
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // Outside click closes; Escape closes and returns focus; ↑/↓ cycle items.
   useEffect(() => {
@@ -108,8 +119,8 @@ export function FabMenu() {
             className="fab-popover-item"
             role="menuitem"
             onClick={() => {
-              document.dispatchEvent(new CustomEvent<FabAction>("fab:action", { detail: action }));
               setOpen(false);
+              store.openModal(action);
               fabRef.current?.focus();
             }}
           >
