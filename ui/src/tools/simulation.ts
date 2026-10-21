@@ -21,6 +21,7 @@ import type { EntityRegistry } from "../scene/entities";
 import type { SimOverlay } from "../scene/sim-overlay";
 import type { Terrain } from "../scene/terrain";
 import { store } from "../state/store";
+import { t } from "../state/i18n";
 import { errorText, showToast } from "../state/toasts";
 
 export interface SimulationActions {
@@ -74,10 +75,10 @@ export function createSimulationActions(deps: SimulationDeps): SimulationActions
       } else {
         store.setSimResult(null, true);
         overlay.clearPath();
-        showToast(`Sem caminho ativo entre ${fromId} e ${toId}.`, "danger");
+        showToast(t("toast.noPath", { from: fromId, to: toId }), "danger");
       }
     } catch (err) {
-      showToast(`Simulação falhou: ${errorText(err)}`, "danger");
+      showToast(t("toast.simFailed", { error: errorText(err) }), "danger");
     }
   }
 
@@ -114,7 +115,7 @@ export function createSimulationActions(deps: SimulationDeps): SimulationActions
         store.setCoverage({ antennaId, result });
         overlay.showCoverage(root.position.x, root.position.z, result);
       } catch (err) {
-        showToast(`Cobertura falhou: ${errorText(err)}`, "danger");
+        showToast(t("toast.coverageFailed", { error: errorText(err) }), "danger");
       }
     },
 
@@ -123,9 +124,9 @@ export function createSimulationActions(deps: SimulationDeps): SimulationActions
       if (!result) return;
       try {
         const path = await exportSimulationCsv(result);
-        if (path) showToast("Resultados exportados (CSV).", "success");
+        if (path) showToast(t("toast.simExported"), "success");
       } catch (err) {
-        showToast(`Exportação falhou: ${errorText(err)}`, "danger");
+        showToast(t("toast.exportFailed", { error: errorText(err) }), "danger");
       }
     },
 
