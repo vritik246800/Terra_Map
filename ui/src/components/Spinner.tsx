@@ -9,6 +9,7 @@
 import { useRef, type KeyboardEvent } from "react";
 
 import { a8Flash } from "../anim/ui";
+import { fmt, t } from "../state/i18n";
 import "./spinner.css";
 
 export interface SpinnerProps {
@@ -51,7 +52,7 @@ export function Spinner({ label, value, min, max, step, onChange }: SpinnerProps
         <button
           type="button"
           className="spinner__button"
-          aria-label={`${label}: diminuir`}
+          aria-label={t("spinner.decrease", { label })}
           onClick={() => apply(-step)}
         >
           −
@@ -67,12 +68,12 @@ export function Spinner({ label, value, min, max, step, onChange }: SpinnerProps
           aria-label={label}
           onKeyDown={onKeyDown}
         >
-          {value.toFixed(decimals)}
+          {fmt(value, decimals)}
         </span>
         <button
           type="button"
           className="spinner__button"
-          aria-label={`${label}: aumentar`}
+          aria-label={t("spinner.increase", { label })}
           onClick={() => apply(step)}
         >
           +
