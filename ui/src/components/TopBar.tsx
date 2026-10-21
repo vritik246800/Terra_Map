@@ -1,12 +1,15 @@
 /**
  * Top navigation bar: panel toggles (narrow screens), project actions
- * (Guardar/Abrir/Importar/Exportar, Camadas, Relatório — Fase 12) and the
- * editable project title.
+ * (Guardar/Abrir/Importar/Exportar, Camadas, Relatório — Fase 12), the
+ * editable project title and the theme/language buttons (Fase 13).
  * Import/Export (`.glb`) are wired in Fase 5; Save/Open and the title
  * (store `projectName`, dot while there are unsaved changes) in Fase 8.
  */
 import type { ReactNode } from "react";
 
+import { a23ThemeFade } from "../anim/ui";
+import { i18n, t } from "../state/i18n";
+import { theme } from "../state/theme";
 import { useStore } from "../state/use-store";
 import "./topbar.css";
 
@@ -83,6 +86,17 @@ const ICONS = {
       <line x1="16" y1="17" x2="16" y2="15" />
     </Icon>
   ),
+  sun: (
+    <Icon>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </Icon>
+  ),
+  moon: (
+    <Icon>
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+    </Icon>
+  ),
   export: (
     <Icon>
       <path d="M12 15V3" />
@@ -95,13 +109,14 @@ const ICONS = {
 export function TopBar({ onSave, onOpen, onImport, onExport, onTogglePanel }: TopBarProps) {
   const store = useStore();
   const actions = [
-    { label: "Guardar", icon: ICONS.save, onClick: onSave },
-    { label: "Abrir", icon: ICONS.open, onClick: onOpen },
-    { label: "Importar", icon: ICONS.import, onClick: onImport },
-    { label: "Exportar", icon: ICONS.export, onClick: onExport },
-    { label: "Camadas", icon: ICONS.layers, onClick: () => store.toggleLayersPanel() }, // Fase 10 (L)
-    { label: "Relatório", icon: ICONS.report, onClick: () => store.openModal("report") }, // Fase 12
+    { label: t("topbar.save"), icon: ICONS.save, onClick: onSave },
+    { label: t("topbar.open"), icon: ICONS.open, onClick: onOpen },
+    { label: t("topbar.import"), icon: ICONS.import, onClick: onImport },
+    { label: t("topbar.export"), icon: ICONS.export, onClick: onExport },
+    { label: t("topbar.layers"), icon: ICONS.layers, onClick: () => store.toggleLayersPanel() }, // Fase 10 (L)
+    { label: t("topbar.report"), icon: ICONS.report, onClick: () => store.openModal("report") }, // Fase 12
   ];
+  const dark = theme.current === "dark";
 
   return (
     <header className="navbar-top glass">
@@ -109,7 +124,7 @@ export function TopBar({ onSave, onOpen, onImport, onExport, onTogglePanel }: To
         <button
           type="button"
           className="panel-toggle"
-          aria-label="Alternar painel esquerdo"
+          aria-label={t("topbar.toggleLeft")}
           onClick={() => onTogglePanel("left")}
         >
           {ICONS.panelLeft}
@@ -117,7 +132,7 @@ export function TopBar({ onSave, onOpen, onImport, onExport, onTogglePanel }: To
         <button
           type="button"
           className="panel-toggle"
-          aria-label="Alternar painel direito"
+          aria-label={t("topbar.toggleRight")}
           onClick={() => onTogglePanel("right")}
         >
           {ICONS.panelRight}
@@ -145,14 +160,36 @@ export function TopBar({ onSave, onOpen, onImport, onExport, onTogglePanel }: To
           value={store.projectName}
           maxLength={80}
           size={Math.max(10, store.projectName.length + 2)}
-          aria-label="Título do projeto"
+          aria-label={t("topbar.projectTitle")}
           spellCheck={false}
           autoComplete="off"
           onChange={(e) => store.setProjectName(e.target.value)}
         />
         {store.dirty && (
-          <span className="project-dirty" role="status" aria-label="Alterações por guardar" />
+          <span className="project-dirty" role="status" aria-label={t("topbar.unsaved")} />
         )}
+      </div>
+      {/* Fase 13 (UX.md §1.1, Q_LIST.md Q27): theme and language, local preferences. */}
+      <div className="navbar-top-prefs">
+        <button
+          type="button"
+          className="tb-btn"
+          aria-label={t("topbar.darkTheme")}
+          aria-pressed={dark}
+          title={t("topbar.darkTheme")}
+          onClick={() => a23ThemeFade(theme.toggle)}
+        >
+          {dark ? ICONS.moon : ICONS.sun}
+        </button>
+        <button
+          type="button"
+          className="tb-btn tb-btn--lang"
+          aria-label={t("topbar.language")}
+          title={t("topbar.language")}
+          onClick={() => i18n.setLocale(i18n.locale === "pt" ? "en" : "pt")}
+        >
+          {i18n.locale.toUpperCase()}
+        </button>
       </div>
     </header>
   );
