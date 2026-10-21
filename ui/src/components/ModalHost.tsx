@@ -8,12 +8,15 @@ import { a10In, a10Out } from "../anim/ui";
 import type { ModalId } from "../state/store";
 import { useStore } from "../state/use-store";
 import type { ProjectActions } from "../tools/project-io";
+import type { ReportActions } from "../tools/report";
 import { GuideModal } from "./GuideModal";
+import { ProfileModal } from "./ProfileModal";
 import { RecoveryModal } from "./RecoveryModal";
+import { ReportModal } from "./ReportModal";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { UnsavedModal } from "./UnsavedModal";
 
-export function ModalHost({ project }: { project: ProjectActions }) {
+export function ModalHost({ project, report }: { project: ProjectActions; report: ReportActions }) {
   const store = useStore();
   const wanted = store.modal;
   const [shown, setShown] = useState<ModalId | null>(wanted);
@@ -40,6 +43,8 @@ export function ModalHost({ project }: { project: ProjectActions }) {
       {shown === "guide" && <GuideModal onClose={close} />}
       {shown === "recovery" && <RecoveryModal project={project} />}
       {shown === "unsaved" && <UnsavedModal project={project} />}
+      {shown === "report" && <ReportModal report={report} onClose={close} />}
+      {shown === "profile" && <ProfileModal report={report} onClose={close} />}
     </div>
   );
 }
