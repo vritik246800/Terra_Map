@@ -7,6 +7,7 @@ import { createGlbActions, initGlbShortcuts } from "./tools/glb-io";
 import { createHistory } from "./tools/history";
 import { createPresentation } from "./tools/presentation";
 import { createProjectActions, initProjectShortcuts } from "./tools/project-io";
+import { createReportActions } from "./tools/report";
 import { createSimulationActions } from "./tools/simulation";
 import { createTerrainActions } from "./tools/terrain-actions";
 import "./style.css";
@@ -48,6 +49,7 @@ if (app) {
       projectActions={projectActions}
       history={history}
       presentation={createPresentation(viewport)}
+      report={createReportActions(viewport)} // Fase 12: stats, BOM, PDF/CSV, profile
     />,
   );
 
