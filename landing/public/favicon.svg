@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Terra_Map icon (Fase 15): isometric terrain block with a snowy peak, a lake,
+       houses and a fiber route whose optimal path glows. Source for `cargo tauri icon`. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="100" x2="0" y2="924" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f4a4c"/>
+      <stop offset="0.55" stop-color="#11262b"/>
+      <stop offset="1" stop-color="#0a1215"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="512" cy="430" r="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3ddc97" stop-opacity="0.34"/>
+      <stop offset="0.6" stop-color="#2bb3a3" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#2bb3a3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="100" x2="0" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="grass" x1="222" y1="403" x2="802" y2="737" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a6d06f"/>
+      <stop offset="1" stop-color="#6f9a4c"/>
+    </linearGradient>
+    <linearGradient id="soilL" x1="0" y1="570" x2="0" y2="821" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9c7c54"/>
+      <stop offset="1" stop-color="#6e5338"/>
+    </linearGradient>
+    <linearGradient id="soilR" x1="0" y1="570" x2="0" y2="821" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#76593b"/>
+      <stop offset="1" stop-color="#4d3a27"/>
+    </linearGradient>
+    <linearGradient id="rock" x1="0" y1="253" x2="0" y2="583" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c6c7cf"/>
+      <stop offset="0.6" stop-color="#8f9098"/>
+      <stop offset="0.88" stop-color="#7f7a62"/>
+      <stop offset="1" stop-color="#7da05c"/>
+    </linearGradient>
+    <linearGradient id="lake" x1="0" y1="566" x2="0" y2="634" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6fd6ee"/>
+      <stop offset="1" stop-color="#2a8fc4"/>
+    </linearGradient>
+    <linearGradient id="route" x1="548" y1="400" x2="512" y2="660" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7cf5c4"/>
+      <stop offset="1" stop-color="#34c759"/>
+    </linearGradient>
+    <clipPath id="body">
+      <rect x="100" y="100" width="824" height="824" rx="185"/>
+    </clipPath>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="bloom" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <!-- squircle -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)" filter="url(#shadow)"/>
+  <g clip-path="url(#body)">
+    <circle cx="512" cy="430" r="430" fill="url(#glow)"/>
+    <!-- contour lines -->
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="3">
+      <path d="M60 250 C 240 190, 420 300, 600 230 S 880 170, 980 220"/>
+      <path d="M60 310 C 250 250, 430 360, 610 290 S 880 235, 980 285"/>
+      <path d="M60 372 C 260 315, 440 420, 620 352 S 885 300, 980 350"/>
+      <path d="M60 860 C 260 820, 470 900, 700 850 S 900 830, 980 860"/>
+    </g>
+    <!-- block shadow -->
+    <ellipse cx="512" cy="846" rx="230" ry="38" fill="#000000" fill-opacity="0.38" filter="url(#soft)"/>
+  </g>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="url(#rim)" stroke-width="3"/>
+
+  <g transform="translate(512 560) scale(1.07) translate(-512 -560)">
+  <!-- terrain block -->
+  <polygon points="222,570 512,737 512,821 222,654" fill="url(#soilL)"/>
+  <polygon points="512,737 802,570 802,654 512,821" fill="url(#soilR)"/>
+  <polygon points="222,570 512,737 512,755 222,588" fill="#5f8a43"/>
+  <polygon points="512,737 802,570 802,588 512,755" fill="#4b7034"/>
+  <polygon points="222,654 512,821 802,654" fill="none" stroke="#000000" stroke-opacity="0.15" stroke-width="2"/>
+  <polygon points="512,403 802,570 512,737 222,570" fill="url(#grass)"/>
+  <polyline points="222,570 512,737 802,570" fill="none" stroke="#d4f0a8" stroke-opacity="0.55" stroke-width="2.5"/>
+
+  <!-- lake -->
+  <ellipse cx="367" cy="600" rx="62" ry="34" fill="url(#lake)"/>
+  <ellipse cx="358" cy="592" rx="30" ry="9" fill="#ffffff" fill-opacity="0.35"/>
+
+  <!-- mountain (low-poly) -->
+  <polygon points="512,253 367,513 442,570" fill="url(#rock)"/>
+  <polygon points="512,253 367,513 442,570" fill="#ffffff" fill-opacity="0.10"/>
+  <polygon points="512,253 442,570 558,583" fill="url(#rock)"/>
+  <polygon points="512,253 558,583 608,392" fill="url(#rock)"/>
+  <polygon points="512,253 558,583 608,392" fill="#000000" fill-opacity="0.18"/>
+  <polygon points="608,392 558,583 663,523" fill="url(#rock)"/>
+  <polygon points="608,392 558,583 663,523" fill="#000000" fill-opacity="0.32"/>
+  <!-- snow -->
+  <polygon points="512,253 468,331 480,337 491,348" fill="#f7f9fb"/>
+  <polygon points="512,253 491,348 510,340 526,352" fill="#e9eef3"/>
+  <polygon points="512,253 526,352 548,338 565,330" fill="#cdd7e1"/>
+
+  <!-- trees -->
+  <g>
+    <polygon points="676,560 694,560 685,526" fill="#2f6b3a"/>
+    <polygon points="685,526 694,560 685,560" fill="#245530"/>
+    <polygon points="704,578 722,578 713,540" fill="#2f6b3a"/>
+    <polygon points="713,540 722,578 713,578" fill="#245530"/>
+    <polygon points="300,560 316,560 308,530" fill="#2f6b3a"/>
+    <polygon points="308,530 316,560 308,560" fill="#245530"/>
+  </g>
+
+  <!-- cables (dim) and the optimal route (glowing) -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M561 615 L 600 648" stroke="#30d5c8" stroke-opacity="0.75" stroke-width="5"/>
+    <path d="M561 615 L 470 650" stroke="#30d5c8" stroke-opacity="0.75" stroke-width="5"/>
+    <path d="M548 470 L 560 520 L 561 615 L 512 660" stroke="#34c759" stroke-width="16" stroke-opacity="0.9" filter="url(#bloom)"/>
+    <path d="M548 470 L 560 520 L 561 615 L 512 660" stroke="url(#route)" stroke-width="7"/>
+  </g>
+
+  <!-- houses: walls, hip roof -->
+  <g>
+    <polygon points="492,646 512,657 512,679 492,668" fill="#f1ede6"/>
+    <polygon points="512,657 532,646 532,668 512,679" fill="#d4cec4"/>
+    <polygon points="492,646 512,657 512,630" fill="#ff9f5a"/>
+    <polygon points="512,657 532,646 512,630" fill="#e2702a"/>
+
+    <polygon points="580,634 600,645 600,667 580,656" fill="#f1ede6"/>
+    <polygon points="600,645 620,634 620,656 600,667" fill="#d4cec4"/>
+    <polygon points="580,634 600,645 600,618" fill="#ff9f5a"/>
+    <polygon points="600,645 620,634 600,618" fill="#e2702a"/>
+
+    <polygon points="450,636 470,647 470,669 450,658" fill="#f1ede6"/>
+    <polygon points="470,647 490,636 490,658 470,669" fill="#d4cec4"/>
+    <polygon points="450,636 470,647 470,620" fill="#ff9f5a"/>
+    <polygon points="470,647 490,636 470,620" fill="#e2702a"/>
+  </g>
+
+  <!-- mast on the mountain -->
+  <path d="M548 470 L 548 412" stroke="#e9eef3" stroke-width="5" stroke-linecap="round"/>
+  <path d="M536 424 L 548 412 L 560 424" fill="none" stroke="#e9eef3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- nodes -->
+  <g>
+    <circle cx="548" cy="406" r="20" fill="#7cf5c4" fill-opacity="0.45" filter="url(#bloom)"/>
+    <circle cx="548" cy="406" r="9" fill="#ffffff"/>
+    <circle cx="561" cy="615" r="18" fill="#34c759" fill-opacity="0.5" filter="url(#bloom)"/>
+    <circle cx="561" cy="615" r="8" fill="#ffffff"/>
+  </g>
+  </g>
+</svg>

@@ -1,0 +1,66 @@
+# Builds the installers for macOS, Windows and Linux and attaches them to a
+# draft GitHub release tagged v<version> (version from src-tauri/tauri.conf.json).
+# Run it by hand: Actions → Release → Run workflow; then review and publish the draft.
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest # one .dmg for Apple Silicon and Intel
+            args: --target universal-apple-darwin
+          - platform: ubuntu-22.04 # .AppImage, .deb, .rpm
+            args: ""
+          - platform: windows-latest # -setup.exe (NSIS) and .msi
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Frontend dependencies
+        run: npm ci --prefix ui
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: Terra_Map v__VERSION__
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+          releaseBody: |
+            Pick the file for your system:
+
+            - **macOS** (Apple Silicon and Intel): the `.dmg` — open it and drag Terra_Map to Applications. Terra_Map is not notarized by Apple, so macOS blocks the first launch: open System Settings › Privacy & Security and click **Open Anyway**.
+            - **Windows** (64-bit): the `-setup.exe` (or the `.msi`). If SmartScreen appears, click **More info › Run anyway**.
+            - **Linux** (64-bit): the `.AppImage` (make it executable, then run it), the `.deb` (Debian, Ubuntu) or the `.rpm` (Fedora, openSUSE).
+
+            Updating is optional: Terra_Map tells you when a new version is out.

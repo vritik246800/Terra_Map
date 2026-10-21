@@ -1,141 +1,149 @@
 # Terra_Map
 
-Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **terreno** (plano, montanhas, vale), colocar **infraestruturas** (casas, prédios, lotes) por arrastar e largar, montar **redes de telecomunicação** (antenas, OLT, splitters, ONU, cabos de fibra, cobre e coaxial) e **simular** a rede — caminho óptimo por cabo com o **algoritmo de Dijkstra**, latência, débito, cobertura de antena e link budget.
+A **desktop** app for **macOS, Windows and Linux** to build **3D mock-ups** of an area: shape the **terrain** (flat, mountains, valley), place **infrastructure** (houses, buildings, plots) by drag and drop, build **telecom networks** (antennas, OLT, splitters, ONU, fiber, copper and coax cables) and **simulate** the network — optimal cable route with **Dijkstra's algorithm**, latency, throughput, antenna coverage and link budget.
 
-> Estado: **fases 0–14 feitas** (layout, viewport 3D, terrenos, infraestruturas, import/export `.glb`, redes e telecomunicação, simulador de redes, projecto `.json`, polish e qualidade, produtividade, ambiente, medição e relatórios, experiência e robustez, distribuição — interface em inglês, aviso de atualização e landing page); frontend em **React**; build de produção para macOS (`.app`/`.dmg`). Próximas ideias no backlog do roadmap.
+> Status: **phases 0–15 done** (layout, 3D viewport, terrain, infrastructure, `.glb` import/export, networks and telecom, network simulator, `.json` project, polish and quality, productivity, environment, measurement and reports, experience and robustness, distribution — English UI, update notice and landing page — and cross-platform: installers for macOS, Windows and Linux, a new icon and a new landing page); **React** frontend. Next ideas are in the roadmap backlog.
 
-## Funcionalidades
+## Features
 
-### Feito
+### Done
 
-- **Interface** estilo Apple: navbar superior (Save, Import, Export, Open), catálogo à esquerda, propriedades à direita, botão circular de atalhos e guia, painéis com efeito de vidro.
-- **Viewport 3D** (three.js): órbita, pan e zoom com amortecimento; vistas topo, frente e isométrica (`1`/`2`/`3`, `Home`, `F`); selecção por clique; grelha (`G`); minimap de cima com clique para mover a câmara.
-- **Terrenos**: presets plano, montanhas, vale e personalizado (seed, amplitude, frequência), gerados no núcleo Rust por ruído Perlin; pincel de escultura (`B`, `Shift` para baixar) com falloff gaussiano; gradiente de cor por altitude; guardar e carregar presets; importar heightmap PNG.
-- **Infraestruturas**: casa, prédio (pisos ajustáveis) e lote; arrastar e largar com encaixe no relevo; fases de construção (fundações, estrutura, acabamento); posição, rotação e escala por spinners e setas (`Shift` ×10, `Alt` ÷10); gizmo de transformação; duplicar e eliminar; aviso de colisão.
-- **Modelos `.glb`**: exportar a maquete ou a selecção, importar com validação; o modelo importado entra no catálogo como reutilizável.
-- **Redes e telecomunicação**: antenas, routers, switches, OLT, ONU, splitters, postes e caixas de distribuição por arrastar e largar; ferramenta Cabo (`C`) com percursos subterrâneo (segue o relevo), aéreo (catenária) ou directo, em fibra, cobre ou coaxial; marcadores (`M`) com etiqueta e nota; propriedades dinâmicas chave-valor por elemento e por cabo; grafo da rede em memória.
-- **Simulador de redes**: caminho óptimo por cabo com Dijkstra no núcleo Rust, por distância, custo, latência ou atenuação; latência, débito de gargalo, custo e atenuação ponta-a-ponta; link budget óptico com semáforo; simular falha de um elemento ou cabo e ver a rota alternativa; cobertura de antena com atenuação pelo relevo (heatmap); exportar resultados em CSV.
-- **Produtividade**: desfazer/refazer até 100 acções (com histórico clicável), selecção múltipla (`Shift`+clique ou rectângulo com `Shift`+arrastar) com mover, alinhar, distribuir e eliminar em lote, copiar/colar, camadas (terreno, infraestruturas, redes, marcadores) com visibilidade e bloqueio, snap à grelha e a objectos, pesquisa no catálogo.
-- **Ambiente**: ciclo dia/noite com sombras e céu em gradiente, névoa, lagos (plano de água), pincel de materiais (relva, terra, areia, rocha, neve), vegetação (árvores e arbustos com instancing), estradas desenhadas sobre o relevo, modo apresentação com voo de câmara.
-- **Medição e relatórios**: régua (`R`) com distância 3D, horizontal e desnível; perfil do terreno entre os dois pontos (gráfico); relatório com estatísticas do projecto, lista de materiais (BOM com preços e mão de obra simbólicos) e a última simulação; comparador de cenários guardado no projecto; exportar o relatório em PDF (com imagem da maquete, gerado no núcleo Rust) e a BOM em CSV.
-- **Experiência**: tema claro e escuro (contraste AA nos dois), interface, relatório e mensagens em inglês, a app toda pelo teclado (viewport focável com mira — setas movem a câmara, `Espaço` clica, `N` salta para o elemento seguinte; catálogo por `Enter`), introdução de 3 passos na primeira execução, guia do programa actualizado.
-- **Actualizações**: no arranque a app consulta a última release no GitHub e, se houver uma versão mais recente, avisa — «Download» abre a página da release, «Later» continua (actualizar é sempre opcional).
-- **Projecto**: guardar e abrir `.json` versionado (com os modelos `.glb` incluídos), guardar como, autosave a cada minuto com recuperação depois de um crash, aviso de alterações por guardar ao fechar ou abrir outro projecto; menus de atalhos e guia do programa.
+- **Interface** in Apple style: top bar (Save, Import, Export, Open), catalog on the left, properties on the right, a round button for shortcuts and the guide, glass panels.
+- **3D viewport** (three.js): damped orbit, pan and zoom; top, front and isometric views (`1`/`2`/`3`, `Home`, `F`); click to select; grid (`G`); top-down minimap — click it to move the camera.
+- **Terrain**: flat, mountains, valley and custom presets (seed, amplitude, frequency), generated in the Rust core with Perlin noise; sculpting brush (`B`, `Shift` to lower) with Gaussian falloff; color gradient by altitude; save and load presets; import a PNG heightmap.
+- **Infrastructure**: house, building (adjustable floors) and plot; drag and drop that snaps to the terrain; construction phases (foundations, structure, finishing); position, rotation and scale with spinners and arrow keys (`Shift` ×10, `Alt` ÷10); transform gizmo; duplicate and delete; collision warning.
+- **`.glb` models**: export the mock-up or the selection, import with validation; an imported model joins the catalog for reuse.
+- **Networks and telecom**: antennas, routers, switches, OLT, ONU, splitters, poles and distribution boxes by drag and drop; Cable tool (`C`) with underground (follows the terrain), aerial (catenary) or direct routes, in fiber, copper or coax; markers (`M`) with a label and a note; dynamic key-value properties per element and per cable; in-memory network graph.
+- **Network simulator**: optimal cable path with Dijkstra in the Rust core, by distance, cost, latency or attenuation; end-to-end latency, bottleneck throughput, cost and attenuation; optical link budget with a traffic light; simulate the failure of an element or cable and see the alternative route; antenna coverage with terrain attenuation (heatmap); export results to CSV.
+- **Productivity**: undo/redo up to 100 actions (with a clickable history), multi-selection (`Shift`+click or a rectangle with `Shift`+drag) with batch move, align, distribute and delete, copy/paste, layers (terrain, infrastructure, networks, markers) with visibility and lock, snap to grid and to objects, catalog search.
+- **Environment**: day/night cycle with shadows and a gradient sky, fog, lakes (water plane), material brush (grass, dirt, sand, rock, snow), vegetation (instanced trees and bushes), roads drawn over the terrain, presentation mode with a camera fly-through.
+- **Measurement and reports**: ruler (`R`) with 3D distance, horizontal distance and height difference; terrain profile between the two points (chart); report with project statistics, bill of materials (BOM with symbolic prices and labor) and the last simulation; scenario comparison saved in the project; export the report to PDF (with an image of the mock-up, generated in the Rust core) and the BOM to CSV.
+- **Experience**: light and dark themes (AA contrast in both), interface, report and messages in English, the whole app by keyboard (focusable viewport with a crosshair — arrow keys move the camera, `Space` clicks, `N` jumps to the next element; catalog with `Enter`), a 3-step introduction on first launch, updated program guide.
+- **Updates**: on start the app checks the latest release on GitHub and, if there is a newer version, says so — “Download” opens the release page, “Later” carries on (updating is always optional).
+- **Project**: save and open a versioned `.json` (with the `.glb` models included), save as, autosave every minute with recovery after a crash, unsaved-changes warning when closing or opening another project; shortcuts menu and program guide.
 
-### Ideias (backlog)
+### Ideas (backlog)
 
-- Terreno real (DEM/SRTM), tráfego de rede animado, exportar para web, vista lógica 2D da rede, templates de projecto.
+- Real terrain (DEM/SRTM), animated network traffic, export to the web, 2D logical network view, project templates.
 
-## Tecnologia
+## Technology
 
-| Área | Escolha |
+| Area | Choice |
 |---|---|
-| Núcleo | [Rust](https://www.rust-lang.org) + [Tauri v2](https://v2.tauri.app) (ficheiros, presets, geração de terreno, Dijkstra, relatórios PDF/CSV) |
-| Frontend | [React](https://react.dev) + TypeScript strict + [Vite](https://vite.dev) |
+| Core | [Rust](https://www.rust-lang.org) + [Tauri v2](https://v2.tauri.app) (files, presets, terrain generation, Dijkstra, PDF/CSV reports) |
+| Frontend | [React](https://react.dev) + strict TypeScript + [Vite](https://vite.dev) |
 | 3D | [three.js](https://threejs.org) (`OrbitControls`, `TransformControls`, `GLTFLoader`, `GLTFExporter`) |
-| Animação | [GSAP](https://gsap.com) (interface) e [anime.js](https://animejs.com) (3D e micro-interacções) |
-| Dados | projectos em JSON (serde), modelos em `.glb` |
-| Qualidade | rustfmt, clippy, ESLint, Prettier, `cargo test`, `tsc --noEmit` |
-| Landing page | [Astro](https://astro.build) (página estática em `landing/`, deploy na [Vercel](https://vercel.com)) |
+| Animation | [GSAP](https://gsap.com) (interface) and [anime.js](https://animejs.com) (3D and micro-interactions) |
+| Data | projects in JSON (serde), models in `.glb` |
+| Quality | rustfmt, clippy, ESLint, Prettier, `cargo test`, `tsc --noEmit` |
+| Landing page | [Astro](https://astro.build) + [three.js](https://threejs.org) + [GSAP](https://gsap.com) (static page in `landing/`, deployed on [Vercel](https://vercel.com)) |
+| Releases | GitHub Actions + [tauri-action](https://github.com/tauri-apps/tauri-action): installers for macOS (universal), Windows and Linux |
 
-O frontend faz a cena 3D e a interface; tudo o que toca no disco ou é pesado (ruído, grafos) vive no núcleo Rust e chega ao frontend por comandos Tauri, todos chamados a partir de `ui/src/net/bridge.ts`.
+The frontend handles the 3D scene and the interface; everything that touches the disk or is heavy (noise, graphs) lives in the Rust core and reaches the frontend through Tauri commands, all called from `ui/src/net/bridge.ts`.
 
-## Estrutura
+## Structure
 
 ```text
 Terra_Map/
-├── src-tauri/              # núcleo Rust + Tauri
+├── .github/workflows/      # release.yml: builds the installers for macOS, Windows and Linux (run by hand)
+├── src-tauri/              # Rust core + Tauri
 │   ├── src/
-│   │   ├── main.rs         # arranque e registo dos comandos
-│   │   ├── commands.rs     # comandos Tauri (finos)
-│   │   ├── terrain.rs      # geração de heightmap (Perlin/fBm)
-│   │   ├── project.rs      # presets de terreno em disco
-│   │   ├── project_file.rs # projecto .json versionado, autosave, aviso ao fechar
-│   │   ├── glb.rs          # diálogos e leitura/escrita de .glb
-│   │   ├── network/        # simulador: grafo, Dijkstra, métricas, cobertura, CSV
-│   │   ├── report/         # relatório: estatísticas, BOM, perfil do terreno, CSV, PDF
-│   │   ├── update.rs       # aviso de atualização: versão da última release, abrir a página
-│   │   └── error.rs        # erros tipados (thiserror)
+│   │   ├── main.rs         # startup and command registration
+│   │   ├── commands.rs     # Tauri commands (thin)
+│   │   ├── terrain.rs      # heightmap generation (Perlin/fBm)
+│   │   ├── project.rs      # terrain presets on disk
+│   │   ├── project_file.rs # versioned .json project, autosave, close warning
+│   │   ├── glb.rs          # dialogs and .glb read/write
+│   │   ├── network/        # simulator: graph, Dijkstra, metrics, coverage, CSV
+│   │   ├── report/         # report: statistics, BOM, terrain profile, CSV, PDF
+│   │   ├── update.rs       # update notice: latest release version, open the page
+│   │   └── error.rs        # typed errors (thiserror)
 │   ├── capabilities/
-│   ├── icons/
+│   ├── icons/              # app icon: icon.svg (source) → `cargo tauri icon` (PNG, .icns, .ico)
 │   └── tauri.conf.json
-├── ui/                     # frontend React + TypeScript
+├── ui/                     # React + TypeScript frontend
 │   ├── src/
-│   │   ├── main.tsx        # cria a cena 3D e monta <App />
+│   │   ├── main.tsx        # creates the 3D scene and mounts <App />
 │   │   ├── App.tsx         # layout
-│   │   ├── components/     # barra superior, painéis, viewport, simulador, modais (relatório, perfil…), spinner, toasts, menu de atalhos
-│   │   ├── scene/          # viewport, câmara, terreno, entidades, cabos, selecção, gizmo, overlay do simulador
-│   │   ├── tools/          # pincel, arrastar e largar, cabo, marcador, régua, import/export .glb, simulador, projecto, relatório, aviso de atualização
-│   │   ├── state/          # store, hook useStore, fila de toasts, textos (t/fmt), tema
-│   │   ├── anim/           # animações (GSAP, anime.js, movimento reduzido)
-│   │   ├── net/            # ponte para o núcleo Rust
-│   │   └── locales/        # textos da interface (en.json)
+│   │   ├── components/     # top bar, panels, viewport, simulator, modals (report, profile…), spinner, toasts, shortcuts menu
+│   │   ├── scene/          # viewport, camera, terrain, entities, cables, selection, gizmo, simulator overlay
+│   │   ├── tools/          # brush, drag and drop, cable, marker, ruler, .glb import/export, simulator, project, report, update notice
+│   │   ├── state/          # store, useStore hook, toast queue, texts (t/fmt), theme
+│   │   ├── anim/           # animations (GSAP, anime.js, reduced motion)
+│   │   ├── net/            # bridge to the Rust core
+│   │   └── locales/        # interface texts (en.json)
 │   ├── index.html
 │   └── vite.config.ts
-├── landing/                # landing page (Astro): src/pages/index.astro, public/ (ícone e capturas)
-├── scripts/                # utilitários (gerar ícone)
-├── Cargo.toml              # workspace Rust
-└── package.json            # atalhos para os scripts de ui/
+├── landing/                # landing page (Astro + three.js + GSAP): src/pages/index.astro, src/scripts/ (3D hero, motion, downloads), public/ (icon, app videos)
+├── Cargo.toml              # Rust workspace
+└── package.json            # shortcuts to the ui/ scripts
 ```
 
-## Como correr
+## Getting started
 
-Requisitos: [Rust](https://rustup.rs) estável, [Node.js](https://nodejs.org) 20+ e os [pré-requisitos do Tauri v2](https://v2.tauri.app/start/prerequisites/) para o teu sistema.
+Requirements: stable [Rust](https://rustup.rs), [Node.js](https://nodejs.org) 20+ and the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) for your system.
 
 ```sh
-npm install --prefix ui   # dependências do frontend
-cargo tauri dev           # app desktop com hot reload
+npm install --prefix ui   # frontend dependencies
+cargo tauri dev           # desktop app with hot reload
 ```
 
-Outros comandos:
+Other commands:
 
 ```sh
-npm run dev               # só o frontend, no browser
-cargo test                # testes do núcleo Rust
+npm run dev               # frontend only, in the browser
+cargo test                # Rust core tests
 cargo fmt --check
 cargo clippy -- -D warnings
 npm run typecheck         # tsc --noEmit
 npm run lint              # ESLint
-cargo tauri build         # instalador de produção
+cargo tauri build         # production installer
 ```
 
-Landing page (`landing/`, só Astro):
+Landing page (`landing/`, Astro + three.js + GSAP):
 
 ```sh
 npm install --prefix landing
 npm --prefix landing run dev     # http://localhost:4321
-npm --prefix landing run build   # página estática em landing/dist
+npm --prefix landing run build   # static page in landing/dist
 ```
 
-## Publicar uma actualização
+## Publishing an update
 
-1. Subir a versão em `src-tauri/tauri.conf.json` (`version`, ex.: `0.2.0`) — e, para ficarem iguais, em `src-tauri/Cargo.toml`, `package.json` e `ui/package.json`.
-2. `cargo tauri build` → `target/release/bundle/dmg/Terra_Map_<versão>_aarch64.dmg`.
-3. No GitHub: **Releases → Draft a new release**, tag `v0.2.0` (com `v` e três números), anexar o `.dmg` e publicar (não marcar como *pre-release*).
-4. Quem tem a app instalada recebe o aviso no arranque seguinte; actualizar não é obrigatório.
+1. Bump the version in `src-tauri/tauri.conf.json` (`version`, e.g. `0.2.0`) — and, to keep them in sync, in `src-tauri/Cargo.toml`, `package.json` and `ui/package.json`. The first release is not bumped: it stays `0.1.0`, tag `v0.1.0`.
+2. Make sure the code to release is on `main`.
+3. On GitHub: **Actions → Release → Run workflow** (branch `main`). It builds on each system and creates a **draft release** `v<version>` with install notes and the installers:
+   - macOS: one universal `.dmg` (Apple Silicon and Intel);
+   - Windows: `-setup.exe` and `.msi` (64-bit);
+   - Linux: `.AppImage`, `.deb` and `.rpm` (64-bit).
+4. Open the draft, check it and press **Publish release** (not as a *pre-release*). Anyone with the app installed gets the notice on the next start; updating is not mandatory.
 
-O aviso usa a API pública do GitHub: com o repositório **privado** ela responde 404 e o aviso nunca aparece (e os utilizadores também não conseguem descarregar). O repositório tem de estar público.
+Notes:
 
-## Landing page na Vercel
+- The macOS app is ad-hoc signed and not notarized (that needs a paid Apple Developer account): macOS blocks the first launch and the app opens via **System Settings › Privacy & Security › Open Anyway**. The Windows installers are not code-signed: SmartScreen may ask — **More info › Run anyway**. The draft's notes already say this.
+- The update notice and the downloads use the public GitHub API: with a **private** repository it answers 404, so the notice never shows and users cannot download. With a private repository the workflow also spends Actions minutes (macOS runners count ×10); public repositories run for free.
+- `cargo tauri build` still works locally, but only for the system you are on (on a Mac: `target/release/bundle/dmg/Terra_Map_<version>_aarch64.dmg`).
 
-Na Vercel: *Add New → Project*, importar este repositório e definir **Root Directory = `landing`**. O preset **Astro** é detectado sozinho (build `npm run build`, saída `dist`); não é preciso adaptador — a página é estática. Node ≥ 22.23.4 (indicado em `landing/package.json`).
+## Landing page on Vercel
 
-## Atalhos principais
+On Vercel: *Add New → Project*, import this repository and set **Root Directory = `landing`**. The **Astro** preset is detected automatically (build `npm run build`, output `dist`); no adapter is needed — the page is static. Node ≥ 22.23.4 (set in `landing/package.json`).
 
-| Atalho | Acção |
+## Main shortcuts
+
+| Shortcut | Action |
 |---|---|
-| `Ctrl/Cmd + S` · `Shift + S` · `O` | guardar · guardar como · abrir projecto |
-| `Ctrl/Cmd + E` / `I` | exportar / importar `.glb` |
-| `Ctrl/Cmd + Z` · `Shift + Z` | desfazer · refazer |
-| `Ctrl/Cmd + C` / `V` · `D` · `Delete` | copiar / colar · duplicar · eliminar (selecção) |
-| `L` | camadas e histórico |
-| `B` (+ `Shift`) | pincel: elevar (baixar) terreno |
-| `C` · `M` · `R` | ferramenta cabo · marcador · régua |
-| `N` / `Shift + N` | elemento seguinte / anterior (selecciona e enquadra) |
-| `Tab` até ao viewport, depois setas · `Shift` + setas · `+`/`−` · `Espaço` | mover · rodar · zoom · clicar na mira |
-| `W` / `E` / `T` | gizmo: mover / rodar / escalar |
-| `↑` / `↓` (+ `Shift`, `Alt`) | ajustar o spinner focado (×10, ÷10) |
-| `F` · `1` / `2` / `3` · `Home` | focar selecção · vistas topo / frente / iso · repor câmara |
-| `G` | mostrar/esconder grelha |
-| `Esc` | limpar selecção |
-| `?` | menu de atalhos |
+| `Ctrl/Cmd + S` · `Shift + S` · `O` | save · save as · open project |
+| `Ctrl/Cmd + E` / `I` | export / import `.glb` |
+| `Ctrl/Cmd + Z` · `Shift + Z` | undo · redo |
+| `Ctrl/Cmd + C` / `V` · `D` · `Delete` | copy / paste · duplicate · delete (selection) |
+| `L` | layers and history |
+| `B` (+ `Shift`) | brush: raise (lower) the terrain |
+| `C` · `M` · `R` | cable tool · marker · ruler |
+| `N` / `Shift + N` | next / previous element (selects and frames it) |
+| `Tab` to the viewport, then arrows · `Shift` + arrows · `+`/`−` · `Space` | move · rotate · zoom · click at the crosshair |
+| `W` / `E` / `T` | gizmo: move / rotate / scale |
+| `↑` / `↓` (+ `Shift`, `Alt`) | adjust the focused spinner (×10, ÷10) |
+| `F` · `1` / `2` / `3` · `Home` | focus the selection · top / front / iso view · reset the camera |
+| `G` | show/hide the grid |
+| `Esc` | clear the selection |
+| `?` | shortcuts menu |

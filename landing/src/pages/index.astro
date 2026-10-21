@@ -1,57 +1,114 @@
 ---
-// Terra_Map landing page (Fase 14, Q_LIST.md Q30): one static page, Astro only.
-// Colors, radius and shadows are the app's tokens (Docs/development/DESIGN.md).
+// Terra_Map landing page (Fase 15, Q_LIST.md Q33): dark glass UI, a three.js
+// hero, GSAP motion and real clips of the app. Tokens: Docs/development/DESIGN.md §1.
 const REPO = "https://github.com/vritik246800/Terra_Map";
-const DOWNLOAD = `${REPO}/releases/latest`;
+const RELEASES = `${REPO}/releases/latest`;
+
+const steps = [
+  {
+    title: "Sculpt the land",
+    text: "Start flat, pick Mountains or Valley, or shape the relief with the brush. Dig below the water line and a lake appears.",
+    video: "terrain",
+  },
+  {
+    title: "Place the buildings",
+    text: "Drag houses, buildings and lots from the catalog. They snap to the terrain height and settle into place.",
+    video: "build",
+  },
+  {
+    title: "Wire the network",
+    text: "Pick the cable tool and click two elements: fiber, copper or coax — underground along the relief, aerial or direct.",
+    video: "network",
+  },
+  {
+    title: "Find the best path",
+    text: "Choose an origin and a destination. Dijkstra returns the route with latency, throughput, cost and the optical link budget.",
+    video: "simulate",
+  },
+];
 
 const features = [
   {
     title: "Terrain",
-    text: "Start flat or generate mountains, a valley or custom noise. Sculpt with a brush, paint materials or import a PNG heightmap.",
+    text: "Presets, custom noise, a sculpting brush, material painting and PNG heightmap import.",
     icon: '<path d="M3 19l6-9 4 6 3-4 5 7z"/>',
   },
   {
     title: "Infrastructure",
-    text: "Drag houses, buildings and lots onto the relief, with construction phases. Import your own .glb models and export the scene.",
+    text: "Houses, buildings and lots with construction phases. Bring your own .glb models and export the scene.",
     icon: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   },
   {
     title: "Networks & telecom",
-    text: "Antennas, routers, OLTs, splitters, ONUs, poles and boxes. Fiber, copper or coax — underground along the relief, aerial with sag, or direct.",
+    text: "Antennas, routers, switches, OLTs, splitters, ONUs and poles, linked by fiber, copper or coax.",
     icon: '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6.2 7.7l4.6 8.6M17.8 7.7l-4.6 8.6"/>',
   },
   {
     title: "Network simulator",
-    text: "The optimal path by distance, cost, latency or attenuation with Dijkstra: end-to-end latency, bottleneck throughput, optical link budget, antenna coverage and what-if failures.",
+    text: "Optimal path by distance, cost, latency or attenuation, link budget, coverage heatmap and what-if failures.",
     icon: '<circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 18c5 0 3-12 10-12"/>',
   },
   {
     title: "Measure & report",
-    text: "A ruler with the terrain profile, project statistics, a bill of materials with costs and scenarios side by side — exported as PDF and CSV.",
+    text: "A ruler with the terrain profile, statistics and a bill of materials — exported as PDF and CSV.",
     icon: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 17v-3M12 17v-5M16 17v-2"/>',
   },
   {
     title: "Environment",
-    text: "Day and night with real shadows, sky, fog, lakes, vegetation and roads — plus a cinematic presentation mode.",
+    text: "Time of day with real shadows, sky, fog, water, vegetation and roads.",
     icon: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  },
+  {
+    title: "Fast to work with",
+    text: "Undo and redo, layers, snapping, copy and paste — and the whole app works from the keyboard.",
+    icon: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/>',
+  },
+  {
+    title: "Yours, offline",
+    text: "No account, no cloud: versioned .json projects on your disk, autosave and crash recovery.",
+    icon: '<path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/>',
   },
 ];
 
-const extras = [
-  "Undo / redo (100 steps)",
-  "Layers",
-  "Snap to grid and objects",
-  "Copy & paste",
-  "Works fully from the keyboard",
-  "Light and dark themes",
-  "Autosave + crash recovery",
-  "Versioned .json projects",
+const stats = [
+  { count: 3, label: "platforms" },
+  { count: 3, label: "cable types" },
+  { count: 4, label: "routing criteria" },
+  { count: 100, label: "undo steps" },
 ];
 
-const steps = [
-  { title: "Shape the terrain", text: "Pick a preset or sculpt the relief by hand." },
-  { title: "Place and connect", text: "Drop buildings and network gear, then draw cables between them." },
-  { title: "Simulate and report", text: "Find the best route, test a failure and export the report." },
+const platforms = [
+  {
+    os: "macos",
+    name: "macOS",
+    detail: "Apple Silicon and Intel",
+    icon: '<path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/>',
+    files: [{ asset: "dmg", label: "Download .dmg" }],
+    note: "Not notarized by Apple: on the first launch open System Settings › Privacy & Security › Open Anyway.",
+  },
+  {
+    os: "windows",
+    name: "Windows",
+    detail: "64-bit · Windows 10 and 11",
+    icon: '<path d="M4 5.5l7-1v7H4zM13 4.2l7-1.2v8.5h-7zM4 12.5h7v7l-7-1zM13 12.5h7V21l-7-1.2z"/>',
+    files: [
+      { asset: "exe", label: "Download installer" },
+      { asset: "msi", label: ".msi" },
+    ],
+    note: "If SmartScreen appears: More info › Run anyway.",
+  },
+  {
+    os: "linux",
+    name: "Linux",
+    detail: "64-bit · most distributions",
+    icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/>',
+    files: [
+      { asset: "appimage", label: "Download .AppImage" },
+      { asset: "deb", label: ".deb" },
+      { asset: "rpm", label: ".rpm" },
+    ],
+    note: "AppImage: make it executable, then run it.",
+  },
 ];
 
 const year = new Date().getFullYear();
@@ -65,557 +122,1012 @@ const year = new Date().getFullYear();
     <title>Terra_Map — 3D terrain and telecom network mock-ups</title>
     <meta
       name="description"
-      content="A desktop app to build 3D mock-ups: sculpt terrain, place buildings, lay fiber, copper and coax, and find the optimal cable path with Dijkstra."
+      content="A desktop app for macOS, Windows and Linux to build 3D mock-ups: sculpt terrain, place buildings, lay fiber, copper and coax, and find the optimal cable path with Dijkstra."
     />
     <meta property="og:title" content="Terra_Map" />
-    <meta
-      property="og:description"
-      content="Shape the land. Wire the network. Find the best path."
-    />
+    <meta property="og:description" content="Shape the land. Wire the network. Find the best path." />
     <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#06080b" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
+    <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
 
     <header class="top">
-      <div class="wrap top__inner">
+      <div class="wrap top__inner glass">
         <a class="brand" href="#top" aria-label="Terra_Map home">
-          <img src="/icon.png" alt="" width="28" height="28" />
+          <img src="/favicon.svg" alt="" width="30" height="30" />
           <span>Terra_Map</span>
         </a>
         <nav class="top__nav" aria-label="Sections">
-          <a href="#features">Features</a>
           <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#download">Download</a>
           <a href={REPO}>GitHub</a>
         </nav>
-        <a class="btn btn--primary btn--small" href={DOWNLOAD}>Download</a>
+        <a class="btn btn--primary btn--small" href="#download">Download</a>
       </div>
     </header>
 
     <main id="main">
       <section class="hero" id="top">
-        <div class="wrap">
-          <p class="eyebrow">3D mock-ups · telecom networks</p>
-          <h1>Shape the land. Wire the network. Find&nbsp;the&nbsp;best&nbsp;path.</h1>
+        <canvas class="hero__canvas" id="hero-canvas" aria-hidden="true"></canvas>
+        <div class="hero__shade" aria-hidden="true"></div>
+        <div class="wrap copy">
+          <p class="eyebrow glass">Free &amp; open source · macOS · Windows · Linux</p>
+          <h1>
+            <span class="line">Shape the land.</span>
+            <span class="line">Wire the network.</span>
+            <span class="line line--glow">Find the best path.</span>
+          </h1>
           <p class="lede">
-            Terra_Map is a desktop app for 3D mock-ups of an area: sculpt the terrain, place houses
-            and buildings, lay fiber, copper and coax — then let Dijkstra find the optimal cable
-            route, with latency, throughput and an optical link budget.
+            Terra_Map is a desktop app for 3D mock-ups of an area: sculpt the terrain, place
+            buildings, lay fiber, copper and coax — then let Dijkstra find the optimal cable route.
           </p>
           <div class="cta">
-            <a class="btn btn--primary" href={DOWNLOAD}>Download for macOS</a>
-            <a class="btn btn--ghost" href={REPO}>View on GitHub</a>
+            <a class="btn btn--primary" href={RELEASES} data-hero-download>Download</a>
+            <a class="btn btn--glass" href="#how">See it in action</a>
           </div>
-          <p class="note">
-            Free and open source (MIT). The app tells you when a new version is out — updating is
-            always your call.
-          </p>
         </div>
-        <div class="wrap wrap--wide">
-          <picture class="shot">
-            <source srcset="/app-dark.webp" media="(prefers-color-scheme: dark)" />
-            <img
-              src="/app-light.webp"
-              width="2880"
-              height="1800"
-              alt="Terra_Map with a hillside village: 3D terrain with houses, buildings and a fiber network, the simulator card with the optimal path and its link budget, the catalog on the left and the properties on the right."
-            />
-          </picture>
+        <aside class="hud glass" aria-label="Example simulation result">
+          <p class="hud__title"><i aria-hidden="true"></i> Optimal path · fiber</p>
+          <dl>
+            <div><dt>Length</dt><dd><b data-count="57.5" data-decimals="1">57.5</b> m</dd></div>
+            <div><dt>Latency</dt><dd><b data-count="1" data-decimals="3">1.000</b> ms</dd></div>
+            <div><dt>Throughput</dt><dd><b data-count="1000">1000</b> Mbps</dd></div>
+            <div><dt>Margin</dt><dd><b data-count="12" data-decimals="1">12.0</b> dB</dd></div>
+          </dl>
+          <p class="hud__ok">Link budget: OK</p>
+        </aside>
+      </section>
+
+      <section class="story" id="how" aria-labelledby="how-title">
+        <div class="wrap story__grid">
+          <div class="story__copy">
+            <p class="kicker">How it works</p>
+            <h2 id="how-title">From empty ground to a working network</h2>
+            <ol class="steps">
+              {
+                steps.map((s, i) => (
+                  <li class={`step${i === 0 ? " is-active" : ""}`}>
+                    <button type="button" class="step__head">
+                      <span class="step__n">{String(i + 1).padStart(2, "0")}</span>
+                      <span class="step__title">{s.title}</span>
+                    </button>
+                    <p>{s.text}</p>
+                    <div class="step__media frame glass">
+                      <video src={`/videos/${s.video}.mp4`} poster={`/videos/${s.video}.webp`} muted playsinline loop preload="none" aria-label={`Terra_Map: ${s.title}`} />
+                    </div>
+                  </li>
+                ))
+              }
+            </ol>
+          </div>
+          <div class="stage" aria-hidden="true">
+            <div class="window glass">
+              <div class="window__bar"><span></span><span></span><span></span><em>Terra_Map</em></div>
+              <div class="window__screen">
+                {
+                  steps.map((s, i) => (
+                    <video class={i === 0 ? "is-active" : ""} src={`/videos/${s.video}.mp4`} poster={`/videos/${s.video}.webp`} muted playsinline loop preload="none" />
+                  ))
+                }
+              </div>
+            </div>
+            <div class="rail"><div class="rail__fill"></div></div>
+          </div>
         </div>
       </section>
 
       <section class="section" id="features" aria-labelledby="features-title">
         <div class="wrap">
-          <h2 id="features-title">Everything for the mock-up, in one window</h2>
-          <ul class="grid">
+          <div class="head" data-reveal>
+            <p class="kicker">Features</p>
+            <h2 id="features-title">Everything from the ground up</h2>
+            <p class="sub">One app for the relief, the buildings and the network that connects them.</p>
+          </div>
+          <div class="grid">
             {
               features.map((f) => (
-                <li class="card">
-                  <svg
-                    class="card__icon"
-                    viewBox="0 0 24 24"
-                    width="28"
-                    height="28"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    aria-hidden="true"
-                    set:html={f.icon}
-                  />
+                <article class="card glass spot" data-reveal>
+                  <svg class="card__icon" viewBox="0 0 24 24" aria-hidden="true" set:html={f.icon} />
                   <h3>{f.title}</h3>
                   <p>{f.text}</p>
-                </li>
+                </article>
               ))
             }
-          </ul>
-          <ul class="chips" aria-label="Also included">
-            {extras.map((e) => <li>{e}</li>)}
-          </ul>
+          </div>
         </div>
       </section>
 
-      <section class="section section--alt" id="how" aria-labelledby="how-title">
+      <section class="section showcase" aria-labelledby="showcase-title">
         <div class="wrap">
-          <h2 id="how-title">How it works</h2>
-          <ol class="steps">
+          <div class="head" data-reveal>
+            <p class="kicker">Presentation mode</p>
+            <h2 id="showcase-title">Present it in one click</h2>
+            <p class="sub">The panels step aside and the camera orbits the mock-up — ready for a meeting or a client.</p>
+          </div>
+          <div class="frame glass">
+            <video src="/videos/overview.mp4" poster="/videos/overview.webp" muted playsinline loop preload="none" aria-label="Terra_Map presentation mode orbiting a village with its fiber network"></video>
+          </div>
+          <ul class="stats" aria-label="In numbers">
             {
-              steps.map((s, i) => (
-                <li>
-                  <span class="steps__n" aria-hidden="true">
-                    {i + 1}
-                  </span>
-                  <h3>{s.title}</h3>
-                  <p>{s.text}</p>
+              stats.map((s) => (
+                <li data-reveal>
+                  <b data-count={s.count}>{s.count}</b>
+                  <span>{s.label}</span>
                 </li>
               ))
             }
-          </ol>
-          <p class="under">
-            Under the hood, a Rust core (Tauri) does the heavy lifting — terrain noise, Dijkstra,
-            coverage, the PDF report — while React and three.js draw the 3D view. Everything runs
-            locally on your machine.
-          </p>
+          </ul>
         </div>
       </section>
 
       <section class="section" id="download" aria-labelledby="download-title">
         <div class="wrap">
-          <div class="get">
+          <div class="head" data-reveal>
+            <p class="kicker">Download</p>
             <h2 id="download-title">Get Terra_Map</h2>
-            <p>
-              Installers for every version are on GitHub Releases. On start, the app checks for a
-              newer release and offers it — you choose if and when to update.
+            <p class="sub">
+              Free for macOS, Windows and Linux. The app tells you when a new version is out — updating
+              is always your call.
             </p>
-            <a class="btn btn--primary" href={DOWNLOAD}>Download the latest release</a>
           </div>
+          <div class="platforms">
+            {
+              platforms.map((p) => (
+                <article class="platform glass spot" data-os={p.os} data-reveal>
+                  <span class="platform__mine">Your system</span>
+                  <svg class="platform__icon" viewBox="0 0 24 24" aria-hidden="true" set:html={p.icon} />
+                  <h3>{p.name}</h3>
+                  <p class="platform__detail">{p.detail}</p>
+                  <div class="platform__files">
+                    {p.files.map((f, i) => (
+                      <a class={i === 0 ? "btn btn--primary" : "btn btn--glass btn--small"} href={RELEASES} data-asset={f.asset}>
+                        {f.label}
+                      </a>
+                    ))}
+                  </div>
+                  <p class="platform__note">{p.note}</p>
+                </article>
+              ))
+            }
+          </div>
+          <p class="more" data-reveal>
+            Latest: <span data-version>see GitHub</span> · <a href={`${REPO}/releases`}>All releases</a> ·
+            <a href={REPO}>Source code</a>
+          </p>
         </div>
       </section>
     </main>
 
     <footer class="foot">
       <div class="wrap foot__inner">
-        <span>© {year} Terra_Map · MIT License</span>
-        <a href={REPO}>Source on GitHub</a>
+        <span class="brand brand--small"><img src="/favicon.svg" alt="" width="22" height="22" /> Terra_Map</span>
+        <span>MIT License · © {year}</span>
+        <a href={REPO}>GitHub</a>
       </div>
     </footer>
+
+    <script>
+      import { initDownloads } from "../scripts/downloads";
+      import { initMotion } from "../scripts/motion";
+
+      // three.js comes in its own chunk so the page and its motion start first
+      let heroProgress: ((p: number) => void) | undefined;
+      initMotion({ onHeroProgress: (p) => heroProgress?.(p) });
+      void initDownloads();
+      void import("../scripts/hero").then(({ initHero }) => {
+        heroProgress = initHero(document.querySelector<HTMLCanvasElement>("#hero-canvas"))?.setProgress;
+      });
+    </script>
+
+    <style is:global>
+      :root {
+        color-scheme: dark;
+        --bg: #06080b;
+        --text: #f5f5f7;
+        --text-muted: #a3a3ab;
+        --glass: rgba(28, 31, 36, 0.52);
+        --border: rgba(255, 255, 255, 0.11);
+        --blur: blur(20px) saturate(180%);
+        --mint: #7cf5c4;
+        --green: #34c759;
+        --teal: #30d5c8;
+        --on-mint: #04150e;
+        --radius-md: 14px;
+        --radius-lg: 20px;
+        --radius-full: 999px;
+        --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
+        --font: -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
+        --mono: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 17px/1.55 var(--font);
+        -webkit-font-smoothing: antialiased;
+        overflow-x: clip;
+      }
+
+      img,
+      svg,
+      video {
+        display: block;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--mint);
+        outline-offset: 3px;
+        border-radius: 6px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        letter-spacing: -0.03em;
+        text-wrap: balance;
+      }
+
+      .wrap {
+        width: min(1200px, 100% - 32px);
+        margin-inline: auto;
+      }
+
+      .glass {
+        background: var(--glass);
+        backdrop-filter: var(--blur);
+        -webkit-backdrop-filter: var(--blur);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow-2);
+      }
+
+      .skip {
+        position: absolute;
+        left: 16px;
+        top: -48px;
+        z-index: 100;
+        padding: 8px 14px;
+        border-radius: var(--radius-full);
+        background: var(--mint);
+        color: var(--on-mint);
+      }
+
+      .skip:focus {
+        top: 12px;
+      }
+
+      /* background light: three drifting blurred blobs behind the glass */
+      .aurora {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        background:
+          radial-gradient(ellipse at 50% -20%, rgba(48, 213, 200, 0.08), transparent 60%),
+          var(--bg);
+      }
+
+      .aurora span {
+        position: absolute;
+        width: 46vmax;
+        height: 46vmax;
+        border-radius: 50%;
+        filter: blur(90px);
+        opacity: 0.22;
+      }
+
+      .aurora span:nth-child(1) {
+        left: -12vmax;
+        top: 30vh;
+        background: #1f8f6a;
+      }
+
+      .aurora span:nth-child(2) {
+        right: -14vmax;
+        top: 90vh;
+        background: #1c5f8f;
+      }
+
+      .aurora span:nth-child(3) {
+        left: 30vw;
+        bottom: -20vmax;
+        background: #8a4f2a;
+        opacity: 0.16;
+      }
+
+      /* buttons */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 48px;
+        padding: 0 24px;
+        border-radius: var(--radius-full);
+        font-weight: 600;
+        font-size: 16px;
+        text-decoration: none;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .btn--primary {
+        background: linear-gradient(135deg, var(--mint), var(--teal));
+        color: var(--on-mint);
+        box-shadow: 0 8px 28px rgba(61, 220, 151, 0.28);
+      }
+
+      .btn--primary:hover {
+        box-shadow: 0 10px 34px rgba(61, 220, 151, 0.42);
+      }
+
+      .btn--glass {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border);
+        backdrop-filter: var(--blur);
+        -webkit-backdrop-filter: var(--blur);
+      }
+
+      .btn--glass:hover {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .btn--small {
+        min-height: 38px;
+        padding: 0 16px;
+        font-size: 14px;
+      }
+
+      /* top bar */
+      .top {
+        position: fixed;
+        inset: 12px 0 auto;
+        z-index: 50;
+      }
+
+      .top__inner {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 8px 8px 8px 16px;
+        border-radius: var(--radius-full);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+      }
+
+      .top__nav {
+        display: flex;
+        gap: 22px;
+        margin-left: auto;
+        font-size: 15px;
+      }
+
+      .top__nav a {
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+
+      .top__nav a:hover {
+        color: var(--text);
+      }
+
+      /* hero */
+      .hero {
+        position: relative;
+        min-height: max(100svh, 680px);
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      .hero__canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .hero.no-webgl {
+        background: url("/videos/overview.webp") center / cover;
+      }
+
+      .hero__shade {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 22% 45%, rgba(6, 8, 11, 0.78), transparent 62%),
+          linear-gradient(to bottom, rgba(6, 8, 11, 0.35), transparent 30%, transparent 70%, var(--bg));
+        pointer-events: none;
+      }
+
+      .copy {
+        position: relative;
+        padding-block: 140px 120px;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        margin: 0 0 22px;
+        padding: 6px 14px;
+        border-radius: var(--radius-full);
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+
+      h1 {
+        font-size: clamp(42px, 7.4vw, 96px);
+        line-height: 1.04;
+        font-weight: 750;
+        letter-spacing: -0.045em;
+      }
+
+      .line {
+        display: block;
+        padding-bottom: 0.04em;
+      }
+
+      .line--glow {
+        background: linear-gradient(100deg, var(--mint), var(--teal) 55%, #6fb8ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .line--glow * {
+        background: inherit;
+        -webkit-background-clip: text;
+        background-clip: text;
+      }
+
+      .lede {
+        max-width: 560px;
+        margin: 24px 0 32px;
+        font-size: clamp(17px, 1.6vw, 20px);
+        color: var(--text-muted);
+      }
+
+      .cta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .hud {
+        position: absolute;
+        right: max(24px, calc((100vw - 1200px) / 2));
+        bottom: 96px;
+        width: 260px;
+        padding: 16px 18px;
+        font-size: 14px;
+      }
+
+      .hud__title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 10px;
+        font-weight: 600;
+      }
+
+      .hud__title i,
+      .hud__ok::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 12px var(--green);
+      }
+
+      .hud dl {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+      }
+
+      .hud dl div {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .hud dt {
+        color: var(--text-muted);
+      }
+
+      .hud dd {
+        margin: 0;
+        font-family: var(--mono);
+      }
+
+      .hud__ok {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 12px 0 0;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+        color: var(--mint);
+      }
+
+      .hud__ok::before {
+        content: "";
+      }
+
+      /* sections */
+      .section {
+        padding-block: 120px;
+      }
+
+      .head {
+        max-width: 720px;
+        margin-bottom: 48px;
+      }
+
+      .kicker {
+        margin: 0 0 12px;
+        color: var(--mint);
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h2 {
+        font-size: clamp(32px, 4.6vw, 56px);
+        line-height: 1.08;
+        font-weight: 700;
+      }
+
+      .sub {
+        margin: 16px 0 0;
+        color: var(--text-muted);
+        font-size: 19px;
+      }
+
+      /* how it works: pinned on wide screens, stacked elsewhere */
+      .story {
+        padding-block: 120px;
+      }
+
+      .story__grid {
+        display: grid;
+        gap: 48px;
+      }
+
+      .steps {
+        display: grid;
+        gap: 12px;
+        margin: 40px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .step {
+        padding: 18px 20px;
+        border-radius: var(--radius-md);
+        border: 1px solid transparent;
+        transition:
+          background 0.35s ease,
+          border-color 0.35s ease;
+      }
+
+      .step__head {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .step__n {
+        font-family: var(--mono);
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+
+      .step__title {
+        font-size: 22px;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+      }
+
+      .step p {
+        margin: 8px 0 0 36px;
+        color: var(--text-muted);
+      }
+
+      .step__media {
+        margin-top: 16px;
+        overflow: hidden;
+        padding: 0;
+      }
+
+      .frame video,
+      .window__screen video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .stage {
+        display: none;
+        position: relative;
+      }
+
+      .window {
+        overflow: hidden;
+        padding: 0;
+      }
+
+      .window__bar {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        height: 36px;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .window__bar span {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      .window__bar em {
+        margin: 0 auto;
+        padding-right: 50px;
+        font-style: normal;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .window__screen {
+        position: relative;
+        aspect-ratio: 16 / 10;
+        background: #0c0f13;
+      }
+
+      .window__screen video {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
+
+      .window__screen video.is-active {
+        opacity: 1;
+      }
+
+      .rail {
+        position: absolute;
+        left: -28px;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .rail__fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(var(--mint), var(--teal));
+        transform-origin: top;
+        transform: scaleY(0);
+      }
+
+      @media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+        .story {
+          display: flex;
+          align-items: center;
+          min-height: 100vh;
+          padding-block: 80px;
+        }
+
+        .story__grid {
+          grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+          align-items: center;
+          gap: 72px;
+        }
+
+        .stage {
+          display: block;
+        }
+
+        .step__media,
+        .step p {
+          display: none;
+        }
+
+        .step.is-active {
+          background: var(--glass);
+          border-color: var(--border);
+        }
+
+        .step.is-active p {
+          display: block;
+        }
+
+        .step.is-active .step__n {
+          color: var(--mint);
+        }
+      }
+
+      /* features */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .card,
+      .platform {
+        position: relative;
+        overflow: hidden;
+        padding: 24px;
+      }
+
+      .spot::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgba(124, 245, 196, 0.13), transparent 45%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
+
+      .spot:hover::before {
+        opacity: 1;
+      }
+
+      .card__icon,
+      .platform__icon {
+        width: 40px;
+        height: 40px;
+        padding: 9px;
+        margin-bottom: 18px;
+        border-radius: 12px;
+        background: rgba(124, 245, 196, 0.1);
+        fill: none;
+        stroke: var(--mint);
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .card h3,
+      .platform h3 {
+        font-size: 19px;
+        letter-spacing: -0.02em;
+      }
+
+      .card p {
+        margin: 8px 0 0;
+        color: var(--text-muted);
+        font-size: 15px;
+      }
+
+      /* showcase + numbers */
+      .showcase .frame {
+        overflow: hidden;
+        padding: 0;
+        aspect-ratio: 16 / 10;
+        will-change: transform;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin: 48px 0 0;
+        padding: 0;
+        list-style: none;
+        text-align: center;
+      }
+
+      .stats b {
+        display: block;
+        font-size: clamp(40px, 5vw, 64px);
+        line-height: 1;
+        letter-spacing: -0.04em;
+        background: linear-gradient(var(--text), #7d8a86);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .stats span {
+        color: var(--text-muted);
+        font-size: 15px;
+      }
+
+      /* downloads */
+      .platforms {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .platform {
+        display: flex;
+        flex-direction: column;
+        transition:
+          border-color 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+
+      .platform.is-mine {
+        border-color: rgba(124, 245, 196, 0.55);
+        box-shadow:
+          0 0 0 1px rgba(124, 245, 196, 0.25),
+          0 12px 40px rgba(61, 220, 151, 0.16);
+      }
+
+      .platform__mine {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: none;
+        padding: 3px 10px;
+        border-radius: var(--radius-full);
+        background: rgba(124, 245, 196, 0.14);
+        color: var(--mint);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .platform.is-mine .platform__mine {
+        display: block;
+      }
+
+      .platform__detail {
+        margin: 4px 0 20px;
+        color: var(--text-muted);
+        font-size: 15px;
+      }
+
+      .platform__files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .platform__files .btn--primary {
+        width: 100%;
+      }
+
+      .platform__note {
+        margin: 16px 0 0;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+
+      .more {
+        margin: 32px 0 0;
+        color: var(--text-muted);
+        text-align: center;
+        font-size: 15px;
+      }
+
+      .foot {
+        padding: 32px 0 48px;
+        border-top: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 14px;
+      }
+
+      .foot__inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .brand--small {
+        color: var(--text);
+        gap: 8px;
+      }
+
+      @media (max-width: 1100px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .hud {
+          display: none;
+        }
+      }
+
+      @media (max-width: 899px) {
+        .platforms {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          row-gap: 32px;
+        }
+      }
+
+      @media (max-width: 700px) {
+        .top__nav {
+          display: none;
+        }
+
+        .top__inner {
+          justify-content: space-between;
+        }
+
+        .section,
+        .story {
+          padding-block: 80px;
+        }
+
+        .grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .step p {
+          margin-left: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .btn,
+        .step,
+        .spot::before,
+        .window__screen video {
+          transition: none;
+        }
+      }
+    </style>
   </body>
 </html>
-
-<style is:global>
-  :root {
-    --bg: #f5f5f7;
-    --surface: rgba(255, 255, 255, 0.72);
-    --surface-strong: #ffffff;
-    --text: #1d1d1f;
-    --text-muted: #6e6e73;
-    --accent: #0071e3;
-    --accent-hover: #0062cc;
-    --accent-text: #0066cc;
-    --on-accent: #ffffff;
-    --border: rgba(0, 0, 0, 0.08);
-    --radius-sm: 8px;
-    --radius-md: 14px;
-    --radius-lg: 20px;
-    --radius-full: 999px;
-    --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.12);
-    --blur: blur(20px) saturate(180%);
-    --font: -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
-    color-scheme: light dark;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1c1c1e;
-      --surface: rgba(44, 44, 46, 0.72);
-      --surface-strong: #2c2c2e;
-      --text: #f5f5f7;
-      --text-muted: #98989d;
-      --accent: #0a72e6;
-      --accent-hover: #0a6fd8;
-      --accent-text: #409cff;
-      --border: rgba(255, 255, 255, 0.12);
-      --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  html {
-    scroll-padding-top: 72px;
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    html {
-      scroll-behavior: smooth;
-    }
-  }
-
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 16px/1.55 var(--font);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  a {
-    color: var(--accent-text);
-    text-decoration: none;
-  }
-
-  a:hover {
-    text-decoration: underline;
-  }
-
-  :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-    border-radius: var(--radius-sm);
-  }
-
-  h1,
-  h2,
-  h3 {
-    margin: 0;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
-  }
-
-  .skip {
-    position: absolute;
-    left: 16px;
-    top: -48px;
-    padding: 8px 12px;
-    border-radius: var(--radius-sm);
-    background: var(--surface-strong);
-    z-index: 10;
-  }
-
-  .skip:focus {
-    top: 12px;
-  }
-
-  .wrap {
-    max-width: 1080px;
-    margin: 0 auto;
-    padding: 0 16px;
-  }
-
-  .wrap--wide {
-    max-width: 1240px;
-  }
-
-  @media (min-width: 720px) {
-    .wrap {
-      padding: 0 24px;
-    }
-  }
-
-  /* Header: glass bar like the app's top navbar. */
-  .top {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: var(--surface);
-    backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .top__inner {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    height: 56px;
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--text);
-    font-weight: 600;
-    font-size: 17px;
-  }
-
-  .brand:hover {
-    text-decoration: none;
-  }
-
-  .brand img {
-    border-radius: 7px;
-  }
-
-  .top__nav {
-    display: none;
-    gap: 24px;
-    margin-left: auto;
-    font-size: 14px;
-  }
-
-  .top__nav a {
-    color: var(--text-muted);
-  }
-
-  .top__nav a:hover {
-    color: var(--text);
-    text-decoration: none;
-  }
-
-  .top__inner > .btn {
-    margin-left: auto;
-  }
-
-  @media (min-width: 720px) {
-    .top__nav {
-      display: flex;
-    }
-
-    .top__inner > .btn {
-      margin-left: 0;
-    }
-  }
-
-  /* Buttons. */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    padding: 0 22px;
-    border-radius: var(--radius-full);
-    font-weight: 600;
-    font-size: 15px;
-    transition:
-      background 150ms ease-out,
-      box-shadow 150ms ease-out;
-  }
-
-  .btn:hover {
-    text-decoration: none;
-  }
-
-  .btn--primary {
-    background: var(--accent);
-    color: var(--on-accent);
-  }
-
-  .btn--primary:hover {
-    background: var(--accent-hover);
-    box-shadow: var(--shadow-2);
-  }
-
-  .btn--ghost {
-    background: var(--surface-strong);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  .btn--ghost:hover {
-    box-shadow: var(--shadow-2);
-  }
-
-  .btn--small {
-    min-height: 34px;
-    padding: 0 16px;
-    font-size: 14px;
-  }
-
-  /* Hero. */
-  .hero {
-    padding: 72px 0 48px;
-    text-align: center;
-  }
-
-  .eyebrow {
-    margin: 0 0 12px;
-    color: var(--accent-text);
-    font-weight: 600;
-    font-size: 14px;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-  }
-
-  .hero h1 {
-    max-width: 880px;
-    margin: 0 auto;
-    font-size: clamp(2.1rem, 5.4vw, 3.6rem);
-  }
-
-  .lede {
-    max-width: 720px;
-    margin: 20px auto 0;
-    color: var(--text-muted);
-    font-size: clamp(1.02rem, 2vw, 1.2rem);
-  }
-
-  .cta {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 32px;
-  }
-
-  .note {
-    margin: 16px auto 0;
-    color: var(--text-muted);
-    font-size: 14px;
-  }
-
-  .shot {
-    display: block;
-    margin-top: 56px;
-  }
-
-  .shot img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-2);
-  }
-
-  /* Sections. */
-  .section {
-    padding: 72px 0;
-  }
-
-  .section--alt {
-    background: var(--surface-strong);
-    border-block: 1px solid var(--border);
-  }
-
-  .section h2 {
-    font-size: clamp(1.7rem, 3.6vw, 2.4rem);
-    text-align: center;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-    gap: 16px;
-    margin: 40px 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .card {
-    padding: 24px;
-    border-radius: var(--radius-lg);
-    background: var(--surface-strong);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-1);
-  }
-
-  .card__icon {
-    color: var(--accent-text);
-  }
-
-  .card h3 {
-    margin-top: 14px;
-    font-size: 18px;
-  }
-
-  .card p {
-    margin: 8px 0 0;
-    color: var(--text-muted);
-    font-size: 15px;
-  }
-
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    margin: 32px 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .chips li {
-    padding: 6px 14px;
-    border-radius: var(--radius-full);
-    border: 1px solid var(--border);
-    background: var(--surface-strong);
-    color: var(--text-muted);
-    font-size: 14px;
-  }
-
-  .steps {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-    gap: 32px;
-    margin: 40px 0 0;
-    padding: 0;
-    list-style: none;
-    text-align: center;
-  }
-
-  .steps__n {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-full);
-    background: var(--accent);
-    color: var(--on-accent);
-    font-weight: 700;
-  }
-
-  .steps h3 {
-    margin-top: 14px;
-    font-size: 18px;
-  }
-
-  .steps p {
-    margin: 6px 0 0;
-    color: var(--text-muted);
-  }
-
-  .under {
-    max-width: 720px;
-    margin: 48px auto 0;
-    color: var(--text-muted);
-    text-align: center;
-  }
-
-  .get {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 40px 24px;
-    border-radius: var(--radius-lg);
-    background: var(--surface-strong);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-1);
-    text-align: center;
-  }
-
-  .get p {
-    margin: 12px 0 24px;
-    color: var(--text-muted);
-  }
-
-  .foot {
-    padding: 32px 0 48px;
-    color: var(--text-muted);
-    font-size: 14px;
-  }
-
-  .foot__inner {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 12px;
-  }
-</style>
