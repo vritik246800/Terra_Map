@@ -292,6 +292,8 @@ export interface ReportInput {
   roads: Array<{ length: number }>;
   simulation: PathResult | null;
   scenarios: Scenario[];
+  /** Fase 13: language of the BOM, PDF and CSV texts (Q_LIST.md Q24). */
+  lang: "pt" | "en";
 }
 
 export interface ReportStats {
