@@ -11,6 +11,7 @@
  */
 import { useState, type KeyboardEvent } from "react";
 
+import { t } from "../state/i18n";
 import type { DynamicValue } from "../state/store";
 import { Spinner } from "./Spinner";
 import "./dynamic-props-editor.css";
@@ -82,7 +83,7 @@ export function DynamicPropsEditor({ props, onChange }: DynamicPropsEditorProps)
               <button
                 type="button"
                 className="dyn-props__remove"
-                aria-label={`Remover ${key}`}
+                aria-label={t("dyn.remove", { key })}
                 onClick={() => remove(key)}
               >
                 ×
@@ -98,12 +99,12 @@ export function DynamicPropsEditor({ props, onChange }: DynamicPropsEditorProps)
                 aria-pressed={value}
                 onClick={() => write(key, !value)}
               >
-                {value ? "Sim" : "Não"}
+                {t(value ? "dyn.yes" : "dyn.no")}
               </button>
               <button
                 type="button"
                 className="dyn-props__remove"
-                aria-label={`Remover ${key}`}
+                aria-label={t("dyn.remove", { key })}
                 onClick={() => remove(key)}
               >
                 ×
@@ -117,13 +118,13 @@ export function DynamicPropsEditor({ props, onChange }: DynamicPropsEditorProps)
                 type="text"
                 className="properties-input"
                 value={value}
-                aria-label={`Valor de ${key}`}
+                aria-label={t("dyn.valueOf", { key })}
                 onChange={(e) => write(key, e.target.value)}
               />
               <button
                 type="button"
                 className="dyn-props__remove"
-                aria-label={`Remover ${key}`}
+                aria-label={t("dyn.remove", { key })}
                 onClick={() => remove(key)}
               >
                 ×
@@ -137,8 +138,8 @@ export function DynamicPropsEditor({ props, onChange }: DynamicPropsEditorProps)
         <input
           type="text"
           className="properties-input"
-          placeholder="Chave"
-          aria-label="Chave da nova propriedade"
+          placeholder={t("dyn.key")}
+          aria-label={t("dyn.newKey")}
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
           onKeyDown={onAddKeyDown}
@@ -146,8 +147,8 @@ export function DynamicPropsEditor({ props, onChange }: DynamicPropsEditorProps)
         <input
           type="text"
           className="properties-input"
-          placeholder="Valor"
-          aria-label="Valor da nova propriedade"
+          placeholder={t("dyn.value")}
+          aria-label={t("dyn.newValue")}
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
           onKeyDown={onAddKeyDown}
@@ -158,12 +159,10 @@ export function DynamicPropsEditor({ props, onChange }: DynamicPropsEditorProps)
           disabled={!newKey.trim()}
           onClick={addProp}
         >
-          Adicionar
+          {t("dyn.add")}
         </button>
       </div>
-      <p className="properties-section__hint">
-        O tipo é inferido do valor: número, true/false (booleano) ou texto.
-      </p>
+      <p className="properties-section__hint">{t("dyn.hint")}</p>
     </div>
   );
 }
