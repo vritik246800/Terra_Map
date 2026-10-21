@@ -24,6 +24,7 @@ import type { EntityRegistry } from "../scene/entities";
 import { isUiControlFocused } from "../scene/shortcuts";
 import type { Terrain } from "../scene/terrain";
 import { identityTransform, store } from "../state/store";
+import { t } from "../state/i18n";
 import { showToast } from "../state/toasts";
 
 export interface GlbActions {
@@ -60,17 +61,22 @@ export function createGlbActions(deps: {
       glb = result;
     } catch (err) {
       console.error("[glb] falha ao exportar:", err);
-      showToast("Falha ao exportar a maquete.", "danger");
+      showToast(t("toast.glbExportFailed"), "danger");
       return;
     }
 
     try {
       const path = await saveGlb(new Uint8Array(glb));
       if (path === null) return; // user cancelled the save dialog
-      showToast(`${selected ? "Seleção" : "Maquete"} exportada: ${fileName(path)}`, "success");
+      showToast(
+        t(selected ? "toast.glbSelectionExported" : "toast.glbModelExported", {
+          file: fileName(path),
+        }),
+        "success",
+      );
     } catch (err) {
       console.error("[glb] falha ao gravar:", err);
-      showToast("Falha ao gravar o ficheiro .glb.", "danger");
+      showToast(t("toast.glbWriteFailed"), "danger");
     }
   }
 
@@ -80,7 +86,7 @@ export function createGlbActions(deps: {
       picked = await openGlbDialog();
     } catch (err) {
       console.error("[glb] falha ao ler o ficheiro:", err);
-      showToast("Falha ao ler o ficheiro .glb.", "danger");
+      showToast(t("toast.glbReadFailed"), "danger");
       return;
     }
     if (!picked) return; // user cancelled the open dialog
@@ -91,7 +97,7 @@ export function createGlbActions(deps: {
       scene = gltf.scene;
     } catch (err) {
       console.error("[glb] ficheiro inválido:", err);
-      showToast(`"${picked.name}.glb" não é um modelo 3D válido.`, "danger");
+      showToast(t("toast.glbInvalid", { name: picked.name }), "danger");
       return;
     }
 
@@ -105,7 +111,7 @@ export function createGlbActions(deps: {
       Number.isFinite,
     );
     if (meshes === 0 || box.isEmpty() || !finite) {
-      showToast(`"${picked.name}.glb" não contém geometria utilizável.`, "danger");
+      showToast(t("toast.glbNoGeometry", { name: picked.name }), "danger");
       return;
     }
 
@@ -119,7 +125,7 @@ export function createGlbActions(deps: {
     const content = registry.getContent(info.id);
     if (content) a5DropBounce(content);
     store.select(info.id);
-    showToast(`Modelo "${picked.name}" importado.`, "success");
+    showToast(t("toast.glbImported", { name: picked.name }), "success");
   }
 
   return { exportGlb, importGlb };
