@@ -18,13 +18,13 @@ import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
+import { a5DropBounce } from "../anim/scene";
 import { openGlbDialog, saveGlb } from "../net/bridge";
 import type { EntityRegistry } from "../scene/entities";
 import { isUiControlFocused } from "../scene/shortcuts";
 import type { Terrain } from "../scene/terrain";
 import { identityTransform, store } from "../state/store";
 import { showToast } from "../state/toasts";
-import { playDropBounce } from "./drag-drop";
 
 export interface GlbActions {
   exportGlb(): Promise<void>;
@@ -37,14 +37,21 @@ function fileName(path: string): string {
 }
 
 /** Creates the .glb import/export actions wired to the scene and the store. */
-export function createGlbActions(deps: { terrain: Terrain; registry: EntityRegistry }): GlbActions {
+export function createGlbActions(deps: {
+  terrain: Terrain;
+  registry: EntityRegistry;
+  /** Fase 11: more scene objects of a full-maquete export (roads, water, vegetation). */
+  extras?: () => THREE.Object3D[];
+}): GlbActions {
   const { terrain, registry } = deps;
 
   async function exportGlb(): Promise<void> {
     const selectedId = store.selected;
     const selected = selectedId ? registry.getObject(selectedId) : undefined;
     // With a selection, export only it; otherwise the whole maquete (§9.1).
-    const targets: THREE.Object3D[] = selected ? [selected] : [terrain.mesh, ...registry.pickables];
+    const targets: THREE.Object3D[] = selected
+      ? [selected]
+      : [terrain.mesh, ...registry.pickables, ...(deps.extras?.() ?? [])];
 
     let glb: ArrayBuffer;
     try {
@@ -103,14 +110,14 @@ export function createGlbActions(deps: { terrain: Terrain; registry: EntityRegis
     }
 
     // The import becomes the reusable "Modelo personalizado" catalog template.
-    registry.setCustomGlbTemplate(picked.name, scene);
+    registry.setCustomGlbTemplate(picked.name, scene, new Uint8Array(picked.bytes));
     store.setCustomGlbName(picked.name);
 
     const transform = identityTransform();
     transform.position.y = registry.snapY(0, 0);
     const info = registry.spawnCustomGlb(scene, transform);
     const content = registry.getContent(info.id);
-    if (content) playDropBounce(content); // A5
+    if (content) a5DropBounce(content);
     store.select(info.id);
     showToast(`Modelo "${picked.name}" importado.`, "success");
   }
