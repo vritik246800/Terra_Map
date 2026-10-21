@@ -14,13 +14,20 @@
  *  - While the tool is active the left mouse button is unmapped from
  *    OrbitControls (rotate moves to the right button) so camera orbit never
  *    fights a stroke; the original mapping is restored on `select`.
+ *  - Fase 11: the same cursor/gesture drives two more tools — `paint` (sets
+ *    the terrain material under the cursor) and `vegetation` (scatters trees
+ *    or bushes up to the chosen density; `Shift` erases). Vegetation previews
+ *    live in the scene and reaches the store once per gesture (1 undo entry).
  */
 import * as THREE from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import { store } from "../state/store";
+import { layerBlockReason } from "../state/labels";
+import { store, type Plant, type ToolId } from "../state/store";
+import { showToast } from "../state/toasts";
 import { shouldIgnoreShortcut } from "../scene/shortcuts";
 import type { Terrain } from "../scene/terrain";
+import type { VegetationLayer } from "../scene/vegetation";
 
 const RING_COLOR = 0x0071e3; // --accent (DESIGN.md §7.1)
 
@@ -28,18 +35,23 @@ const RING_COLOR = 0x0071e3; // --accent (DESIGN.md §7.1)
 const DAB_SPACING_RATIO = 0.25; // of the brush radius
 const DAB_SPACING_MIN = 0.5; // meters
 
+/** Tools that use this brush (Fase 11). */
+const BRUSH_TOOLS: ReadonlySet<ToolId> = new Set<ToolId>(["brush", "paint", "vegetation"]);
+const isBrushTool = (tool: ToolId) => BRUSH_TOOLS.has(tool);
+
 export interface BrushDeps {
   canvas: HTMLCanvasElement;
   camera: THREE.Camera;
   scene: THREE.Scene;
   controls: OrbitControls;
   terrain: Terrain;
+  /** Fase 11: live vegetation preview while scattering. */
+  vegetation: VegetationLayer;
   /**
-   * Fase 6: called once at the end of each stroke gesture — underground
-   * cables re-follow the freshly sculpted relief (viewport wires it to
-   * `CableRegistry.rebuildAll`).
+   * Called once at the end of each sculpt/paint gesture (Fase 6: underground
+   * cables re-follow the relief; Fase 10: one undo entry).
    */
-  onStrokeEnd?: () => void;
+  onStrokeEnd?: (tool: ToolId) => void;
 }
 
 /**
@@ -69,6 +81,8 @@ export function initBrush(deps: BrushDeps): () => void {
   const savedMouseButtons = { ...controls.mouseButtons };
   let stroking = false;
   let lastDab: { x: number; z: number } | null = null;
+  /** Vegetation being edited by the current gesture (copy of the store list). */
+  let plants: Plant[] = [];
 
   /** Raycasts the pointer to a terrain point; `null` when off-terrain. */
   function pickTerrain(e: PointerEvent): THREE.Vector3 | null {
@@ -82,7 +96,7 @@ export function initBrush(deps: BrushDeps): () => void {
   }
 
   function syncCursor(): void {
-    const active = store.tool === "brush";
+    const active = isBrushTool(store.tool);
     ring.scale.setScalar(store.brush.radius);
     if (!active) {
       ring.visible = false;
@@ -92,24 +106,60 @@ export function initBrush(deps: BrushDeps): () => void {
     canvas.style.cursor = "none"; // the ring is the cursor (DESIGN.md §12)
   }
 
+  /** Vegetation dab: erase inside the circle, or top it up to the density (plants/m²). */
+  function scatter(x: number, z: number, erase: boolean): void {
+    const r = store.brush.radius;
+    const inside = (p: { x: number; z: number }) => (p.x - x) ** 2 + (p.z - z) ** 2 <= r * r;
+    if (erase) {
+      plants = plants.filter((p) => !inside(p));
+    } else {
+      const { kind, density } = store.vegetationTool;
+      const missing = Math.round(density * Math.PI * r * r) - plants.filter(inside).length;
+      for (let i = 0; i < missing; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const d = Math.sqrt(Math.random()) * r;
+        plants.push({
+          kind,
+          x: x + Math.cos(a) * d,
+          z: z + Math.sin(a) * d,
+          scale: 0.8 + Math.random() * 0.5,
+          rotation: Math.random() * Math.PI * 2,
+        });
+      }
+    }
+    deps.vegetation.preview(plants);
+  }
+
   function applyDab(point: THREE.Vector3, dir: 1 | -1): void {
-    terrain.applyStroke(point.x, point.z, store.brush.radius, store.brush.intensity, dir);
+    if (store.tool === "paint") {
+      terrain.paint(point.x, point.z, store.brush.radius, store.paintTool.material);
+    } else if (store.tool === "vegetation") {
+      scatter(point.x, point.z, dir < 0);
+    } else {
+      terrain.applyStroke(point.x, point.z, store.brush.radius, store.brush.intensity, dir);
+    }
     lastDab = { x: point.x, z: point.z };
     // Keep the ring riding the freshly sculpted surface.
     ring.position.set(point.x, terrain.getHeight(point.x, point.z) + 0.05, point.z);
   }
 
   function onPointerDown(e: PointerEvent): void {
-    if (store.tool !== "brush" || e.button !== 0) return;
+    if (!isBrushTool(store.tool) || e.button !== 0) return;
+    const blocked = layerBlockReason("terrain"); // Fase 10 (vegetation lives on this layer too)
+    if (blocked) {
+      showToast(blocked, "info");
+      return;
+    }
     const point = pickTerrain(e);
     if (!point) return;
-    stroking = true; // gesture start — one undo command in Fase 10
+    stroking = true; // gesture start — one undo entry (Fase 10)
+    plants = [...store.vegetation];
     canvas.setPointerCapture(e.pointerId);
     applyDab(point, e.shiftKey ? -1 : 1);
   }
 
   function onPointerMove(e: PointerEvent): void {
-    if (store.tool !== "brush") return;
+    if (!isBrushTool(store.tool)) return;
     const point = pickTerrain(e);
     if (!point) {
       ring.visible = false;
@@ -130,7 +180,9 @@ export function initBrush(deps: BrushDeps): () => void {
     stroking = false; // gesture end
     lastDab = null;
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-    deps.onStrokeEnd?.(); // Fase 6: underground cables re-follow the relief
+    if (store.tool === "vegetation")
+      store.setVegetation(plants); // one undo entry
+    else deps.onStrokeEnd?.(store.tool); // relief/material changed
   }
 
   function onPointerLeave(): void {
@@ -141,14 +193,14 @@ export function initBrush(deps: BrushDeps): () => void {
     if (shouldIgnoreShortcut(e)) return;
     if (e.key === "b" || e.key === "B") {
       store.setTool(store.tool === "brush" ? "select" : "brush"); // §12: B toggles
-    } else if (e.key === "Escape" && store.tool === "brush") {
+    } else if (e.key === "Escape" && isBrushTool(store.tool)) {
       store.setTool("select"); // §12: Esc always returns to select
     }
   }
 
   /** Applies/removes the OrbitControls remap while the brush is active. */
   function syncControls(): void {
-    if (store.tool === "brush") {
+    if (isBrushTool(store.tool)) {
       controls.mouseButtons = {
         LEFT: null, // left button belongs to the brush
         MIDDLE: THREE.MOUSE.DOLLY,
