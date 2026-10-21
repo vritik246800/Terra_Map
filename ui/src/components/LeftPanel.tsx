@@ -8,9 +8,8 @@
  * "Modelo personalizado" only after a `.glb` import; Cabo/Marcador toggle tools.
  */
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import gsap from "gsap";
 
-import { a15Toggle } from "../anim/ui";
+import { a15Init, a15Toggle } from "../anim/ui";
 import type { PresetSummary } from "../net/bridge";
 import { CUSTOM_GLB_KIND, isNetworkKind, type TerrainPresetId, type ToolId } from "../state/store";
 import { showToast } from "../state/toasts";
@@ -67,10 +66,30 @@ const CATALOG: CatalogGroupDef[] = [
       { kind: "marker", label: "Marcador" },
     ],
   },
+  {
+    // Fase 11 (UX.md §2).
+    id: "environment",
+    title: "Ambiente",
+    items: [
+      { kind: "environment", label: "Hora, céu e água" },
+      { kind: "paint", label: "Pincel de materiais" },
+      { kind: "vegetation", label: "Vegetação" },
+      { kind: "road", label: "Estrada" },
+      { kind: "presentation", label: "Modo apresentação" },
+    ],
+  },
 ];
 
 const TERRAIN_PRESET_KINDS = new Set(["flat", "mountains", "valley", "custom"]);
-const TOOL_KINDS = new Set<string>(["brush", "cable", "marker"]);
+const TOOL_KINDS = new Set<string>(["brush", "paint", "vegetation", "road", "cable", "marker"]);
+
+/** Accent- and case-insensitive text for the catalog search (Fase 10). */
+function fold(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
 
 /** Logs async action failures. */
 function run(action: Promise<void>): void {
@@ -97,8 +116,7 @@ function CatalogGroup({
     if (!items || !chevron) return;
     if (firstRender.current) {
       firstRender.current = false;
-      items.style.display = open ? "" : "none";
-      gsap.set(chevron, { rotate: open ? 90 : 0 });
+      a15Init(items, chevron, open);
       return;
     }
     a15Toggle(items, chevron, open);
@@ -183,11 +201,43 @@ function PresetsItem({ actions }: { actions: TerrainActions }) {
   );
 }
 
-export function LeftPanel({ actions, open }: { actions: TerrainActions; open: boolean }) {
+export function LeftPanel({
+  actions,
+  open,
+  onPresent,
+}: {
+  actions: TerrainActions;
+  open: boolean;
+  /** Fase 11: starts the presentation mode (A22). */
+  onPresent: () => void;
+}) {
   const store = useStore();
+  const [query, setQuery] = useState("");
 
   function item(kind: string, label: string): ReactNode {
     if (kind === "presets") return <PresetsItem key={kind} actions={actions} />;
+
+    // Fase 11: environment settings (right panel) and the presentation mode.
+    if (kind === "environment" || kind === "presentation") {
+      const active = kind === "environment" && store.environmentPanelOpen;
+      return (
+        <li key={kind}>
+          <button
+            type="button"
+            className={`catalog-item${active ? " is-active" : ""}`}
+            aria-pressed={kind === "environment" ? active : undefined}
+            onClick={() => {
+              if (kind === "presentation") return onPresent();
+              store.setTool("select");
+              store.select(null);
+              store.setEnvironmentPanel(!active);
+            }}
+          >
+            {label}
+          </button>
+        </li>
+      );
+    }
 
     if (TOOL_KINDS.has(kind)) {
       const tool = kind as ToolId;
@@ -288,11 +338,37 @@ export function LeftPanel({ actions, open }: { actions: TerrainActions; open: bo
       role="complementary"
       aria-label="Catálogo de elementos"
     >
-      {CATALOG.map((def, index) => (
-        <CatalogGroup key={def.id} def={def} initiallyOpen={index === 0}>
-          {def.items.map(({ kind, label }) => item(kind, label))}
-        </CatalogGroup>
-      ))}
+      <input
+        type="search"
+        className="properties-input catalog-search"
+        placeholder="Pesquisar no catálogo"
+        aria-label="Pesquisar no catálogo"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setQuery("");
+        }}
+      />
+      {query.trim()
+        ? // Fase 10: flat list of matches across groups.
+          (() => {
+            const q = fold(query.trim());
+            const matches = CATALOG.flatMap((def) => def.items).filter((i) =>
+              fold(i.label).includes(q),
+            );
+            return matches.length > 0 ? (
+              <ul className="catalog-list catalog-results">
+                {matches.map(({ kind, label }) => item(kind, label))}
+              </ul>
+            ) : (
+              <p className="catalog-preset-empty">Sem resultados</p>
+            );
+          })()
+        : CATALOG.map((def, index) => (
+            <CatalogGroup key={def.id} def={def} initiallyOpen={index === 0}>
+              {def.items.map(({ kind, label }) => item(kind, label))}
+            </CatalogGroup>
+          ))}
     </aside>
   );
 }
