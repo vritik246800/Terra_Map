@@ -74,7 +74,7 @@
 
 .dyn-props__remove:hover {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .dyn-props__add {
