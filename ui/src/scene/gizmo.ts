@@ -33,6 +33,9 @@ import { store } from "../state/store";
 import type { EntityRegistry } from "./entities";
 import { shouldIgnoreShortcut } from "./shortcuts";
 
+/** Snap to objects (Fase 10): align X/Z to another entity closer than this. */
+const OBJECT_SNAP_M = 0.5;
+
 /** Mode shortcuts (DESIGN.md §10): W mover, E rodar, T escalar. */
 const MODE_KEYS: Record<string, TransformControlsMode> = {
   w: "translate",
@@ -51,6 +54,8 @@ export interface GizmoDeps {
 export interface GizmoHandle {
   /** True while the pointer is pressed on a gizmo handle (selection skips it). */
   isBusy(): boolean;
+  /** Scene helper (hidden in the report snapshot — Fase 12). */
+  readonly helper: THREE.Object3D;
   dispose(): void;
 }
 
@@ -63,33 +68,78 @@ export function initGizmo(deps: GizmoDeps): GizmoHandle {
 
   /** Pointer pressed on a gizmo handle — a plain click must not deselect. */
   let busy = false;
+  /** Fase 10: start positions of the whole selection while translating. */
+  let batch: Array<{ id: string; object: THREE.Object3D; start: THREE.Vector3 }> = [];
 
-  /** Attaches to the selected entity; detaches with no selection/other tool. */
+  /** Attaches to the primary selection; detaches with no selection/other tool. */
   function syncAttachment(): void {
     const id = store.selected;
-    const object = id !== null && store.tool === "select" ? registry.getObject(id) : undefined;
+    const object =
+      id !== null && store.tool === "select" && store.isPickable(id)
+        ? registry.getObject(id)
+        : undefined;
     if (object) gizmo.attach(object);
     else gizmo.detach();
+    gizmo.setTranslationSnap(store.snap.grid || null); // Fase 10: grid snap
   }
 
   gizmo.addEventListener("dragging-changed", (e) => {
     const dragging = e.value as boolean;
     controls.enabled = !dragging; // orbit off while dragging the gizmo
-    if (dragging) return;
-    // Drag end: commit the live transform scene → store + refresh collisions.
-    const id = gizmo.object?.userData.entityId;
-    if (typeof id === "string") {
-      registry.commitTransform(id);
-      registry.updateCollisionWarnings();
+    if (dragging) {
+      batch = store.selection.flatMap((id) => {
+        const object = registry.getObject(id);
+        return object ? [{ id, object, start: object.position.clone() }] : [];
+      });
+      return;
     }
+    // Drag end: commit the live transforms scene → store (one undo entry) + collisions.
+    const primary = gizmo.object?.userData.entityId;
+    const ids = new Set(batch.map((b) => b.id));
+    if (typeof primary === "string") ids.add(primary);
+    for (const id of ids) registry.commitTransform(id);
+    registry.updateCollisionWarnings();
+    batch = [];
   });
 
-  // Continuous Y snap while translating (PLAN.md Fase 4): X/Z free, Y follows
-  // the terrain relief under the cursor.
+  /** Snap to objects (Fase 10): X/Z align with the nearest other entity center. */
+  function snapToObjects(object: THREE.Object3D): void {
+    if (!store.snap.objects) return;
+    const moving = new Set(batch.map((b) => b.object));
+    moving.add(object);
+    let bestX = OBJECT_SNAP_M;
+    let bestZ = OBJECT_SNAP_M;
+    let x = object.position.x;
+    let z = object.position.z;
+    for (const other of registry.pickables) {
+      if (moving.has(other)) continue;
+      const dx = Math.abs(other.position.x - object.position.x);
+      const dz = Math.abs(other.position.z - object.position.z);
+      if (dx < bestX) [bestX, x] = [dx, other.position.x];
+      if (dz < bestZ) [bestZ, z] = [dz, other.position.z];
+    }
+    object.position.x = x;
+    object.position.z = z;
+  }
+
+  // Continuous Y snap while translating (PLAN.md Fase 4): X/Z free (grid /
+  // object snap, Fase 10), Y follows the relief; the rest of a multi-selection
+  // moves by the same X/Z delta.
   gizmo.addEventListener("objectChange", () => {
     const object = gizmo.object;
     if (!object || gizmo.mode !== "translate") return;
+    snapToObjects(object);
     object.position.y = registry.snapY(object.position.x, object.position.z);
+    const lead = batch.find((b) => b.object === object);
+    if (!lead) return;
+    const dx = object.position.x - lead.start.x;
+    const dz = object.position.z - lead.start.z;
+    for (const b of batch) {
+      if (b.object === object) continue;
+      b.object.position.x = b.start.x + dx;
+      b.object.position.z = b.start.z + dz;
+      b.object.position.y = registry.snapY(b.object.position.x, b.object.position.z);
+    }
   });
 
   function onPointerDown(): void {
@@ -115,6 +165,7 @@ export function initGizmo(deps: GizmoDeps): GizmoHandle {
 
   return {
     isBusy: () => busy,
+    helper,
     dispose(): void {
       unsubscribe();
       gizmo.detach();
