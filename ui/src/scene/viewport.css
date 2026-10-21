@@ -19,18 +19,66 @@
   left: 12px;
   width: 180px;
   height: 180px;
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 8px;
+  padding: 6px;
   box-sizing: border-box;
-  pointer-events: none; /* placeholder overlay — never blocks the scene below */
+  border-radius: var(--radius-lg);
 }
 
-.minimap-label {
-  font-size: 11px;
-  color: var(--text-muted);
+/* Fase 9: map canvas (scene/minimap.ts) + target dot + expand button. */
+.minimap-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: calc(var(--radius-lg) - 6px);
+}
+
+.minimap-map canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.minimap-target {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border: 2px solid var(--on-accent);
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  box-shadow: var(--shadow-1);
   pointer-events: none;
-  user-select: none;
+}
+
+.minimap-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.minimap-toggle:hover {
+  background: var(--surface-strong);
+}
+
+/* Fase 10: selection marquee (Shift+drag), DESIGN.md §2.1. */
+.selection-marquee {
+  position: absolute;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  pointer-events: none;
 }
