@@ -1,7 +1,7 @@
 [package]
 name = "terra-map"
 version = "0.1.0"
-description = "Simulador de terrenos, infraestruturas e redes de telecomunicação"
+description = "3D mock-ups of terrain, infrastructure and telecom networks"
 edition = "2021"
 build = "build.rs"
 
