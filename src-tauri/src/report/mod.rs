@@ -3,12 +3,12 @@
 //!
 //! The frontend sends a `ReportInput` (entities with their dynamic props,
 //! cables with the measured length, roads, the last simulation, the saved
-//! scenarios and the UI language); everything that is computed — counts,
+//! scenarios); everything that is computed — counts,
 //! meters, costs, totals — is computed here. Prices are symbolic
 //! (`Q_LIST.md` Q20): a catalog price per network kind, overridden by the
 //! dynamic prop `price`; cables cost `length × costPerMeter`; labor is a fixed
-//! amount per element plus a cost per metre that depends on the route. Fase 13:
-//! every text and number follows `lang` (pt-PT by default, `Q_LIST.md` Q24).
+//! amount per element plus a cost per metre that depends on the route. Texts
+//! are English, numbers use a dot (Fase 14, `Q_LIST.md` Q28).
 
 pub mod pdf;
 
@@ -59,16 +59,7 @@ const SCENARIO_METRICS: [(&str, usize); 7] = [
 /// Scenarios per comparison table in the PDF (columns side by side).
 const SCENARIOS_PER_TABLE: usize = 4;
 
-/// Report language (Fase 13): the UI language, pt-PT by default.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Lang {
-    #[default]
-    Pt,
-    En,
-}
-
-/// Every text the report writes, in one language. The arrays follow the
+/// Every text the report writes. The arrays follow the
 /// order of `ELEMENT_CATALOG`, `CABLE_TYPES`, `LABOR_PER_M` and `SCENARIO_METRICS`.
 struct Texts {
     elements: [&'static str; 8],
@@ -77,7 +68,6 @@ struct Texts {
     labor_routes: [&'static str; 3],
     scenario_metrics: [&'static str; 7],
     piece: &'static str,
-    decimal: char,
     title: &'static str,
     stats: &'static str,
     metric: &'static str,
@@ -117,82 +107,7 @@ struct Texts {
     csv_file: &'static str,
 }
 
-const PT: Texts = Texts {
-    elements: [
-        "OLT",
-        "Splitter ótico",
-        "ONU",
-        "Antena",
-        "Router",
-        "Switch",
-        "Poste",
-        "Caixa de distribuição",
-    ],
-    cables: ["Cabo de fibra", "Cabo de cobre", "Cabo coaxial"],
-    labor_install: "Mão de obra — instalação de elementos",
-    labor_routes: [
-        "Mão de obra — vala para cabo subterrâneo",
-        "Mão de obra — cabo aéreo",
-        "Mão de obra — ligação direta",
-    ],
-    scenario_metrics: [
-        "Edifícios",
-        "Elementos de rede",
-        "Cabo (m)",
-        "Custo da BOM (€)",
-        "Latência (ms)",
-        "Débito (Mbps)",
-        "Atenuação (dB)",
-    ],
-    piece: "un",
-    decimal: ',',
-    title: "Relatório",
-    stats: "Estatísticas",
-    metric: "Métrica",
-    value: "Valor",
-    area: "Área do terreno",
-    buildings: "Edifícios",
-    elements_row: "Elementos de rede",
-    markers: "Marcadores",
-    roads: "Estradas",
-    cables_word: "cabos",
-    cable_total: "Cabo no total",
-    bom: "Lista de materiais (BOM)",
-    item: "Elemento",
-    quantity: "Quantidade",
-    unit_cost: "Custo unitário",
-    total: "Total",
-    project_total: "Total do projeto",
-    prices_note:
-        "Preços e mão de obra simbólicos (catálogo ou prop «price»; cabos pelo «costPerMeter»).",
-    simulation: "Simulação de rede",
-    path: "Caminho",
-    length: "Comprimento",
-    latency: "Latência",
-    bandwidth: "Débito (gargalo)",
-    cost: "Custo",
-    attenuation: "Atenuação",
-    received_power: "Potência recebida",
-    headroom: "folga",
-    no_simulation: "Sem simulação calculada.",
-    scenarios: "Cenários",
-    appendix: "Apêndice — propriedades dinâmicas",
-    kind: "Tipo",
-    properties: "Propriedades",
-    csv_header: [
-        "Elemento",
-        "Quantidade",
-        "Unidade",
-        "Custo unitário (€)",
-        "Total (€)",
-    ],
-    pdf_filter: "Documento PDF",
-    pdf_file: "relatorio.pdf",
-    csv_filter: "Folha de cálculo CSV",
-    csv_file: "lista-de-materiais.csv",
-};
-
-const EN: Texts = Texts {
+const TEXTS: Texts = Texts {
     elements: [
         "OLT",
         "Optical splitter",
@@ -220,7 +135,6 @@ const EN: Texts = Texts {
         "Attenuation (dB)",
     ],
     piece: "pcs",
-    decimal: '.',
     title: "Report",
     stats: "Statistics",
     metric: "Metric",
@@ -261,13 +175,6 @@ const EN: Texts = Texts {
     csv_file: "bill-of-materials.csv",
 };
 
-fn texts(lang: Lang) -> &'static Texts {
-    match lang {
-        Lang::Pt => &PT,
-        Lang::En => &EN,
-    }
-}
-
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReportEntity {
@@ -298,7 +205,7 @@ pub struct ReportRoad {
 #[serde(rename_all = "camelCase")]
 pub struct ReportInput {
     pub name: String,
-    /// Display date (the frontend formats it in the UI language).
+    /// Display date (formatted by the frontend).
     pub date: String,
     pub terrain_size: f64,
     pub entities: Vec<ReportEntity>,
@@ -309,9 +216,6 @@ pub struct ReportInput {
     pub simulation: Option<PathResult>,
     #[serde(default)]
     pub scenarios: Vec<Scenario>,
-    /// Fase 13: language of the texts and numbers (absent = pt-PT).
-    #[serde(default)]
-    pub lang: Lang,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -340,7 +244,7 @@ pub struct Stats {
 pub struct BomRow {
     pub item: String,
     pub quantity: f64,
-    /// `m`, or pieces in the report language (`un` / `pcs`).
+    /// `m`, or pieces (`pcs`).
     pub unit: String,
     pub unit_cost: f64,
     pub total: f64,
@@ -376,7 +280,7 @@ pub struct ProfilePoint {
 fn validate(input: &ReportInput) -> Result<(), AppError> {
     let bad = |what: &str| Err(AppError::InvalidReport(what.to_string()));
     if !(input.terrain_size.is_finite() && input.terrain_size >= 0.0) {
-        return bad("tamanho do terreno inválido");
+        return bad("invalid terrain size");
     }
     if input
         .cables
@@ -387,7 +291,7 @@ fn validate(input: &ReportInput) -> Result<(), AppError> {
             .iter()
             .any(|r| !(r.length.is_finite() && r.length >= 0.0))
     {
-        return bad("comprimento negativo ou inválido");
+        return bad("negative or invalid length");
     }
     let negative = |p: &Props, k: &str| num(p, k).is_some_and(|v| !(v.is_finite() && v >= 0.0));
     if input.entities.iter().any(|e| negative(&e.props, "price"))
@@ -396,7 +300,7 @@ fn validate(input: &ReportInput) -> Result<(), AppError> {
             .iter()
             .any(|c| negative(&c.props, "costPerMeter"))
     {
-        return bad("preço negativo");
+        return bad("negative price");
     }
     Ok(())
 }
@@ -446,7 +350,7 @@ fn group(groups: &mut Vec<(f64, f64)>, price: f64, amount: f64) {
 }
 
 pub fn bom(input: &ReportInput) -> Bom {
-    let t = texts(input.lang);
+    let t = &TEXTS;
     let mut rows = Vec::new();
     let mut push = |item: &str, quantity: f64, unit: &str, unit_cost: f64| {
         rows.push(BomRow {
@@ -537,15 +441,15 @@ pub fn terrain_profile(
         .collect())
 }
 
-/// `1234.5` → `1234,50` (pt) / `1234.50` (en). `+ 0.0` turns the `-0.0` of an
-/// empty `f64` sum into `0.0` (it printed «-0,0 m» — `ERRORS.md` E36).
-fn fixed(v: f64, decimals: usize, t: &Texts) -> String {
-    format!("{:.*}", decimals, v + 0.0).replace('.', &t.decimal.to_string())
+/// `1234.5` → `1234.50`. `+ 0.0` turns the `-0.0` of an empty `f64` sum into
+/// `0.0` (it printed «-0,0 m» — `ERRORS.md` E36).
+fn fixed(v: f64, decimals: usize) -> String {
+    format!("{:.*}", decimals, v + 0.0)
 }
 
-/// CSV of the BOM — dot decimals in both languages (spreadsheets).
-pub fn bom_csv(bom: &Bom, lang: Lang) -> String {
-    let t = texts(lang);
+/// CSV of the BOM — dot decimals (spreadsheets).
+pub fn bom_csv(bom: &Bom) -> String {
+    let t = &TEXTS;
     let mut out = row(&t.csv_header);
     for r in &bom.rows {
         out += &row(&[
@@ -562,8 +466,8 @@ pub fn bom_csv(bom: &Bom, lang: Lang) -> String {
 
 /// The report document (cover → stats → BOM → simulation → scenarios → appendix).
 pub fn report_pdf(input: &ReportInput, data: &ReportData, image: Option<Vec<u8>>) -> Vec<u8> {
-    let t = texts(input.lang);
-    let n = |v: f64, decimals: usize| fixed(v, decimals, t);
+    let t = &TEXTS;
+    let n = fixed;
     let mut pdf = Pdf::new();
     pdf.heading(&format!("{} — {}", t.title, input.name));
     pdf.paragraph(&format!("Terra_Map · {}", input.date));
@@ -764,12 +668,11 @@ pub fn export_pdf(
 ) -> Result<Option<String>, AppError> {
     let data = project_report(input)?;
     let image = image.filter(|bytes| pdf::jpeg_size(bytes).is_some()); // hostile input: ignore a bad image
-    let t = texts(input.lang);
     save_with_dialog(
         app,
-        t.pdf_filter,
+        TEXTS.pdf_filter,
         "pdf",
-        t.pdf_file,
+        TEXTS.pdf_file,
         &report_pdf(input, &data, image),
     )
 }
@@ -777,13 +680,12 @@ pub fn export_pdf(
 /// BOM as CSV via a native save dialog. `Ok(None)` = cancelled.
 pub fn export_bom_csv(app: &AppHandle, input: &ReportInput) -> Result<Option<String>, AppError> {
     let data = project_report(input)?;
-    let t = texts(input.lang);
     save_with_dialog(
         app,
-        t.csv_filter,
+        TEXTS.csv_filter,
         "csv",
-        t.csv_file,
-        bom_csv(&data.bom, input.lang).as_bytes(),
+        TEXTS.csv_file,
+        bom_csv(&data.bom).as_bytes(),
     )
 }
 
@@ -835,7 +737,6 @@ mod tests {
             roads: vec![ReportRoad { length: 40.0 }],
             simulation: None,
             scenarios: vec![],
-            lang: Lang::Pt,
         }
     }
 
@@ -865,59 +766,44 @@ mod tests {
         assert_eq!(onus.len(), 2);
         assert_eq!(onus.iter().map(|r| r.total).sum::<f64>(), 60.0 + 75.0);
         // Fiber: 175 m × 1.2 €/m.
-        assert!((get("Cabo de fibra")[0].total - 210.0).abs() < 1e-9);
+        assert!((get("Fiber cable")[0].total - 210.0).abs() < 1e-9);
         // Labor: 4 elements × 30, 150 m underground × 12, 25 m aerial × 5.
-        assert_eq!(get("Mão de obra — instalação de elementos")[0].total, 120.0);
-        assert_eq!(
-            get("Mão de obra — vala para cabo subterrâneo")[0].total,
-            1800.0
-        );
-        assert_eq!(get("Mão de obra — cabo aéreo")[0].total, 125.0);
+        assert_eq!(get("Labor — element installation")[0].total, 120.0);
+        assert_eq!(get("Labor — trench for underground cable")[0].total, 1800.0);
+        assert_eq!(get("Labor — aerial cable")[0].total, 125.0);
         let expected = 3500.0 + 40.0 + 60.0 + 75.0 + 210.0 + 120.0 + 1800.0 + 125.0;
         assert!((b.total - expected).abs() < 1e-9, "{}", b.total);
         // Houses and markers are not network materials.
-        assert!(b.rows.iter().all(|r| !r.item.contains("Casa")));
+        assert!(b.rows.iter().all(|r| !r.item.contains("House")));
     }
 
     #[test]
-    fn numbers_print_in_the_language_and_never_negative_zero() {
+    fn numbers_use_a_dot_and_never_negative_zero() {
         let empty: f64 = Vec::<f64>::new().into_iter().sum();
-        assert_eq!(fixed(empty, 1, &PT), "0,0");
-        assert_eq!(fixed(1234.5, 2, &PT), "1234,50");
-        assert_eq!(fixed(1234.5, 2, &EN), "1234.50");
+        assert_eq!(fixed(empty, 1), "0.0");
+        assert_eq!(fixed(1234.5, 2), "1234.50");
     }
 
-    /// Fase 13: `lang: "en"` translates the BOM, the CSV and the PDF; absent = pt-PT.
+    /// Fase 14 (`Q_LIST.md` Q28): the BOM, the CSV and the PDF are English.
     #[test]
-    fn english_report_texts() {
-        let mut input = ftth();
-        input.lang = serde_json::from_value(json!("en")).unwrap();
+    fn report_texts_are_english() {
+        let input = ftth();
         let b = bom(&input);
         assert!(b
             .rows
             .iter()
             .any(|r| r.item == "Fiber cable" && r.unit == "m"));
         assert!(b.rows.iter().any(|r| r.item == "OLT" && r.unit == "pcs"));
-        assert!(b
-            .rows
-            .iter()
-            .any(|r| r.item == "Labor — trench for underground cable"));
-        let csv = bom_csv(&b, input.lang);
-        assert!(csv.starts_with("Item,Quantity,Unit,Unit cost (€),Total (€)\r\n"));
-        assert!(csv.trim_end().ends_with("Project total,,,,5930.00"));
         let data = project_report(&input).unwrap();
         let text = String::from_utf8_lossy(&report_pdf(&input, &data, None)).to_string();
         assert!(text.contains("(Report \u{FFFD} Bairro Norte)")); // — is the WinAnsi byte 0x97
         assert!(text.contains("(Bill of materials \\(BOM\\))")); // parentheses are escaped
         assert!(text.contains("(5930.00 \u{FFFD})") && text.contains("(No simulation computed.)"));
-        // Every language has a label for every catalog entry.
-        for t in [&PT, &EN] {
-            assert!(t.elements.iter().chain(&t.cables).all(|l| !l.is_empty()));
-        }
-        // Older inputs without `lang` are pt-PT.
-        let old: ReportInput =
-            serde_json::from_str(include_str!("../fixtures/frontend-report.json")).unwrap();
-        assert_eq!(old.lang, Lang::Pt);
+        assert!(TEXTS
+            .elements
+            .iter()
+            .chain(&TEXTS.cables)
+            .all(|l| !l.is_empty()));
     }
 
     #[test]
@@ -978,7 +864,7 @@ mod tests {
 
         let text = String::from_utf8_lossy(&report_pdf(&input, &data, None)).to_string();
         assert!(text.contains("(bld_1 > bld_2 > bld_3)"));
-        assert!(text.contains(&format!("({} \u{FFFD})", fixed(expected, 2, &PT))));
+        assert!(text.contains(&format!("({} \u{FFFD})", fixed(expected, 2))));
         assert!(text.contains("(Cen") && text.contains("rio 2)"));
 
         // Manual check with the real snapshot:
@@ -995,10 +881,10 @@ mod tests {
 
     #[test]
     fn bom_csv_has_rows_and_total() {
-        let csv = bom_csv(&bom(&ftth()), Lang::Pt);
-        assert!(csv.starts_with("Elemento,Quantidade,Unidade,Custo unitário (€),Total (€)\r\n"));
-        assert!(csv.contains("OLT,1.00,un,3500.00,3500.00\r\n"));
-        assert!(csv.trim_end().ends_with("Total do projeto,,,,5930.00"));
+        let csv = bom_csv(&bom(&ftth()));
+        assert!(csv.starts_with("Item,Quantity,Unit,Unit cost (€),Total (€)\r\n"));
+        assert!(csv.contains("OLT,1.00,pcs,3500.00,3500.00\r\n"));
+        assert!(csv.trim_end().ends_with("Project total,,,,5930.00"));
     }
 
     #[test]
@@ -1021,13 +907,13 @@ mod tests {
         let data = project_report(&input).unwrap();
         let bytes = report_pdf(&input, &data, Some(pdf::tests::tiny_jpeg()));
         let text = String::from_utf8_lossy(&bytes);
-        assert!(text.contains("(5930,00 \u{FFFD})")); // € is the WinAnsi byte 0x80
-        assert!(text.contains("(Sem simula"));
+        assert!(text.contains("(5930.00 \u{FFFD})")); // € is the WinAnsi byte 0x80
+        assert!(text.contains("(No simulation computed.)"));
         assert!(text.contains("(Base)") && text.contains("(Alternativa)"));
-        // Known keys get their pt-PT header and decimals; unknown keys print as is.
-        assert!(text.contains("(Custo da BOM ") && text.contains("(4100,50)"));
-        assert!(text.contains("(Edif") && text.contains("(1)"));
-        assert!(text.contains("(futureMetric)") && text.contains("(7,00)"));
+        // Known keys get their header and decimals; unknown keys print as is.
+        assert!(text.contains("(BOM cost ") && text.contains("(4100.50)"));
+        assert!(text.contains("(Buildings)") && text.contains("(1)"));
+        assert!(text.contains("(futureMetric)") && text.contains("(7.00)"));
         assert!(text.contains("/DCTDecode"));
 
         // With a real Dijkstra result, the path and its metrics are printed.
@@ -1045,8 +931,8 @@ mod tests {
         .unwrap();
         let text = String::from_utf8_lossy(&report_pdf(&input, &data, None)).to_string();
         assert!(text.contains("(bld_1 > bld_3)"));
-        assert!(text.contains("(100,0 m)"));
-        assert!(text.contains("Pot"), "link budget row");
+        assert!(text.contains("(100.0 m)"));
+        assert!(text.contains("(Received power)"), "link budget row");
 
         // Manual check in a real viewer: REPORT_PDF_OUT=/tmp/x.pdf cargo test
         if let Ok(out) = std::env::var("REPORT_PDF_OUT") {
