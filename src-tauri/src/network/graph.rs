@@ -106,7 +106,7 @@ fn check_props(owner: &str, props: &Props) -> Result<(), AppError> {
         if let Some(v) = num(props, key) {
             if !v.is_finite() || v < 0.0 {
                 return Err(AppError::InvalidNetwork(format!(
-                    "«{key}» de {owner} tem de ser um número ≥ 0"
+                    "“{key}” of {owner} must be a number ≥ 0"
                 )));
             }
         }
@@ -121,7 +121,7 @@ impl Graph {
         for (i, node) in input.nodes.iter().enumerate() {
             if index.insert(node.id.clone(), i).is_some() {
                 return Err(AppError::InvalidNetwork(format!(
-                    "nó repetido: {}",
+                    "repeated node: {}",
                     node.id
                 )));
             }
@@ -132,14 +132,14 @@ impl Graph {
         for (e, edge) in input.edges.iter().enumerate() {
             if !edge.length.is_finite() || edge.length < 0.0 {
                 return Err(AppError::InvalidNetwork(format!(
-                    "comprimento inválido no cabo {}",
+                    "invalid length on cable {}",
                     edge.id
                 )));
             }
             check_props(&edge.id, &edge.props)?;
             let (Some(&a), Some(&b)) = (index.get(&edge.from_id), index.get(&edge.to_id)) else {
                 return Err(AppError::InvalidNetwork(format!(
-                    "o cabo {} liga a um nó inexistente",
+                    "cable {} connects to a missing node",
                     edge.id
                 )));
             };
