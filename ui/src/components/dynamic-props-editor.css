@@ -55,7 +55,7 @@
 .dyn-props__toggle--on {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .dyn-props__remove {
@@ -73,7 +73,7 @@
 }
 
 .dyn-props__remove:hover {
-  background: rgba(255, 59, 48, 0.12); /* --danger at low alpha */
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
