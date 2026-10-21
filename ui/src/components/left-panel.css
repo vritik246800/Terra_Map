@@ -98,7 +98,7 @@
 /* Active state: current terrain preset / active tool (Fase 3). */
 .catalog-item.is-active {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Disabled state: "Modelo personalizado" before the first .glb import (Fase 5). */
