@@ -142,7 +142,11 @@ function Scenarios({ report, data }: { report: ReportActions; data: ReportData }
                 <th scope="row">{label}</th>
                 {columns.map((c) => {
                   const v = c.metrics.find((m) => m.key === key)?.value;
-                  return <td key={c.index ?? "current"}>{v === undefined ? "—" : v.toFixed(decimals)}</td>;
+                  return (
+                    <td key={c.index ?? "current"}>
+                      {v === undefined ? "—" : v.toFixed(decimals)}
+                    </td>
+                  );
                 })}
               </tr>
             ))}
@@ -258,8 +262,7 @@ export function ReportModal({ report, onClose }: { report: ReportActions; onClos
               />
             ) : (
               <p className="properties-section__hint">
-                Sem simulação calculada — escolhe origem e destino e calcula o caminho no
-                simulador.
+                Sem simulação calculada — escolhe origem e destino e calcula o caminho no simulador.
               </p>
             )}
           </section>
