@@ -2,24 +2,26 @@
 
 Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **terreno** (plano, montanhas, vale), colocar **infraestruturas** (casas, prédios, lotes) por arrastar e largar, montar **redes de telecomunicação** (antenas, OLT, splitters, ONU, cabos de fibra, cobre e coaxial) e **simular** a rede — caminho óptimo por cabo com o **algoritmo de Dijkstra**, latência, débito, cobertura de antena e link budget.
 
-> Estado: **em desenvolvimento**. Fases 0–6 feitas (layout, viewport 3D, terrenos, infraestruturas, import/export `.glb`, redes e telecomunicação); frontend em **React**. Simulador e projecto `.json` por fazer.
+> Estado: **em desenvolvimento**. Fases 0–11 feitas (layout, viewport 3D, terrenos, infraestruturas, import/export `.glb`, redes e telecomunicação, simulador de redes, projecto `.json`, polish e qualidade, produtividade, ambiente); frontend em **React**; build de produção para macOS (`.app`/`.dmg`).
 
 ## Funcionalidades
 
 ### Feito
 
 - **Interface** estilo Apple: navbar superior (Save, Import, Export, Open), catálogo à esquerda, propriedades à direita, botão circular de atalhos e guia, painéis com efeito de vidro.
-- **Viewport 3D** (three.js): órbita, pan e zoom com amortecimento; vistas topo, frente e isométrica (`1`/`2`/`3`, `Home`, `F`); selecção por clique; grelha (`G`).
+- **Viewport 3D** (three.js): órbita, pan e zoom com amortecimento; vistas topo, frente e isométrica (`1`/`2`/`3`, `Home`, `F`); selecção por clique; grelha (`G`); minimap de cima com clique para mover a câmara.
 - **Terrenos**: presets plano, montanhas, vale e personalizado (seed, amplitude, frequência), gerados no núcleo Rust por ruído Perlin; pincel de escultura (`B`, `Shift` para baixar) com falloff gaussiano; gradiente de cor por altitude; guardar e carregar presets; importar heightmap PNG.
 - **Infraestruturas**: casa, prédio (pisos ajustáveis) e lote; arrastar e largar com encaixe no relevo; fases de construção (fundações, estrutura, acabamento); posição, rotação e escala por spinners e setas (`Shift` ×10, `Alt` ÷10); gizmo de transformação; duplicar e eliminar; aviso de colisão.
 - **Modelos `.glb`**: exportar a maquete ou a selecção, importar com validação; o modelo importado entra no catálogo como reutilizável.
 - **Redes e telecomunicação**: antenas, routers, switches, OLT, ONU, splitters, postes e caixas de distribuição por arrastar e largar; ferramenta Cabo (`C`) com percursos subterrâneo (segue o relevo), aéreo (catenária) ou directo, em fibra, cobre ou coaxial; marcadores (`M`) com etiqueta e nota; propriedades dinâmicas chave-valor por elemento e por cabo; grafo da rede em memória.
+- **Simulador de redes**: caminho óptimo por cabo com Dijkstra no núcleo Rust, por distância, custo, latência ou atenuação; latência, débito de gargalo, custo e atenuação ponta-a-ponta; link budget óptico com semáforo; simular falha de um elemento ou cabo e ver a rota alternativa; cobertura de antena com atenuação pelo relevo (heatmap); exportar resultados em CSV.
+- **Produtividade**: desfazer/refazer até 100 acções (com histórico clicável), selecção múltipla (`Shift`+clique ou rectângulo com `Shift`+arrastar) com mover, alinhar, distribuir e eliminar em lote, copiar/colar, camadas (terreno, infraestruturas, redes, marcadores) com visibilidade e bloqueio, snap à grelha e a objectos, pesquisa no catálogo.
+- **Ambiente**: ciclo dia/noite com sombras e céu em gradiente, névoa, lagos (plano de água), pincel de materiais (relva, terra, areia, rocha, neve), vegetação (árvores e arbustos com instancing), estradas desenhadas sobre o relevo, modo apresentação com voo de câmara.
+- **Projecto**: guardar e abrir `.json` versionado (com os modelos `.glb` incluídos), guardar como, autosave a cada minuto com recuperação depois de um crash, aviso de alterações por guardar ao fechar ou abrir outro projecto; menus de atalhos e guia do programa.
 
 ### Planeado
 
-- **Simulador**: Dijkstra no núcleo Rust com peso por distância, custo, latência ou atenuação; latência e débito ponta-a-ponta; link budget; heatmap de cobertura; simulação de falha de nó ou cabo; exportar resultados em CSV.
-- **Projecto**: guardar e abrir `.json` versionado, autosave, aviso de alterações por guardar.
-- **Depois**: undo/redo, camadas, ciclo dia/noite, água, estradas, vegetação, régua, perfil do terreno, BOM e relatório PDF, tema escuro, inglês.
+- **Depois**: régua, perfil do terreno, BOM e relatório PDF, tema escuro, inglês.
 
 ## Tecnologia
 
@@ -44,7 +46,9 @@ Terra_Map/
 │   │   ├── commands.rs     # comandos Tauri (finos)
 │   │   ├── terrain.rs      # geração de heightmap (Perlin/fBm)
 │   │   ├── project.rs      # presets de terreno em disco
+│   │   ├── project_file.rs # projecto .json versionado, autosave, aviso ao fechar
 │   │   ├── glb.rs          # diálogos e leitura/escrita de .glb
+│   │   ├── network/        # simulador: grafo, Dijkstra, métricas, cobertura, CSV
 │   │   └── error.rs        # erros tipados (thiserror)
 │   ├── capabilities/
 │   ├── icons/
@@ -53,9 +57,9 @@ Terra_Map/
 │   ├── src/
 │   │   ├── main.tsx        # cria a cena 3D e monta <App />
 │   │   ├── App.tsx         # layout
-│   │   ├── components/     # barra superior, painéis, viewport, spinner, toasts, menu de atalhos
-│   │   ├── scene/          # viewport, câmara, terreno, entidades, cabos, selecção, gizmo
-│   │   ├── tools/          # pincel, arrastar e largar, cabo, marcador, import/export .glb
+│   │   ├── components/     # barra superior, painéis, viewport, simulador, modais, spinner, toasts, menu de atalhos
+│   │   ├── scene/          # viewport, câmara, terreno, entidades, cabos, selecção, gizmo, overlay do simulador
+│   │   ├── tools/          # pincel, arrastar e largar, cabo, marcador, import/export .glb, simulador, projecto
 │   │   ├── state/          # store, hook useStore, fila de toasts
 │   │   ├── anim/           # animações (GSAP, anime.js, movimento reduzido)
 │   │   ├── net/            # ponte para o núcleo Rust
@@ -92,8 +96,11 @@ cargo tauri build         # instalador de produção
 
 | Atalho | Acção |
 |---|---|
+| `Ctrl/Cmd + S` · `Shift + S` · `O` | guardar · guardar como · abrir projecto |
 | `Ctrl/Cmd + E` / `I` | exportar / importar `.glb` |
-| `Ctrl/Cmd + D` · `Delete` | duplicar · eliminar |
+| `Ctrl/Cmd + Z` · `Shift + Z` | desfazer · refazer |
+| `Ctrl/Cmd + C` / `V` · `D` · `Delete` | copiar / colar · duplicar · eliminar (selecção) |
+| `L` | camadas e histórico |
 | `B` (+ `Shift`) | pincel: elevar (baixar) terreno |
 | `C` · `M` | ferramenta cabo · ferramenta marcador |
 | `W` / `E` / `T` | gizmo: mover / rodar / escalar |
@@ -101,3 +108,4 @@ cargo tauri build         # instalador de produção
 | `F` · `1` / `2` / `3` · `Home` | focar selecção · vistas topo / frente / iso · repor câmara |
 | `G` | mostrar/esconder grelha |
 | `Esc` | limpar selecção |
+| `?` | menu de atalhos |
