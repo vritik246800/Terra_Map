@@ -12,6 +12,7 @@ import { shouldIgnoreShortcut } from "../scene/shortcuts";
 import type { Terrain } from "../scene/terrain";
 import { layerBlockReason } from "../state/labels";
 import { store } from "../state/store";
+import { t } from "../state/i18n";
 import { showToast } from "../state/toasts";
 
 const CLICK_THRESHOLD_PX = 4;
@@ -70,7 +71,7 @@ export function initRoadTool(deps: {
 
   function finish(): void {
     if (points.length < 2) {
-      showToast("Uma estrada precisa de pelo menos 2 pontos.", "info");
+      showToast(t("toast.roadTooShort"), "info");
       return;
     }
     const road = roads.add(points, store.roadTool.width);
