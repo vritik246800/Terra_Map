@@ -22,6 +22,7 @@ import {
 import type { CableRegistry } from "../scene/cables";
 import type { RoadRegistry } from "../scene/roads";
 import type { Terrain } from "../scene/terrain";
+import { i18n, t } from "../state/i18n";
 import { store } from "../state/store";
 import { errorText, showToast } from "../state/toasts";
 
@@ -48,7 +49,7 @@ export function createReportActions(deps: {
     const { nodes, edges } = store.networkGraph();
     return {
       name: store.projectName,
-      date: new Date().toLocaleDateString("pt-PT"),
+      date: new Date().toLocaleDateString(i18n.tag),
       terrainSize: terrain.current.size,
       entities: nodes.map((n) => ({ id: n.id, kind: n.kind, props: n.dynamicProps })),
       cables: edges.map((c) => ({
@@ -60,6 +61,7 @@ export function createReportActions(deps: {
       roads: store.allRoads().map((r) => ({ length: roads.getLength(r.id) })),
       simulation: store.simulation.result,
       scenarios: [...store.scenarios],
+      lang: i18n.locale, // Fase 13: BOM, PDF and CSV in the UI language
     };
   }
 
@@ -69,18 +71,18 @@ export function createReportActions(deps: {
     async exportPdf() {
       try {
         const name = await exportReportPdf(input(), snapshot());
-        if (name) showToast(`Relatório exportado: ${name}`, "success");
+        if (name) showToast(t("toast.reportPdf", { file: name }), "success");
       } catch (err) {
-        showToast(`Exportação falhou: ${errorText(err)}`, "danger");
+        showToast(t("toast.exportFailed", { error: errorText(err) }), "danger");
       }
     },
 
     async exportCsv() {
       try {
         const name = await exportBomCsv(input());
-        if (name) showToast(`Lista de materiais exportada: ${name}`, "success");
+        if (name) showToast(t("toast.reportCsv", { file: name }), "success");
       } catch (err) {
-        showToast(`Exportação falhou: ${errorText(err)}`, "danger");
+        showToast(t("toast.exportFailed", { error: errorText(err) }), "danger");
       }
     },
 
