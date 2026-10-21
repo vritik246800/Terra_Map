@@ -2,6 +2,11 @@
 //!
 //! Every command follows the same bridge pattern: thin wrappers here,
 //! real logic in dedicated modules.
+//!
+//! Commands that show a native file dialog are `#[tauri::command(async)]`:
+//! a plain sync command runs on the main thread, and `blocking_*_file()`
+//! waits there for a dialog that needs that same thread — the app froze
+//! (`ERRORS.md` E45). `(async)` runs them on Tauri's thread pool.
 
 use tauri::{AppHandle, State, Window};
 
@@ -14,6 +19,7 @@ use crate::project::{self, PresetSummary, TerrainPresetFile};
 use crate::project_file::{self, OpenedProject, ProjectFile, ProjectSession};
 use crate::report::{self, Point2, ProfilePoint, ReportData, ReportInput};
 use crate::terrain::{self, TerrainPreset};
+use crate::update;
 
 /// Health-check command used to verify the Rust ↔ TypeScript bridge.
 #[tauri::command]
@@ -64,14 +70,14 @@ pub fn load_terrain_preset(app: AppHandle, file: &str) -> Result<TerrainPresetFi
 
 /// Saves `.glb` bytes via a native save dialog (filter `*.glb`).
 /// Returns the written path, or `None` when the user cancelled (Fase 5).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn save_glb(app: AppHandle, bytes: Vec<u8>) -> Result<Option<String>, AppError> {
     glb::save_glb_with_dialog(&app, &bytes)
 }
 
 /// Opens a `.glb` file via a native open dialog (filter `*.glb`).
 /// Returns its contents, or `None` when the user cancelled (Fase 5).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn open_glb_dialog(app: AppHandle) -> Result<Option<PickedGlb>, AppError> {
     glb::open_glb_with_dialog(&app)
 }
@@ -99,7 +105,7 @@ pub fn antenna_coverage(
 
 /// Saves a simulation result as CSV via a native save dialog (filter
 /// `*.csv`). Returns the written path, or `None` when the user cancelled.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn export_simulation_csv(
     app: AppHandle,
     result: PathResult,
@@ -110,7 +116,7 @@ pub fn export_simulation_csv(
 /// Saves the project (Fase 8): to the current path, or via a native save
 /// dialog on the first save / `save_as`. Returns the file name, or `None`
 /// when the user cancelled.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn save_project(
     app: AppHandle,
     session: State<'_, ProjectSession>,
@@ -121,7 +127,7 @@ pub fn save_project(
 }
 
 /// Opens a project via a native open dialog (migrated + validated).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn open_project(
     app: AppHandle,
     session: State<'_, ProjectSession>,
@@ -175,7 +181,7 @@ pub fn project_report(input: ReportInput) -> Result<ReportData, AppError> {
 
 /// PDF report (stats, BOM, simulation, scenarios, maquete image) via a native
 /// save dialog. Returns the file name, or `None` when cancelled.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn export_report_pdf(
     app: AppHandle,
     input: ReportInput,
@@ -185,7 +191,7 @@ pub fn export_report_pdf(
 }
 
 /// BOM as CSV via a native save dialog. `None` when cancelled.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn export_bom_csv(app: AppHandle, input: ReportInput) -> Result<Option<String>, AppError> {
     report::export_bom_csv(&app, &input)
 }
@@ -198,4 +204,16 @@ pub fn terrain_profile(
     to: Point2,
 ) -> Result<Vec<ProfilePoint>, AppError> {
     report::terrain_profile(&terrain, from, to)
+}
+
+/// Fase 14: is the latest GitHub release tag newer than this build?
+#[tauri::command]
+pub fn is_newer_version(app: AppHandle, tag: &str) -> bool {
+    update::is_newer(tag, &app.package_info().version.to_string())
+}
+
+/// Fase 14: opens the latest release page in the browser (fixed URL).
+#[tauri::command(async)]
+pub fn open_releases_page() -> Result<(), AppError> {
+    update::open_releases_page()
 }
