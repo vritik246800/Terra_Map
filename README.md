@@ -2,7 +2,7 @@
 
 Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **terreno** (plano, montanhas, vale), colocar **infraestruturas** (casas, prédios, lotes) por arrastar e largar, montar **redes de telecomunicação** (antenas, OLT, splitters, ONU, cabos de fibra, cobre e coaxial) e **simular** a rede — caminho óptimo por cabo com o **algoritmo de Dijkstra**, latência, débito, cobertura de antena e link budget.
 
-> Estado: **em desenvolvimento**. Fases 0–11 feitas (layout, viewport 3D, terrenos, infraestruturas, import/export `.glb`, redes e telecomunicação, simulador de redes, projecto `.json`, polish e qualidade, produtividade, ambiente); frontend em **React**; build de produção para macOS (`.app`/`.dmg`).
+> Estado: **fases 0–13 feitas** (layout, viewport 3D, terrenos, infraestruturas, import/export `.glb`, redes e telecomunicação, simulador de redes, projecto `.json`, polish e qualidade, produtividade, ambiente, medição e relatórios, experiência e robustez); frontend em **React**; build de produção para macOS (`.app`/`.dmg`). Próximas ideias no backlog do roadmap.
 
 ## Funcionalidades
 
@@ -17,17 +17,19 @@ Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **ter
 - **Simulador de redes**: caminho óptimo por cabo com Dijkstra no núcleo Rust, por distância, custo, latência ou atenuação; latência, débito de gargalo, custo e atenuação ponta-a-ponta; link budget óptico com semáforo; simular falha de um elemento ou cabo e ver a rota alternativa; cobertura de antena com atenuação pelo relevo (heatmap); exportar resultados em CSV.
 - **Produtividade**: desfazer/refazer até 100 acções (com histórico clicável), selecção múltipla (`Shift`+clique ou rectângulo com `Shift`+arrastar) com mover, alinhar, distribuir e eliminar em lote, copiar/colar, camadas (terreno, infraestruturas, redes, marcadores) com visibilidade e bloqueio, snap à grelha e a objectos, pesquisa no catálogo.
 - **Ambiente**: ciclo dia/noite com sombras e céu em gradiente, névoa, lagos (plano de água), pincel de materiais (relva, terra, areia, rocha, neve), vegetação (árvores e arbustos com instancing), estradas desenhadas sobre o relevo, modo apresentação com voo de câmara.
+- **Medição e relatórios**: régua (`R`) com distância 3D, horizontal e desnível; perfil do terreno entre os dois pontos (gráfico); relatório com estatísticas do projecto, lista de materiais (BOM com preços e mão de obra simbólicos) e a última simulação; comparador de cenários guardado no projecto; exportar o relatório em PDF (com imagem da maquete, gerado no núcleo Rust) e a BOM em CSV.
+- **Experiência**: tema claro e escuro (contraste AA nos dois), português e inglês em toda a interface e no relatório, a app toda pelo teclado (viewport focável com mira — setas movem a câmara, `Espaço` clica, `N` salta para o elemento seguinte; catálogo por `Enter`), introdução de 3 passos na primeira execução, guia do programa actualizado.
 - **Projecto**: guardar e abrir `.json` versionado (com os modelos `.glb` incluídos), guardar como, autosave a cada minuto com recuperação depois de um crash, aviso de alterações por guardar ao fechar ou abrir outro projecto; menus de atalhos e guia do programa.
 
-### Planeado
+### Ideias (backlog)
 
-- **Depois**: régua, perfil do terreno, BOM e relatório PDF, tema escuro, inglês.
+- Terreno real (DEM/SRTM), tráfego de rede animado, exportar para web, vista lógica 2D da rede, templates de projecto.
 
 ## Tecnologia
 
 | Área | Escolha |
 |---|---|
-| Núcleo | [Rust](https://www.rust-lang.org) + [Tauri v2](https://v2.tauri.app) (ficheiros, presets, geração de terreno, Dijkstra) |
+| Núcleo | [Rust](https://www.rust-lang.org) + [Tauri v2](https://v2.tauri.app) (ficheiros, presets, geração de terreno, Dijkstra, relatórios PDF/CSV) |
 | Frontend | [React](https://react.dev) + TypeScript strict + [Vite](https://vite.dev) |
 | 3D | [three.js](https://threejs.org) (`OrbitControls`, `TransformControls`, `GLTFLoader`, `GLTFExporter`) |
 | Animação | [GSAP](https://gsap.com) (interface) e [anime.js](https://animejs.com) (3D e micro-interacções) |
@@ -49,6 +51,7 @@ Terra_Map/
 │   │   ├── project_file.rs # projecto .json versionado, autosave, aviso ao fechar
 │   │   ├── glb.rs          # diálogos e leitura/escrita de .glb
 │   │   ├── network/        # simulador: grafo, Dijkstra, métricas, cobertura, CSV
+│   │   ├── report/         # relatório: estatísticas, BOM, perfil do terreno, CSV, PDF
 │   │   └── error.rs        # erros tipados (thiserror)
 │   ├── capabilities/
 │   ├── icons/
@@ -57,13 +60,13 @@ Terra_Map/
 │   ├── src/
 │   │   ├── main.tsx        # cria a cena 3D e monta <App />
 │   │   ├── App.tsx         # layout
-│   │   ├── components/     # barra superior, painéis, viewport, simulador, modais, spinner, toasts, menu de atalhos
+│   │   ├── components/     # barra superior, painéis, viewport, simulador, modais (relatório, perfil…), spinner, toasts, menu de atalhos
 │   │   ├── scene/          # viewport, câmara, terreno, entidades, cabos, selecção, gizmo, overlay do simulador
-│   │   ├── tools/          # pincel, arrastar e largar, cabo, marcador, import/export .glb, simulador, projecto
-│   │   ├── state/          # store, hook useStore, fila de toasts
+│   │   ├── tools/          # pincel, arrastar e largar, cabo, marcador, régua, import/export .glb, simulador, projecto, relatório
+│   │   ├── state/          # store, hook useStore, fila de toasts, idioma (t/fmt), tema
 │   │   ├── anim/           # animações (GSAP, anime.js, movimento reduzido)
 │   │   ├── net/            # ponte para o núcleo Rust
-│   │   └── locales/        # pt, en
+│   │   └── locales/        # textos da interface: pt.json, en.json
 │   ├── index.html
 │   └── vite.config.ts
 ├── scripts/                # utilitários (gerar ícone)
@@ -102,7 +105,9 @@ cargo tauri build         # instalador de produção
 | `Ctrl/Cmd + C` / `V` · `D` · `Delete` | copiar / colar · duplicar · eliminar (selecção) |
 | `L` | camadas e histórico |
 | `B` (+ `Shift`) | pincel: elevar (baixar) terreno |
-| `C` · `M` | ferramenta cabo · ferramenta marcador |
+| `C` · `M` · `R` | ferramenta cabo · marcador · régua |
+| `N` / `Shift + N` | elemento seguinte / anterior (selecciona e enquadra) |
+| `Tab` até ao viewport, depois setas · `Shift` + setas · `+`/`−` · `Espaço` | mover · rodar · zoom · clicar na mira |
 | `W` / `E` / `T` | gizmo: mover / rodar / escalar |
 | `↑` / `↓` (+ `Shift`, `Alt`) | ajustar o spinner focado (×10, ÷10) |
 | `F` · `1` / `2` / `3` · `Home` | focar selecção · vistas topo / frente / iso · repor câmara |
