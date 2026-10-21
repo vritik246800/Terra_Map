@@ -157,24 +157,29 @@ export function buildNetworkContent(content: THREE.Group, kind: NetworkKind, pha
   });
 }
 
-/** Text label sprite shown above a marker pin (CanvasTexture). */
-function makeLabelSprite(text: string): THREE.Sprite {
+/** Draws the pill + text of a label sprite (marker pins, ruler — Fase 12). */
+function drawLabel(canvas: HTMLCanvasElement, text: string): void {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Glass-like pill background, dark text (tokens of DESIGN.md §7).
+  ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
+  ctx.beginPath();
+  ctx.roundRect(2, 6, 252, 52, 26);
+  ctx.fill();
+  ctx.fillStyle = "#1d1d1f";
+  ctx.font = "600 26px -apple-system, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text.slice(0, 24), 128, 33);
+}
+
+/** Text label sprite (CanvasTexture), 2.2 m above its parent. */
+export function makeLabelSprite(text: string): THREE.Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
   canvas.height = 64;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    // Glass-like pill background, dark text (tokens of DESIGN.md §7).
-    ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
-    ctx.beginPath();
-    ctx.roundRect(2, 6, 252, 52, 26);
-    ctx.fill();
-    ctx.fillStyle = "#1d1d1f";
-    ctx.font = "600 26px -apple-system, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(text.slice(0, 24), 128, 33);
-  }
+  drawLabel(canvas, text);
   const texture = new THREE.CanvasTexture(canvas);
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }),
@@ -182,6 +187,14 @@ function makeLabelSprite(text: string): THREE.Sprite {
   sprite.scale.set(3, 0.75, 1);
   sprite.position.y = 2.2;
   return sprite;
+}
+
+/** Rewrites the text of a sprite made by `makeLabelSprite` (ruler A19 counts up). */
+export function setLabelText(sprite: THREE.Sprite, text: string): void {
+  const texture = sprite.material.map;
+  if (!(texture instanceof THREE.CanvasTexture)) return;
+  drawLabel(texture.image as HTMLCanvasElement, text);
+  texture.needsUpdate = true;
 }
 
 /**
