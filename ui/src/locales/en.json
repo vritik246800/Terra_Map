@@ -20,8 +20,7 @@
     "toggleRight": "Toggle right panel",
     "projectTitle": "Project title",
     "unsaved": "Unsaved changes",
-    "darkTheme": "Dark theme",
-    "language": "Language: English — switch to Portuguese"
+    "darkTheme": "Dark theme"
   },
   "catalog": {
     "label": "Element catalog",
@@ -319,6 +318,12 @@
     "cancel": "Cancel",
     "save": "Save"
   },
+  "update": {
+    "title": "Update available",
+    "text": "Terra_Map {version} is out. Download it from the releases page and replace this copy — updating is optional.",
+    "later": "Later",
+    "download": "Download"
+  },
   "shortcuts": {
     "title": "Keyboard shortcuts",
     "keys": {
@@ -398,8 +403,8 @@
         "text": "R measures distances and shows the terrain profile. “Report” gives statistics, the bill of materials and scenarios, and exports PDF and CSV."
       },
       "keyboard": {
-        "title": "Keyboard, theme and language",
-        "text": "Tab reaches the viewport: arrows move the camera, Space clicks the crosshair, N jumps to the next element. In the top bar: theme and PT/EN."
+        "title": "Keyboard and theme",
+        "text": "Tab reaches the viewport: arrows move the camera, Space clicks the crosshair, N jumps to the next element. The sun/moon button in the top bar switches the theme."
       },
       "save": {
         "title": "Save",
@@ -425,7 +430,7 @@
       },
       "save": {
         "title": "3. Save and show",
-        "text": "In the highlighted bar: Save (Ctrl/Cmd+S), Report (PDF with the bill of materials), theme and language. The ? button in the corner has the shortcuts and the guide."
+        "text": "In the highlighted bar: Save (Ctrl/Cmd+S), Report (PDF with the bill of materials) and the theme. The ? button in the corner has the shortcuts and the guide."
       }
     }
   },
@@ -508,6 +513,7 @@
     "exportFailed": "Export failed: {error}",
     "reportPdf": "Report exported: {file}",
     "reportCsv": "Bill of materials exported: {file}",
+    "browserFailed": "Could not open the browser: {error}",
     "glbExportFailed": "Could not export the model.",
     "glbSelectionExported": "Selection exported: {file}",
     "glbModelExported": "Model exported: {file}",
