@@ -292,8 +292,6 @@ export interface ReportInput {
   roads: Array<{ length: number }>;
   simulation: PathResult | null;
   scenarios: Scenario[];
-  /** Fase 13: language of the BOM, PDF and CSV texts (Q_LIST.md Q24). */
-  lang: "pt" | "en";
 }
 
 export interface ReportStats {
@@ -310,7 +308,7 @@ export interface ReportStats {
 export interface BomRow {
   item: string;
   quantity: number;
-  /** `un` or `m`. */
+  /** `pcs` or `m`. */
   unit: string;
   unitCost: number;
   total: number;
@@ -348,3 +346,11 @@ export const terrainProfile = (
   from: { x: number; z: number },
   to: { x: number; z: number },
 ) => invoke<ProfilePoint[]>("terrain_profile", { terrain, from, to });
+
+// ---- Update notice (ROADMAP.md F14, Q_LIST.md Q29) ----
+
+/** Is the release tag (`vX.Y.Z`) newer than this build? Compared in the core. */
+export const isNewerVersion = (tag: string) => invoke<boolean>("is_newer_version", { tag });
+
+/** Opens the latest release page in the default browser (fixed URL in the core). */
+export const openReleasesPage = () => invoke<void>("open_releases_page");
