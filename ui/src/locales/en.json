@@ -1,9 +1,523 @@
 {
   "app": {
-    "title": "Terrain and Network Simulator"
+    "untitled": "Untitled"
   },
-  "core": {
-    "connecting": "Connecting to the Rust core…",
-    "unavailable": "Rust core unavailable (running outside Tauri)."
+  "common": {
+    "id": "ID",
+    "type": "Type",
+    "length": "Length",
+    "close": "Close",
+    "calculating": "Computing…"
+  },
+  "topbar": {
+    "save": "Save",
+    "open": "Open",
+    "import": "Import",
+    "export": "Export",
+    "layers": "Layers",
+    "report": "Report",
+    "toggleLeft": "Toggle left panel",
+    "toggleRight": "Toggle right panel",
+    "projectTitle": "Project title",
+    "unsaved": "Unsaved changes",
+    "darkTheme": "Dark theme",
+    "language": "Language: English — switch to Portuguese"
+  },
+  "catalog": {
+    "label": "Element catalog",
+    "search": "Search the catalog",
+    "noResults": "No results",
+    "groups": {
+      "terrain": "Terrain",
+      "infra": "Infrastructure",
+      "network": "Networks & Telecom",
+      "environment": "Environment"
+    },
+    "items": {
+      "flat": "Flat",
+      "mountains": "Mountains",
+      "valley": "Valley",
+      "custom": "Custom",
+      "brush": "Brush",
+      "savePreset": "Save preset",
+      "presets": "Presets",
+      "importHeightmap": "Import heightmap (PNG)…",
+      "cable": "Cable",
+      "environment": "Time, sky and water",
+      "paint": "Material brush",
+      "vegetation": "Vegetation",
+      "road": "Road",
+      "presentation": "Presentation mode"
+    },
+    "presetsToggle": "Saved terrain presets (show/hide list)",
+    "noPresets": "No saved presets",
+    "presetPrompt": "Terrain preset name:",
+    "place": "Drag into the viewport, or click to place it at the center of the view.",
+    "customReady": "Imported model: {name}.glb — drag it into the viewport or click to place it at the center.",
+    "customHint": "Import a .glb file to enable it (Import or Ctrl+I).",
+    "customToast": "Import a .glb model first (Import or Ctrl+I).",
+    "offTerrain": "Point the center of the view at the terrain to place the element."
+  },
+  "kind": {
+    "house": "House",
+    "building": "Building",
+    "lot": "Lot",
+    "customGlb": "Custom model",
+    "antenna": "Antenna",
+    "router": "Router",
+    "switch": "Switch",
+    "olt": "OLT",
+    "onu": "ONU",
+    "splitter": "Splitter",
+    "pole": "Pole",
+    "box": "Distribution box",
+    "marker": "Marker",
+    "cable": "Cable",
+    "road": "Road",
+    "markerLabel": "Marker {n}"
+  },
+  "layer": {
+    "terrain": "Terrain",
+    "infra": "Infrastructure",
+    "net": "Networks",
+    "markers": "Markers",
+    "hidden": "The {layer} layer is hidden.",
+    "locked": "The {layer} layer is locked."
+  },
+  "layersPanel": {
+    "label": "Layers and history",
+    "title": "Layers",
+    "close": "Close layers",
+    "show": "Show {name}",
+    "hide": "Hide {name}",
+    "lock": "Lock {name}",
+    "unlock": "Unlock {name}",
+    "history": "History",
+    "undo": "Undo",
+    "redo": "Redo",
+    "historyList": "Action history",
+    "initial": "Initial state"
+  },
+  "history": {
+    "add": "Add {what}",
+    "delete": "Delete {what}",
+    "edit": "Edit {what}",
+    "terrain": "Terrain",
+    "vegetation": "Vegetation",
+    "change": "Change",
+    "road": "road",
+    "roads": "{n} roads",
+    "cable": "cable",
+    "cables": "{n} cables",
+    "element": "element",
+    "elements": "{n} elements"
+  },
+  "cable": {
+    "fiber": "Fiber",
+    "copper": "Copper",
+    "coax": "Coaxial",
+    "underground": "Underground",
+    "aerial": "Aerial",
+    "direct": "Direct"
+  },
+  "panel": {
+    "label": "Properties",
+    "title": "Properties",
+    "empty": "Select an element",
+    "emptyHint": "Click an object in the viewport to edit its properties, or press N to step through the elements.",
+    "brush": {
+      "title": "Terrain brush",
+      "radius": "Radius",
+      "intensity": "Intensity",
+      "hint": "Left button raises · Shift lowers · Esc leaves the tool."
+    },
+    "sim": {
+      "title": "Simulation",
+      "from": "Origin",
+      "to": "Destination",
+      "failed": "Failed",
+      "coverage": "Simulate coverage",
+      "hintCable": "A failed cable is skipped by Dijkstra; the route is recomputed.",
+      "hintNode": "Pick origin and destination and compute the path in the simulator."
+    },
+    "snap": {
+      "title": "Snap",
+      "grid": "Grid",
+      "off": "Off",
+      "objects": "Snap to objects"
+    },
+    "multi": {
+      "selection": "Selection",
+      "count": "{n} elements",
+      "arrange": "Align and distribute",
+      "left": "Left",
+      "front": "Front",
+      "center": "Center",
+      "distribute": "Distribute",
+      "axis": "{axis} axis",
+      "alignIn": "Align along {axis}",
+      "delete": "Delete selection",
+      "hint": "Shift+click adds or removes · Shift+drag selects an area · the gizmo moves the batch."
+    },
+    "env": {
+      "hourTitle": "Time of day — {time}",
+      "hourSlider": "Time of day",
+      "hour": "Hour",
+      "sky": "Sky and fog",
+      "fog": "Fog",
+      "water": "Water",
+      "waterOn": "Water on",
+      "waterOff": "Water off",
+      "level": "Level (m)",
+      "hint": "The hour moves the sun, the sky and the shadows (A18). Saved with the project, outside undo."
+    },
+    "paint": {
+      "title": "Material brush",
+      "material": "Material",
+      "auto": "Auto",
+      "grass": "Grass",
+      "dirt": "Dirt",
+      "sand": "Sand",
+      "rock": "Rock",
+      "snow": "Snow",
+      "hint": "Drag to paint · “Auto” restores the altitude gradient · Esc leaves."
+    },
+    "veg": {
+      "title": "Vegetation",
+      "species": "Species",
+      "trees": "Trees",
+      "bushes": "Bushes",
+      "density": "Density (per 100 m²)",
+      "hint": "Drag to plant up to the density · Shift erases · Esc leaves."
+    },
+    "road": {
+      "toolTitle": "Road tool",
+      "width": "Width (m)",
+      "toolHint": "Click the terrain for each point · Enter or double click finishes · Backspace removes the last one · Esc cancels.",
+      "points": "Points",
+      "widthTitle": "Width",
+      "deleteHint": "Delete removes the selected road."
+    },
+    "cableTool": {
+      "title": "Cable tool",
+      "type": "Type",
+      "route": "Route",
+      "hint": "Click the origin element, then the destination. Esc cancels."
+    },
+    "markerTool": {
+      "title": "Marker tool",
+      "hint": "Click the terrain or an element to drop a labeled pin. Esc cancels."
+    },
+    "ruler": {
+      "title": "Ruler",
+      "d3": "3D distance",
+      "horizontal": "Horizontal",
+      "rise": "Elevation change",
+      "profile": "Terrain profile",
+      "hintStart": "Click the terrain for the 1st point. R or Esc leaves.",
+      "hintSecond": "Click the 2nd point — the label shows the distance to the cursor.",
+      "hintDone": "Click again for another measurement · R or Esc leaves."
+    },
+    "custom": {
+      "title": "Custom terrain",
+      "seed": "Seed",
+      "amplitude": "Amplitude",
+      "frequency": "Frequency",
+      "size": "Size",
+      "generate": "Generate terrain"
+    },
+    "entity": {
+      "colliding": "Colliding with another infrastructure.",
+      "phase": "Phase",
+      "phaseGroup": "Construction phase",
+      "foundations": "Foundations",
+      "structure": "Structure",
+      "finish": "Finishing",
+      "floors": "Floors",
+      "marker": "Marker",
+      "label": "Label",
+      "note": "Note",
+      "placedOn": "Placed on: {id}",
+      "dynProps": "Dynamic properties",
+      "position": "Position",
+      "rotation": "Rotation",
+      "scale": "Scale",
+      "hint": "Gizmo: W move · E rotate · T scale. Editing X/Z snaps it back to the terrain."
+    },
+    "cable": {
+      "link": "Link",
+      "type": "Cable type",
+      "route": "Route",
+      "deleteHint": "Delete removes the selected cable."
+    }
+  },
+  "dyn": {
+    "remove": "Remove {key}",
+    "valueOf": "Value of {key}",
+    "yes": "Yes",
+    "no": "No",
+    "key": "Key",
+    "value": "Value",
+    "newKey": "Key of the new property",
+    "newValue": "Value of the new property",
+    "add": "Add",
+    "hint": "The type is inferred from the value: number, true/false (boolean) or text."
+  },
+  "spinner": {
+    "decrease": "{label}: decrease",
+    "increase": "{label}: increase"
+  },
+  "sim": {
+    "label": "Network simulator",
+    "title": "Simulator",
+    "clear": "Clear",
+    "from": "Origin",
+    "to": "Destination",
+    "weight": "Criterion",
+    "distance": "Distance",
+    "cost": "Cost",
+    "latency": "Latency",
+    "attenuation": "Attenuation",
+    "run": "Compute path",
+    "noPath": "No active path between the origin and the destination.",
+    "path": "Path",
+    "cables": "Cables",
+    "length": "Length",
+    "bandwidth": "Throughput",
+    "prx": "Prx",
+    "headroom": "Margin",
+    "ok": "OK",
+    "warn": "At the limit",
+    "danger": "Below sensitivity",
+    "budget": "Link budget: {status}",
+    "budgetMissing": "Link budget: needs “power” at the origin and “sensitivity” at the destination.",
+    "exportCsv": "Export CSV",
+    "coverage": "Coverage of {id}: {pct}% of the area in range with a signal above {dbm} dBm."
+  },
+  "viewport": {
+    "label": "3D viewport",
+    "canvas": "3D view — arrows move the camera, Shift+arrows rotate it, + and − zoom, Space clicks the crosshair",
+    "minimap": "Minimap — click to move the camera",
+    "expand": "Expand minimap",
+    "collapse": "Collapse minimap"
+  },
+  "fab": {
+    "label": "Help and shortcuts",
+    "shortcuts": "Shortcuts",
+    "guide": "User guide"
+  },
+  "recovery": {
+    "title": "Recover unsaved work?",
+    "text": "The app closed without saving. There is an automatic copy of the latest work.",
+    "discard": "Discard",
+    "recover": "Recover"
+  },
+  "unsaved": {
+    "title": "You have unsaved changes",
+    "text": "Do you want to save the project before continuing?",
+    "discard": "Discard",
+    "cancel": "Cancel",
+    "save": "Save"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "keys": {
+      "space": "Space (viewport)",
+      "arrows": "Arrows (viewport)",
+      "shiftArrows": "Shift + arrows (viewport)",
+      "zoom": "+ / − (viewport)"
+    },
+    "actions": {
+      "save": "Save",
+      "saveAs": "Save as",
+      "open": "Open",
+      "exportGlb": "Export .glb",
+      "importGlb": "Import .glb",
+      "undo": "Undo",
+      "redo": "Redo",
+      "copyPaste": "Copy / paste selection",
+      "duplicate": "Duplicate selection",
+      "delete": "Delete selection",
+      "brush": "Terrain brush",
+      "cable": "Cable tool",
+      "marker": "Marker tool",
+      "ruler": "Ruler tool",
+      "grid": "Show/hide grid",
+      "gizmo": "Gizmo: move / rotate / scale",
+      "layers": "Layers panel",
+      "escape": "Cancel tool/selection",
+      "spinner": "Adjust the focused spinner",
+      "step10": "Step ×10",
+      "step01": "Step ÷10",
+      "focus": "Focus the camera on the selection",
+      "views": "Top / front / isometric view",
+      "home": "Reset camera",
+      "next": "Next / previous element",
+      "tab": "Move through panels, buttons and the viewport",
+      "space": "Click the crosshair, at the center of the view",
+      "arrows": "Move the camera",
+      "shiftArrows": "Rotate the camera",
+      "zoom": "Zoom in / out",
+      "help": "This shortcuts menu"
+    }
+  },
+  "guide": {
+    "title": "User guide",
+    "replay": "Show introduction",
+    "steps": {
+      "terrain": {
+        "title": "Terrain",
+        "text": "In the Terrain group pick Flat, Mountains, Valley or Custom. Sculpt with the Brush (B); Shift lowers the relief."
+      },
+      "infra": {
+        "title": "Infrastructure",
+        "text": "Drag houses, buildings and lots onto the terrain (or click them to place them at the center). Edit phase, position, rotation and scale in the right panel; W/E/T switch the gizmo."
+      },
+      "network": {
+        "title": "Network",
+        "text": "Drag OLTs, splitters, ONUs and antennas. Connect them with the Cable tool (C): click the origin, then the destination."
+      },
+      "props": {
+        "title": "Properties",
+        "text": "Every element and cable has dynamic properties (bandwidth, latency, power…) that feed the simulator."
+      },
+      "simulate": {
+        "title": "Simulate",
+        "text": "In the panel, mark Origin and Destination and press Compute. “Failed” tests the alternative route; on antennas, Simulate coverage."
+      },
+      "productivity": {
+        "title": "Undo and layers",
+        "text": "Ctrl/Cmd+Z undoes (up to 100 actions). Shift+click adds to the selection; Ctrl/Cmd+C/V copies and pastes. L opens Layers and History."
+      },
+      "environment": {
+        "title": "Environment",
+        "text": "In the Environment group: time of day, fog and water, material brush, vegetation, roads and the presentation mode."
+      },
+      "report": {
+        "title": "Measure and report",
+        "text": "R measures distances and shows the terrain profile. “Report” gives statistics, the bill of materials and scenarios, and exports PDF and CSV."
+      },
+      "keyboard": {
+        "title": "Keyboard, theme and language",
+        "text": "Tab reaches the viewport: arrows move the camera, Space clicks the crosshair, N jumps to the next element. In the top bar: theme and PT/EN."
+      },
+      "save": {
+        "title": "Save",
+        "text": "Ctrl/Cmd+S saves the project (.json). An automatic copy every minute lets you recover after a crash."
+      }
+    }
+  },
+  "onboarding": {
+    "title": "Welcome to Terra_Map",
+    "step": "Step {n} of {total}",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "skip": "Skip",
+    "steps": {
+      "terrain": {
+        "title": "1. Create the terrain",
+        "text": "In the highlighted catalog, pick Mountains or Valley (or sculpt with the Brush, B). Try it now — the catalog is active."
+      },
+      "elements": {
+        "title": "2. Place and connect elements",
+        "text": "Drag a house or an OLT into the highlighted viewport (or click the item to place it at the center). Connect elements with the Cable (C). From the keyboard: Tab to the viewport, arrows and Space."
+      },
+      "save": {
+        "title": "3. Save and show",
+        "text": "In the highlighted bar: Save (Ctrl/Cmd+S), Report (PDF with the bill of materials), theme and language. The ? button in the corner has the shortcuts and the guide."
+      }
+    }
+  },
+  "report": {
+    "title": "Report — {name}",
+    "error": "Could not compute the report: {error}",
+    "stats": "Statistics",
+    "area": "Terrain area",
+    "buildings": "Buildings",
+    "elements": "Network elements",
+    "markers": "Markers",
+    "roads": "Roads",
+    "cableFiber": "Fiber cable",
+    "cableCopper": "Copper cable",
+    "cableCoax": "Coaxial cable",
+    "cableTotal": "Total cable",
+    "bom": "Bill of materials (BOM)",
+    "bomEmpty": "No network materials — place elements and cables from Networks & Telecom.",
+    "item": "Item",
+    "quantity": "Quantity",
+    "unitCost": "Unit cost",
+    "total": "Total",
+    "projectTotal": "Project total",
+    "pricesNote": "Symbolic prices and labor: catalog per kind or the “price” prop; cables by “costPerMeter”.",
+    "simulation": "Simulation",
+    "path": "Path",
+    "length": "Length",
+    "latency": "Latency",
+    "bandwidth": "Throughput (bottleneck)",
+    "cost": "Cost",
+    "attenuation": "Attenuation",
+    "received": "Received power",
+    "receivedValue": "{prx} dBm (margin {headroom} dB)",
+    "noSimulation": "No simulation computed — pick origin and destination and compute the path in the simulator.",
+    "scenarios": "Scenarios",
+    "scenarioName": "Scenario name",
+    "scenarioDefault": "Scenario {n}",
+    "saveScenario": "Save scenario",
+    "metric": "Metric",
+    "current": "Current",
+    "removeScenario": "Remove the {name} scenario",
+    "scenariosHint": "“Save scenario” snapshots the current metrics into the project; change the network and compare them side by side with the current state.",
+    "exportCsv": "Export CSV",
+    "exportPdf": "Export PDF",
+    "metrics": {
+      "buildings": "Buildings",
+      "elements": "Network elements",
+      "cableM": "Cable (m)",
+      "cost": "BOM cost (€)",
+      "latencyMs": "Latency (ms)",
+      "bandwidthMbps": "Throughput (Mbps)",
+      "attenuationDb": "Attenuation (dB)"
+    }
+  },
+  "profile": {
+    "title": "Terrain profile",
+    "error": "Could not compute the profile: {error}",
+    "tooShort": "First measure two different points with the ruler (R).",
+    "chart": "Terrain profile — the arrows step through the samples",
+    "start": "start",
+    "min": "Minimum",
+    "max": "Maximum",
+    "rise": "Elevation change",
+    "distance": "Distance"
+  },
+  "toast": {
+    "saved": "Project saved: {file}",
+    "saveFailed": "Could not save: {error}",
+    "openFailed": "Could not open: {error}",
+    "opened": "Project opened: {file}",
+    "recoveryInvalid": "Invalid recovery copy, discarded: {error}",
+    "recovered": "Work recovered. Save the project so you do not lose it.",
+    "recoverFailed": "Could not recover: {error}",
+    "unreadableHeightmap": "unreadable terrain heightmap",
+    "unreadableModel": "unreadable model “{name}”",
+    "noPath": "No active path between {from} and {to}.",
+    "simFailed": "Simulation failed: {error}",
+    "coverageFailed": "Coverage failed: {error}",
+    "simExported": "Results exported (CSV).",
+    "exportFailed": "Export failed: {error}",
+    "reportPdf": "Report exported: {file}",
+    "reportCsv": "Bill of materials exported: {file}",
+    "glbExportFailed": "Could not export the model.",
+    "glbSelectionExported": "Selection exported: {file}",
+    "glbModelExported": "Model exported: {file}",
+    "glbWriteFailed": "Could not write the .glb file.",
+    "glbReadFailed": "Could not read the .glb file.",
+    "glbInvalid": "“{name}.glb” is not a valid 3D model.",
+    "glbNoGeometry": "“{name}.glb” has no usable geometry.",
+    "glbImported": "Model “{name}” imported.",
+    "cableSame": "Pick a different element as the cable destination.",
+    "cableCreated": "Cable created.",
+    "roadTooShort": "A road needs at least 2 points."
   }
 }
