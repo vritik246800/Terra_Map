@@ -11,74 +11,69 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { a15Init, a15Toggle } from "../anim/ui";
 import type { PresetSummary } from "../net/bridge";
+import { t, type MessageKey } from "../state/i18n";
+import { kindLabel } from "../state/labels";
 import { CUSTOM_GLB_KIND, isNetworkKind, type TerrainPresetId, type ToolId } from "../state/store";
 import { showToast } from "../state/toasts";
 import { useStore } from "../state/use-store";
-import { endEntityDrag, isBuildingKind, startEntityDrag } from "../tools/drag-drop";
+import {
+  endEntityDrag,
+  isBuildingKind,
+  placeEntityAtCenter,
+  startEntityDrag,
+} from "../tools/drag-drop";
 import type { TerrainActions } from "../tools/terrain-actions";
 import "./left-panel.css";
 
 interface CatalogGroupDef {
-  id: string;
-  title: string;
-  items: Array<{ kind: string; label: string }>;
+  id: "terrain" | "infra" | "network" | "environment";
+  /** Entity kinds use their `kind.*` label; the rest `catalog.items.<kind>`. */
+  kinds: string[];
 }
 
-/** Catalog contents per DESIGN.md §5.2. Labels are pt-PT; kinds are stable ids. */
+/** Catalog contents per DESIGN.md §5.2 (kinds are stable ids; labels follow the language). */
 const CATALOG: CatalogGroupDef[] = [
   {
     id: "terrain",
-    title: "Terreno",
-    items: [
-      { kind: "flat", label: "Plano" },
-      { kind: "mountains", label: "Montanhas" },
-      { kind: "valley", label: "Vale" },
-      { kind: "custom", label: "Personalizado" },
-      { kind: "brush", label: "Pincel" },
-      { kind: "savePreset", label: "Guardar preset" },
-      { kind: "presets", label: "Presets" },
-      { kind: "importHeightmap", label: "Importar heightmap (PNG)…" },
+    kinds: [
+      "flat",
+      "mountains",
+      "valley",
+      "custom",
+      "brush",
+      "savePreset",
+      "presets",
+      "importHeightmap",
     ],
   },
-  {
-    id: "infra",
-    title: "Infraestruturas",
-    items: [
-      { kind: "house", label: "Casa" },
-      { kind: "building", label: "Prédio" },
-      { kind: "lot", label: "Lote" },
-      { kind: CUSTOM_GLB_KIND, label: "Modelo personalizado" },
-    ],
-  },
+  { id: "infra", kinds: ["house", "building", "lot", CUSTOM_GLB_KIND] },
   {
     id: "network",
-    title: "Redes & Telecom",
-    items: [
-      { kind: "antenna", label: "Antena" },
-      { kind: "router", label: "Router" },
-      { kind: "switch", label: "Switch" },
-      { kind: "olt", label: "OLT" },
-      { kind: "onu", label: "ONU" },
-      { kind: "splitter", label: "Splitter" },
-      { kind: "pole", label: "Poste" },
-      { kind: "box", label: "Caixa de distribuição" },
-      { kind: "cable", label: "Cabo" },
-      { kind: "marker", label: "Marcador" },
+    kinds: [
+      "antenna",
+      "router",
+      "switch",
+      "olt",
+      "onu",
+      "splitter",
+      "pole",
+      "box",
+      "cable",
+      "marker",
     ],
   },
-  {
-    // Fase 11 (UX.md §2).
-    id: "environment",
-    title: "Ambiente",
-    items: [
-      { kind: "environment", label: "Hora, céu e água" },
-      { kind: "paint", label: "Pincel de materiais" },
-      { kind: "vegetation", label: "Vegetação" },
-      { kind: "road", label: "Estrada" },
-      { kind: "presentation", label: "Modo apresentação" },
-    ],
-  },
+  // Fase 11 (UX.md §2).
+  { id: "environment", kinds: ["environment", "paint", "vegetation", "road", "presentation"] },
 ];
+
+const ENTITY_ITEMS = new Set(["house", "building", "lot", CUSTOM_GLB_KIND, "marker"]);
+
+/** Label of a catalog item in the current language (Fase 13). */
+function itemLabel(kind: string): string {
+  return ENTITY_ITEMS.has(kind) || isNetworkKind(kind)
+    ? kindLabel(kind)
+    : t(`catalog.items.${kind}` as MessageKey);
+}
 
 const TERRAIN_PRESET_KINDS = new Set(["flat", "mountains", "valley", "custom"]);
 const TOOL_KINDS = new Set<string>(["brush", "paint", "vegetation", "road", "cable", "marker"]);
@@ -132,7 +127,7 @@ function CatalogGroup({
         aria-controls={itemsId}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className="catalog-group-label">{def.title}</span>
+        <span className="catalog-group-label">{t(`catalog.groups.${def.id}`)}</span>
         <span ref={chevronRef} className="catalog-group-chevron" aria-hidden="true">
           <svg viewBox="0 0 16 16" width="14" height="14" focusable="false">
             <path
@@ -173,15 +168,15 @@ function PresetsItem({ actions }: { actions: TerrainActions }) {
       <button
         type="button"
         className={`catalog-item${presets ? " is-active" : ""}`}
-        aria-label="Presets de terreno guardados (mostrar/esconder lista)"
+        aria-label={t("catalog.presetsToggle")}
         onClick={toggle}
       >
-        Presets
+        {t("catalog.items.presets")}
       </button>
       {presets && (
         <ul className="catalog-preset-list">
           {presets.length === 0 ? (
-            <li className="catalog-preset-empty">Sem presets guardados</li>
+            <li className="catalog-preset-empty">{t("catalog.noPresets")}</li>
           ) : (
             presets.map((p) => (
               <li key={p.file}>
@@ -214,7 +209,8 @@ export function LeftPanel({
   const store = useStore();
   const [query, setQuery] = useState("");
 
-  function item(kind: string, label: string): ReactNode {
+  function item(kind: string): ReactNode {
+    const label = itemLabel(kind);
     if (kind === "presets") return <PresetsItem key={kind} actions={actions} />;
 
     // Fase 11: environment settings (right panel) and the presentation mode.
@@ -290,11 +286,7 @@ export function LeftPanel({
             className={`catalog-item${name === null ? " is-disabled" : ""}`}
             draggable
             aria-disabled={name === null}
-            title={
-              name
-                ? `Modelo importado: ${name}.glb — arrasta para o viewport.`
-                : "Importa um ficheiro .glb para ativar (Importar ou Ctrl+I)."
-            }
+            title={name ? t("catalog.customReady", { name }) : t("catalog.customHint")}
             onDragStart={(e) => {
               if (!name) {
                 e.preventDefault();
@@ -304,7 +296,8 @@ export function LeftPanel({
             }}
             onDragEnd={endEntityDrag}
             onClick={() => {
-              if (!name) showToast("Importa primeiro um modelo .glb (Importar ou Ctrl+I).", "info");
+              if (!name) showToast(t("catalog.customToast"), "info");
+              else placeEntityAtCenter(CUSTOM_GLB_KIND); // Fase 13: click/Enter places it
             }}
           >
             {label}
@@ -321,10 +314,15 @@ export function LeftPanel({
           className="catalog-item"
           draggable
           data-kind={kind}
+          title={t("catalog.place")}
           onDragStart={(e) => {
             if (isBuildingKind(kind) || isNetworkKind(kind)) startEntityDrag(e.nativeEvent, kind);
           }}
           onDragEnd={endEntityDrag}
+          onClick={() => {
+            // Fase 13 (Q_LIST.md Q25): click or Enter places it at the center of the view.
+            if (isBuildingKind(kind) || isNetworkKind(kind)) placeEntityAtCenter(kind);
+          }}
         >
           {label}
         </button>
@@ -336,13 +334,13 @@ export function LeftPanel({
     <aside
       className={`panel-left glass${open ? " open" : ""}`}
       role="complementary"
-      aria-label="Catálogo de elementos"
+      aria-label={t("catalog.label")}
     >
       <input
         type="search"
         className="properties-input catalog-search"
-        placeholder="Pesquisar no catálogo"
-        aria-label="Pesquisar no catálogo"
+        placeholder={t("catalog.search")}
+        aria-label={t("catalog.search")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
@@ -353,20 +351,18 @@ export function LeftPanel({
         ? // Fase 10: flat list of matches across groups.
           (() => {
             const q = fold(query.trim());
-            const matches = CATALOG.flatMap((def) => def.items).filter((i) =>
-              fold(i.label).includes(q),
+            const matches = CATALOG.flatMap((def) => def.kinds).filter((kind) =>
+              fold(itemLabel(kind)).includes(q),
             );
             return matches.length > 0 ? (
-              <ul className="catalog-list catalog-results">
-                {matches.map(({ kind, label }) => item(kind, label))}
-              </ul>
+              <ul className="catalog-list catalog-results">{matches.map(item)}</ul>
             ) : (
-              <p className="catalog-preset-empty">Sem resultados</p>
+              <p className="catalog-preset-empty">{t("catalog.noResults")}</p>
             );
           })()
         : CATALOG.map((def, index) => (
             <CatalogGroup key={def.id} def={def} initiallyOpen={index === 0}>
-              {def.items.map(({ kind, label }) => item(kind, label))}
+              {def.kinds.map(item)}
             </CatalogGroup>
           ))}
     </aside>
