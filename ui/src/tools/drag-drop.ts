@@ -24,6 +24,7 @@ import { buildContent, DEFAULT_FLOORS } from "../scene/buildings";
 import type { EntityRegistry } from "../scene/entities";
 import { buildNetworkContent } from "../scene/network-models";
 import type { Terrain } from "../scene/terrain";
+import { t } from "../state/i18n";
 import { layerBlockReason } from "../state/labels";
 import {
   identityTransform,
@@ -32,6 +33,7 @@ import {
   store,
   CUSTOM_GLB_KIND,
   type BuildingKind,
+  type EntityInfo,
   type NetworkKind,
 } from "../state/store";
 import { showToast } from "../state/toasts";
@@ -69,6 +71,11 @@ export function startEntityDrag(e: DragEvent, kind: DraggableKind): void {
  * a cancel (`Esc` or drop outside a valid target), so it is the single
  * cleanup point for the tool state and the ghost.
  */
+/** Fase 13: the keyboard/click alternative to dragging (UX.md §2). */
+export function placeEntityAtCenter(kind: DraggableKind): void {
+  activeSession?.placeAtCenter(kind);
+}
+
 export function endEntityDrag(): void {
   draggedKind = null;
   activeSession?.removeGhost(true);
@@ -85,6 +92,7 @@ export interface EntityDragDropDeps {
 
 interface Session {
   removeGhost(immediate?: boolean): void;
+  placeAtCenter(kind: DraggableKind): void;
 }
 
 let activeSession: Session | null = null;
@@ -123,8 +131,8 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
   let ghost: THREE.Group | null = null;
   let ghostMaterials: THREE.Material[] = [];
 
-  /** Raycasts the drag position to a terrain point; `null` when off-terrain. */
-  function pickTerrain(e: DragEvent): THREE.Vector3 | null {
+  /** Raycasts a screen position to a terrain point; `null` when off-terrain. */
+  function pickTerrain(e: { clientX: number; clientY: number }): THREE.Vector3 | null {
     const rect = canvas.getBoundingClientRect();
     const p = new THREE.Vector2(
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
@@ -214,10 +222,30 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
     const point = pickTerrain(e);
     removeGhost();
     if (!point) return; // dropped off-terrain: no-op
+    spawnAt(kind, point);
+  }
+
+  /** Fase 13: click/Enter on a catalog item places it at the center of the view, selected. */
+  function placeAtCenter(kind: DraggableKind): void {
+    const rect = canvas.getBoundingClientRect();
+    const point = pickTerrain({
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2,
+    });
+    if (!point) {
+      showToast(t("catalog.offTerrain"), "info");
+      return;
+    }
+    const info = spawnAt(kind, point);
+    if (info) store.select(info.id);
+  }
+
+  /** Drop and click share this: layer check, grid snap, spawn on the relief, A5. */
+  function spawnAt(kind: DraggableKind, point: THREE.Vector3): EntityInfo | null {
     const blocked = layerBlockReason(layerOfKind(kind)); // Fase 10
     if (blocked) {
       showToast(blocked, "info");
-      return;
+      return null;
     }
 
     // Fase 10: grid snap on the drop position.
@@ -233,12 +261,13 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
             return template ? registry.spawnCustomGlb(template.scene, transform) : null;
           })()
         : registry.spawn(kind, transform, DROP_PHASE);
-    if (!info) return;
+    if (!info) return null;
     const content = registry.getContent(info.id);
     if (content) a5DropBounce(content);
+    return info;
   }
 
-  activeSession = { removeGhost };
+  activeSession = { removeGhost, placeAtCenter };
 
   canvas.addEventListener("dragover", onDragOver);
   canvas.addEventListener("dragleave", onDragLeave);
