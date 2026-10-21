@@ -105,7 +105,9 @@ export function createReportActions(deps: {
         ...(m
           ? [
               { key: "latencyMs", value: m.latencyMs },
-              ...(m.bandwidthMbps === null ? [] : [{ key: "bandwidthMbps", value: m.bandwidthMbps }]),
+              ...(m.bandwidthMbps === null
+                ? []
+                : [{ key: "bandwidthMbps", value: m.bandwidthMbps }]),
               { key: "attenuationDb", value: m.attenuationDb },
             ]
           : []),
