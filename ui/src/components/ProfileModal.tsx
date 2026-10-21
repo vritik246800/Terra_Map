@@ -64,7 +64,9 @@ function Chart({ points }: { points: ProfilePoint[] }) {
 
   const tipText = at ? `${m(at.distance)} · ${m(at.height)}` : "";
   const tipW = tipText.length * 6.6 + 16;
-  const tipX = at ? Math.min(Math.max(x(at.distance) - tipW / 2, PAD.left), W - PAD.right - tipW) : 0;
+  const tipX = at
+    ? Math.min(Math.max(x(at.distance) - tipW / 2, PAD.left), W - PAD.right - tipW)
+    : 0;
 
   return (
     <svg
@@ -86,7 +88,13 @@ function Chart({ points }: { points: ProfilePoint[] }) {
         const gx = PAD.left + (i / DIVISIONS) * PLOT_W;
         return (
           <g key={i}>
-            <line className="profile-chart__grid" x1={PAD.left} x2={W - PAD.right} y1={gy} y2={gy} />
+            <line
+              className="profile-chart__grid"
+              x1={PAD.left}
+              x2={W - PAD.right}
+              y1={gy}
+              y2={gy}
+            />
             <line className="profile-chart__grid" x1={gx} x2={gx} y1={PAD.top} y2={bottom} />
             <text className="profile-chart__axis" x={PAD.left - 6} y={gy + 4} textAnchor="end">
               {(hi - ((hi - lo) * i) / DIVISIONS).toFixed(1)}
@@ -109,8 +117,20 @@ function Chart({ points }: { points: ProfilePoint[] }) {
             y2={bottom}
           />
           <circle className="profile-chart__dot" cx={x(at.distance)} cy={y(at.height)} r={4} />
-          <rect className="profile-chart__tip" x={tipX} y={PAD.top + 4} width={tipW} height={22} rx={8} />
-          <text className="profile-chart__tip-text" x={tipX + tipW / 2} y={PAD.top + 19} textAnchor="middle">
+          <rect
+            className="profile-chart__tip"
+            x={tipX}
+            y={PAD.top + 4}
+            width={tipW}
+            height={22}
+            rx={8}
+          />
+          <text
+            className="profile-chart__tip-text"
+            x={tipX + tipW / 2}
+            y={PAD.top + 19}
+            textAnchor="middle"
+          >
             {tipText}
           </text>
         </g>
