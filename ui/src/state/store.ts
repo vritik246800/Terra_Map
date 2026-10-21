@@ -178,15 +178,7 @@ export function cloneCableInfo(info: CableInfo): CableInfo {
 
 /** Tools of the state machine in DESIGN.md §12 (dragging = catalog drag & drop). */
 export type ToolId =
-  | "select"
-  | "brush"
-  | "paint"
-  | "vegetation"
-  | "road"
-  | "cable"
-  | "marker"
-  | "ruler"
-  | "dragging";
+  "select" | "brush" | "paint" | "vegetation" | "road" | "cable" | "marker" | "ruler" | "dragging";
 
 /** Ruler measurement (Fase 12): temporary — never saved nor undone (Q_LIST.md Q22). */
 export interface RulerState {
