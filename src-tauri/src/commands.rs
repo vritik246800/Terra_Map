@@ -3,11 +3,16 @@
 //! Every command follows the same bridge pattern: thin wrappers here,
 //! real logic in dedicated modules.
 
-use tauri::AppHandle;
+use tauri::{AppHandle, State, Window};
 
 use crate::error::AppError;
 use crate::glb::{self, PickedGlb};
+use crate::network::graph::{NetworkInput, Weight};
+use crate::network::metrics::{AntennaInput, CoverageResult, TerrainGrid};
+use crate::network::{self, PathResult};
 use crate::project::{self, PresetSummary, TerrainPresetFile};
+use crate::project_file::{self, OpenedProject, ProjectFile, ProjectSession};
+use crate::report::{self, Point2, ProfilePoint, ReportData, ReportInput};
 use crate::terrain::{self, TerrainPreset};
 
 /// Health-check command used to verify the Rust ↔ TypeScript bridge.
@@ -69,4 +74,128 @@ pub fn save_glb(app: AppHandle, bytes: Vec<u8>) -> Result<Option<String>, AppErr
 #[tauri::command]
 pub fn open_glb_dialog(app: AppHandle) -> Result<Option<PickedGlb>, AppError> {
     glb::open_glb_with_dialog(&app)
+}
+
+/// Optimal cable path between two network elements (Dijkstra, Fase 7).
+/// Returns `None` when there is no active path.
+#[tauri::command]
+pub fn shortest_path(
+    network: NetworkInput,
+    from: &str,
+    to: &str,
+    weight: Weight,
+) -> Result<Option<PathResult>, AppError> {
+    network::shortest_path(network, from, to, weight)
+}
+
+/// Coverage map of an antenna over the terrain relief (Fase 7).
+#[tauri::command]
+pub fn antenna_coverage(
+    antenna: AntennaInput,
+    terrain: TerrainGrid,
+) -> Result<CoverageResult, AppError> {
+    network::metrics::antenna_coverage(&antenna, &terrain)
+}
+
+/// Saves a simulation result as CSV via a native save dialog (filter
+/// `*.csv`). Returns the written path, or `None` when the user cancelled.
+#[tauri::command]
+pub fn export_simulation_csv(
+    app: AppHandle,
+    result: PathResult,
+) -> Result<Option<String>, AppError> {
+    network::export::save_csv_with_dialog(&app, &result)
+}
+
+/// Saves the project (Fase 8): to the current path, or via a native save
+/// dialog on the first save / `save_as`. Returns the file name, or `None`
+/// when the user cancelled.
+#[tauri::command]
+pub fn save_project(
+    app: AppHandle,
+    session: State<'_, ProjectSession>,
+    project: ProjectFile,
+    save_as: bool,
+) -> Result<Option<String>, AppError> {
+    project_file::save_project(&app, &session, &project, save_as)
+}
+
+/// Opens a project via a native open dialog (migrated + validated).
+#[tauri::command]
+pub fn open_project(
+    app: AppHandle,
+    session: State<'_, ProjectSession>,
+) -> Result<Option<OpenedProject>, AppError> {
+    project_file::open_project(&app, &session)
+}
+
+/// The frontend rebuilt the opened project: its file becomes the current path.
+#[tauri::command]
+pub fn commit_open(session: State<'_, ProjectSession>) {
+    session.commit_open();
+}
+
+/// Writes the crash-recovery copy of the project (autosave, every 60 s).
+#[tauri::command]
+pub fn autosave_project(app: AppHandle, project: ProjectFile) -> Result<(), AppError> {
+    project_file::autosave_project(&app, &project)
+}
+
+/// Recovery copy left by a crash, if any.
+#[tauri::command]
+pub fn load_autosave(app: AppHandle) -> Result<Option<ProjectFile>, AppError> {
+    project_file::load_autosave(&app)
+}
+
+/// Deletes the recovery copy (saved, discarded or recovered work).
+#[tauri::command]
+pub fn clear_autosave(app: AppHandle) -> Result<(), AppError> {
+    project_file::clear_autosave(&app)
+}
+
+/// Frontend → core: unsaved changes flag (drives the close guard).
+#[tauri::command]
+pub fn set_dirty(session: State<'_, ProjectSession>, dirty: bool) {
+    session.set_dirty(dirty);
+}
+
+/// Closes the window for good (after the unsaved-changes prompt).
+#[tauri::command]
+pub fn close_window(window: Window) -> Result<(), AppError> {
+    window
+        .destroy()
+        .map_err(|e| AppError::Window(e.to_string()))
+}
+
+/// Statistics + bill of materials of the project (Fase 12).
+#[tauri::command]
+pub fn project_report(input: ReportInput) -> Result<ReportData, AppError> {
+    report::project_report(&input)
+}
+
+/// PDF report (stats, BOM, simulation, scenarios, maquete image) via a native
+/// save dialog. Returns the file name, or `None` when cancelled.
+#[tauri::command]
+pub fn export_report_pdf(
+    app: AppHandle,
+    input: ReportInput,
+    image: Option<Vec<u8>>,
+) -> Result<Option<String>, AppError> {
+    report::export_pdf(&app, &input, image)
+}
+
+/// BOM as CSV via a native save dialog. `None` when cancelled.
+#[tauri::command]
+pub fn export_bom_csv(app: AppHandle, input: ReportInput) -> Result<Option<String>, AppError> {
+    report::export_bom_csv(&app, &input)
+}
+
+/// Terrain heights along a straight line (Fase 12 — profile chart).
+#[tauri::command]
+pub fn terrain_profile(
+    terrain: TerrainGrid,
+    from: Point2,
+    to: Point2,
+) -> Result<Vec<ProfilePoint>, AppError> {
+    report::terrain_profile(&terrain, from, to)
 }
