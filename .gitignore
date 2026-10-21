@@ -1,6 +1,7 @@
 /target
 node_modules
 dist
+.astro/
 /src-tauri/gen
 .DS_Store
 .env
