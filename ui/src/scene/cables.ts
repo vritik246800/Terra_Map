@@ -15,7 +15,8 @@
  * with their endpoints (`removeCablesOf` via `onEntityRemoved`). Cable color
  * follows the type (fiber/copper/coax); the selected cable gets an emissive
  * highlight instead of the A6 ground ring (a ring under a long cable reads
- * badly), driven by the store's selection channel.
+ * badly), driven by the store's selection channel. Fase 7: a cable in
+ * simulated failure turns `--danger` red (DESIGN.md §1.6).
  */
 import * as THREE from "three";
 
@@ -26,7 +27,7 @@ import {
   type CableRoute,
   type CableType,
 } from "../state/store";
-import type { EntityRegistry } from "./entities";
+import { idNumber, type EntityRegistry } from "./entities";
 import type { Terrain } from "./terrain";
 
 /** Samples along a cable path. */
@@ -44,6 +45,8 @@ const CABLE_COLORS: Record<CableType, number> = {
   copper: 0xb87333, // copper
   coax: 0x3a3a3c, // dark gray
 };
+/** Cable in simulated failure (--danger, DESIGN.md §1.6). */
+const FAILED_COLOR = 0xff3b30;
 
 export class CableRegistry {
   private objects = new Map<string, THREE.Mesh>();
@@ -58,6 +61,8 @@ export class CableRegistry {
   ) {
     // Selected cable gets an emissive highlight (cables have no A6 ring).
     store.subscribeSelection(() => this.syncHighlight());
+    // Fase 7: failures toggle in the simulator; recoloring is O(cables).
+    store.subscribe(() => this.syncHighlight());
   }
 
   get pickables(): THREE.Object3D[] {
@@ -66,6 +71,11 @@ export class CableRegistry {
 
   getObject(id: string): THREE.Mesh | undefined {
     return this.objects.get(id);
+  }
+
+  /** Current path curve of a cable (Fase 7: the A12 path highlight follows it). */
+  getCurve(id: string): THREE.CatmullRomCurve3 | undefined {
+    return this.objects.get(id)?.userData.curve as THREE.CatmullRomCurve3 | undefined;
   }
 
   /** World-space length of a cable's current path (panel display + Fase 7). */
@@ -94,6 +104,23 @@ export class CableRegistry {
     if (!mesh) throw new Error(`cable endpoints not found: ${fromId} → ${toId}`);
     this.attach(info, mesh);
     return info;
+  }
+
+  /** Re-creates a cable from a project file with its saved id (Fase 8). */
+  restore(info: CableInfo): void {
+    this.counter = Math.max(this.counter, idNumber(info.id));
+    const mesh = this.buildMesh(info);
+    if (mesh) this.attach(info, mesh); // endpoints validated by the core
+  }
+
+  /** Fresh session id for a pasted cable (Fase 10). */
+  newId(): string {
+    return `cab_${++this.counter}`;
+  }
+
+  /** Removes every cable (before opening a project). */
+  clear(): void {
+    for (const id of [...this.objects.keys()]) this.remove(id);
   }
 
   /** Removes a cable mesh and its store entry. */
@@ -198,14 +225,16 @@ export class CableRegistry {
     return mesh;
   }
 
-  /** Emissive highlight on the selected cable (cables have no A6 ring). */
+  /** Emissive highlight on the selected cable (no A6 ring) + failure color. */
   private syncHighlight(): void {
     for (const [id, mesh] of this.objects) {
       const info = store.getCableInfo(id);
       if (!info) continue;
       const material = mesh.material as THREE.MeshStandardMaterial;
       const selected = store.selected === id;
-      material.emissive.setHex(selected ? CABLE_COLORS[info.cableType] : 0);
+      const color = store.simulation.failed.has(id) ? FAILED_COLOR : CABLE_COLORS[info.cableType];
+      material.color.setHex(color);
+      material.emissive.setHex(selected ? color : 0);
       material.emissiveIntensity = selected ? 0.7 : 0;
     }
   }
