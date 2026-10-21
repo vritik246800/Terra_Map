@@ -58,7 +58,7 @@
   border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: 12px;
   font-weight: 500;
 }
@@ -106,17 +106,17 @@
   width: 8px;
   height: 8px;
   border-radius: var(--radius-full);
-  background: currentColor;
 }
 
-.sim-panel__status--ok {
-  color: var(--ok);
+/* Fase 13 (AA): the dot carries the color, the text stays --text. */
+.sim-panel__status--ok::before {
+  background: var(--ok);
 }
 
-.sim-panel__status--warn {
-  color: var(--warn);
+.sim-panel__status--warn::before {
+  background: var(--warn);
 }
 
-.sim-panel__status--danger {
-  color: var(--danger);
+.sim-panel__status--danger::before {
+  background: var(--danger);
 }
