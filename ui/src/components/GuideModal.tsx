@@ -1,6 +1,8 @@
-/** "Guia do programa" modal (Fase 8): the basic workflow in illustrated steps. */
+/** "Guia do programa" modal (Fase 8): the workflow in illustrated steps (Fase 13: Fases 10–13 + «Ver introdução»). */
 import type { ReactNode } from "react";
 
+import { t } from "../state/i18n";
+import { store } from "../state/store";
 import { Modal } from "./Modal";
 
 function Icon({ children }: { children: ReactNode }) {
@@ -23,20 +25,24 @@ function Icon({ children }: { children: ReactNode }) {
   );
 }
 
-const STEPS: ReadonlyArray<{ title: string; text: string; icon: ReactNode }> = [
+type StepId =
+  | "terrain"
+  | "infra"
+  | "network"
+  | "props"
+  | "simulate"
+  | "productivity"
+  | "environment"
+  | "report"
+  | "keyboard"
+  | "save";
+
+/** Steps of the guide (texts: `guide.steps.<id>`); Fase 13 added Fases 10–13. */
+const STEPS: ReadonlyArray<{ id: StepId; icon: ReactNode }> = [
+  { id: "terrain", icon: <path d="M2 19 9 8l4 6 3-4 6 9z" /> },
+  { id: "infra", icon: <path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6" /> },
   {
-    title: "Terreno",
-    text: "No grupo Terreno escolhe Plano, Montanhas, Vale ou Personalizado. Esculpe com o Pincel (B); Shift baixa o relevo.",
-    icon: <path d="M2 19 9 8l4 6 3-4 6 9z" />,
-  },
-  {
-    title: "Infraestruturas",
-    text: "Arrasta casas, prédios e lotes para o terreno. Edita fase, posição, rotação e escala no painel direito; W/E/T mudam o gizmo.",
-    icon: <path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6" />,
-  },
-  {
-    title: "Rede",
-    text: "Arrasta OLT, splitters, ONU e antenas. Liga-os com a ferramenta Cabo (C): clique na origem e depois no destino.",
+    id: "network",
     icon: (
       <>
         <circle cx="5" cy="12" r="2.5" />
@@ -47,8 +53,7 @@ const STEPS: ReadonlyArray<{ title: string; text: string; icon: ReactNode }> = [
     ),
   },
   {
-    title: "Propriedades",
-    text: "Cada elemento e cabo tem propriedades dinâmicas (bandwidth, latency, power…) que alimentam o simulador.",
+    id: "props",
     icon: (
       <>
         <path d="M4 6h16M4 12h16M4 18h16" />
@@ -58,14 +63,37 @@ const STEPS: ReadonlyArray<{ title: string; text: string; icon: ReactNode }> = [
       </>
     ),
   },
+  { id: "simulate", icon: <path d="M3 17c4 0 4-10 9-10s5 10 9 10" /> },
+  { id: "productivity", icon: <path d="M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3" /> },
   {
-    title: "Simular",
-    text: "No painel, marca Origem e Destino e carrega em Calcular. «Em falha» testa a rota alternativa; nas antenas, Simular cobertura.",
-    icon: <path d="M3 17c4 0 4-10 9-10s5 10 9 10" />,
+    id: "environment",
+    icon: (
+      <>
+        <circle cx="17" cy="7" r="3" />
+        <path d="M2 20h20M7 20v-5M4 15l3-6 3 6z" />
+      </>
+    ),
   },
   {
-    title: "Guardar",
-    text: "Ctrl/Cmd+S guarda o projeto (.json). Há uma cópia automática a cada minuto para recuperar depois de um crash.",
+    id: "report",
+    icon: (
+      <>
+        <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+        <path d="M14 3v6h6M8 17v-3M12 17v-5M16 17v-2" />
+      </>
+    ),
+  },
+  {
+    id: "keyboard",
+    icon: (
+      <>
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" />
+      </>
+    ),
+  },
+  {
+    id: "save",
     icon: (
       <>
         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
@@ -77,20 +105,30 @@ const STEPS: ReadonlyArray<{ title: string; text: string; icon: ReactNode }> = [
 
 export function GuideModal({ onClose }: { onClose: () => void }) {
   return (
-    <Modal title="Guia do programa" onDismiss={onClose} wide>
+    <Modal title={t("guide.title")} onDismiss={onClose} wide>
       <ol className="guide-steps">
-        {STEPS.map(({ title, text, icon }, i) => (
-          <li key={title} className="guide-steps__item">
+        {STEPS.map(({ id, icon }, i) => (
+          <li key={id} className="guide-steps__item">
             <Icon>{icon}</Icon>
             <div>
               <h3 className="guide-steps__title">
-                {i + 1}. {title}
+                {i + 1}. {t(`guide.steps.${id}.title`)}
               </h3>
-              <p className="guide-steps__text">{text}</p>
+              <p className="guide-steps__text">{t(`guide.steps.${id}.text`)}</p>
             </div>
           </li>
         ))}
       </ol>
+      <div className="modal__actions">
+        {/* Fase 13: replays the first-run introduction (Q_LIST.md Q26). */}
+        <button
+          type="button"
+          className="modal__button"
+          onClick={() => store.openModal("onboarding")}
+        >
+          {t("guide.replay")}
+        </button>
+      </div>
     </Modal>
   );
 }
