@@ -1,14 +1,14 @@
 /**
  * Top navigation bar: panel toggles (narrow screens), project actions
- * (Guardar/Abrir/Importar/Exportar, Camadas, Relatório — Fase 12), the
- * editable project title and the theme/language buttons (Fase 13).
+ * (Save/Open/Import/Export, Layers, Report — Fase 12), the editable
+ * project title and the theme button (Fase 13; language button gone in Fase 14).
  * Import/Export (`.glb`) are wired in Fase 5; Save/Open and the title
  * (store `projectName`, dot while there are unsaved changes) in Fase 8.
  */
 import type { ReactNode } from "react";
 
 import { a23ThemeFade } from "../anim/ui";
-import { i18n, t } from "../state/i18n";
+import { t } from "../state/i18n";
 import { theme } from "../state/theme";
 import { useStore } from "../state/use-store";
 import "./topbar.css";
@@ -169,7 +169,7 @@ export function TopBar({ onSave, onOpen, onImport, onExport, onTogglePanel }: To
           <span className="project-dirty" role="status" aria-label={t("topbar.unsaved")} />
         )}
       </div>
-      {/* Fase 13 (UX.md §1.1, Q_LIST.md Q27): theme and language, local preferences. */}
+      {/* Fase 13 (UX.md §1.1, Q_LIST.md Q27): theme, a local preference. */}
       <div className="navbar-top-prefs">
         <button
           type="button"
@@ -180,15 +180,6 @@ export function TopBar({ onSave, onOpen, onImport, onExport, onTogglePanel }: To
           onClick={() => a23ThemeFade(theme.toggle)}
         >
           {dark ? ICONS.moon : ICONS.sun}
-        </button>
-        <button
-          type="button"
-          className="tb-btn tb-btn--lang"
-          aria-label={t("topbar.language")}
-          title={t("topbar.language")}
-          onClick={() => i18n.setLocale(i18n.locale === "pt" ? "en" : "pt")}
-        >
-          {i18n.locale.toUpperCase()}
         </button>
       </div>
     </header>
