@@ -1,7 +1,9 @@
 import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
+import { shouldShowOnboarding } from "./components/OnboardingModal";
 import { createViewport } from "./scene/viewport";
+import { t } from "./state/i18n";
 import { store } from "./state/store";
 import { createGlbActions, initGlbShortcuts } from "./tools/glb-io";
 import { createHistory } from "./tools/history";
@@ -17,6 +19,8 @@ const app = document.querySelector<HTMLDivElement>("#app");
 if (app) {
   // The three.js scene is built once, outside React (ARCHITECTURE.md);
   // components talk to it through the store and these handles.
+  // Fase 13: the default title follows the language (renamed later = user data).
+  store.setProjectIdentity(store.projectId, t("app.untitled"));
   const viewport = createViewport();
   const terrainActions = createTerrainActions(viewport.terrain);
   // Fase 5: .glb import/export (topbar buttons + Ctrl/Cmd+E / Ctrl/Cmd+I).
@@ -61,6 +65,9 @@ if (app) {
     .finally(() => {
       store.markSaved();
       history.reset(); // the initial terrain is the starting point, not an action
-      void projectActions.checkRecovery();
+      void projectActions.checkRecovery().then(() => {
+        // Fase 13 (Q_LIST.md Q26): first-run intro, unless the recovery prompt is up.
+        if (!store.modal && shouldShowOnboarding()) store.openModal("onboarding");
+      });
     });
 }
