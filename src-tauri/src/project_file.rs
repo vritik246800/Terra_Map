@@ -22,9 +22,9 @@ use crate::project::{preset_file_stem, TerrainPresetParams};
 
 /// Current project format version (`MODELO_DADOS.md` §3).
 pub const CURRENT_VERSION: u64 = 1;
-const PROJECT_FILTER_NAME: &str = "Projeto Terra_Map";
+const PROJECT_FILTER_NAME: &str = "Terra_Map project";
 const PROJECT_EXTENSION: &str = "json";
-const DEFAULT_STEM: &str = "projeto";
+const DEFAULT_STEM: &str = "project";
 const AUTOSAVE_FILE: &str = "autosave.json";
 /// Event sent to the window when closing with unsaved changes.
 pub const CLOSE_REQUESTED_EVENT: &str = "close-requested";
@@ -264,14 +264,14 @@ fn is_base64(text: &str) -> bool {
 fn check_transform(id: &str, t: &Transform) -> Result<(), AppError> {
     let s = t.scale;
     if s.x <= 0.0 || s.y <= 0.0 || s.z <= 0.0 {
-        return invalid(format!("escala inválida em {id}"));
+        return invalid(format!("invalid scale on {id}"));
     }
     Ok(())
 }
 
 fn check_phase(id: &str, phase: u8) -> Result<(), AppError> {
     if phase > 2 {
-        return invalid(format!("fase {phase} inválida em {id} (0–2)"));
+        return invalid(format!("invalid phase {phase} on {id} (0–2)"));
     }
     Ok(())
 }
@@ -281,21 +281,21 @@ impl ProjectFile {
     pub fn validate(&self) -> Result<(), AppError> {
         let t = &self.terrain;
         if !TERRAIN_PRESETS.contains(&t.preset.as_str()) {
-            return invalid(format!("preset de terreno desconhecido: {}", t.preset));
+            return invalid(format!("unknown terrain preset: {}", t.preset));
         }
         let p = &t.params;
         if !(2..=MAX_RESOLUTION).contains(&p.resolution) || p.size == 0 || p.size > MAX_SIZE {
-            return invalid("dimensões do terreno fora dos limites");
+            return invalid("terrain dimensions out of bounds");
         }
         let heights = (p.resolution as usize).pow(2);
         match t.heightmap.strip_prefix(BASE64_PREFIX) {
             Some(b64) if b64.len() == base64_len(heights * 4) && is_base64(b64) => {}
-            _ => return invalid("heightmap do terreno inválido ou com tamanho errado"),
+            _ => return invalid("terrain heightmap invalid or of the wrong size"),
         }
         if let Some(map) = &t.material_map {
             match map.strip_prefix(BASE64_PREFIX) {
                 Some(b64) if b64.len() == base64_len(heights) && is_base64(b64) => {}
-                _ => return invalid("mapa de materiais do terreno inválido ou com tamanho errado"),
+                _ => return invalid("terrain material map invalid or of the wrong size"),
             }
         }
 
@@ -305,20 +305,20 @@ impl ProjectFile {
             || !env.water.level.is_finite()
             || env.water.level.abs() > 1000.0
         {
-            return invalid("definições de ambiente fora dos limites");
+            return invalid("environment settings out of bounds");
         }
         if self.vegetation.len() > MAX_PLANTS {
-            return invalid(format!("vegetação a mais (máx. {MAX_PLANTS})"));
+            return invalid(format!("too much vegetation (max. {MAX_PLANTS})"));
         }
         for p in &self.vegetation {
             if !PLANT_KINDS.contains(&p.kind.as_str())
                 || !(p.scale > 0.0 && p.scale <= MAX_PLANT_SCALE)
             {
-                return invalid(format!("planta inválida: {}", p.kind));
+                return invalid(format!("invalid plant: {}", p.kind));
             }
         }
         if self.scenarios.len() > 50 {
-            return invalid("cenários a mais (máx. 50)");
+            return invalid("too many scenarios (max. 50)");
         }
         for sc in &self.scenarios {
             if sc.name.trim().is_empty()
@@ -329,19 +329,19 @@ impl ProjectFile {
                     .iter()
                     .any(|m| m.key.is_empty() || m.key.len() > 40)
             {
-                return invalid(format!("cenário inválido: «{}»", sc.name));
+                return invalid(format!("invalid scenario: “{}”", sc.name));
             }
         }
         for r in &self.roads {
             if r.points.len() < 2 || !(r.width > 0.0 && r.width <= MAX_ROAD_WIDTH) {
-                return invalid(format!("estrada inválida: {}", r.id));
+                return invalid(format!("invalid road: {}", r.id));
             }
         }
 
         let mut layers = HashSet::new();
         for l in &self.layers {
             if !LAYER_IDS.contains(&l.id.as_str()) || !layers.insert(l.id.as_str()) {
-                return invalid(format!("camada desconhecida ou repetida: {}", l.id));
+                return invalid(format!("unknown or repeated layer: {}", l.id));
             }
         }
 
@@ -356,34 +356,34 @@ impl ProjectFile {
             .chain(self.roads.iter().map(|r| &r.id));
         for id in all_ids {
             if id.is_empty() || !ids.insert(id.as_str()) {
-                return invalid(format!("id repetido ou vazio: «{id}»"));
+                return invalid(format!("repeated or empty id: “{id}”"));
             }
         }
 
         let mut models = HashSet::new();
         for m in &self.custom_models {
             if !models.insert(m.id.as_str()) {
-                return invalid(format!("modelo repetido: {}", m.id));
+                return invalid(format!("repeated model: {}", m.id));
             }
             match m.glb.strip_prefix(BASE64_PREFIX) {
                 Some(b64) if !b64.is_empty() && is_base64(b64) => {}
-                _ => return invalid(format!("modelo .glb inválido: {}", m.name)),
+                _ => return invalid(format!("invalid .glb model: {}", m.name)),
             }
         }
 
         for b in &self.buildings {
             if !BUILDING_KINDS.contains(&b.kind.as_str()) {
-                return invalid(format!("tipo desconhecido em {}: {}", b.id, b.kind));
+                return invalid(format!("unknown kind on {}: {}", b.id, b.kind));
             }
             check_phase(&b.id, b.phase)?;
             check_transform(&b.id, &b.transform)?;
             if b.kind == "customGlb" && !b.model_id.as_deref().is_some_and(|m| models.contains(m)) {
-                return invalid(format!("{} refere um modelo .glb em falta", b.id));
+                return invalid(format!("{} refers to a missing .glb model", b.id));
             }
         }
         for e in &self.elements {
             if !NETWORK_KINDS.contains(&e.kind.as_str()) {
-                return invalid(format!("tipo desconhecido em {}: {}", e.id, e.kind));
+                return invalid(format!("unknown kind on {}: {}", e.id, e.kind));
             }
             check_phase(&e.id, e.phase)?;
             check_transform(&e.id, &e.transform)?;
@@ -401,7 +401,7 @@ impl ProjectFile {
             if let Some(target) = &m.target_id {
                 if !entities.contains(target.as_str()) {
                     return invalid(format!(
-                        "o marcador {} aponta para {target}, que não existe",
+                        "marker {} points to {target}, which does not exist",
                         m.id
                     ));
                 }
@@ -409,12 +409,12 @@ impl ProjectFile {
         }
         for c in &self.cables {
             if !entities.contains(c.from_id.as_str()) || !entities.contains(c.to_id.as_str()) {
-                return invalid(format!("o cabo {} liga a um elemento inexistente", c.id));
+                return invalid(format!("cable {} connects to a missing element", c.id));
             }
             if !CABLE_TYPES.contains(&c.cable_type.as_str())
                 || !CABLE_ROUTES.contains(&c.route.as_str())
             {
-                return invalid(format!("tipo ou percurso inválido no cabo {}", c.id));
+                return invalid(format!("invalid type or route on cable {}", c.id));
             }
         }
         Ok(())
@@ -424,17 +424,17 @@ impl ProjectFile {
 /// Brings any supported version up to `CURRENT_VERSION`, then validates.
 pub fn migrate(raw: serde_json::Value) -> Result<ProjectFile, AppError> {
     let Some(version) = raw.get("version").and_then(serde_json::Value::as_u64) else {
-        return invalid("ficheiro sem «version» — não é um projeto Terra_Map");
+        return invalid("file without “version” — not a Terra_Map project");
     };
     let project: ProjectFile = match version {
         // Future formats add arms here (v1 → v2 …), never a silent refusal.
-        1 => serde_json::from_value(raw).or_else(|e| invalid(format!("formato inválido: {e}")))?,
+        1 => serde_json::from_value(raw).or_else(|e| invalid(format!("invalid format: {e}")))?,
         v if v > CURRENT_VERSION => {
             return invalid(format!(
-                "versão {v} é mais recente do que a suportada ({CURRENT_VERSION}) — atualiza a aplicação"
+                "version {v} is newer than the supported one ({CURRENT_VERSION}) — update the app"
             ))
         }
-        v => return invalid(format!("versão {v} desconhecida")),
+        v => return invalid(format!("unknown version {v}")),
     };
     project.validate()?;
     Ok(project)
@@ -443,8 +443,7 @@ pub fn migrate(raw: serde_json::Value) -> Result<ProjectFile, AppError> {
 /// Reads, migrates and validates a project file.
 pub fn read_project(path: &Path) -> Result<ProjectFile, AppError> {
     let raw = std::fs::read_to_string(path)?;
-    let value =
-        serde_json::from_str(&raw).or_else(|e| invalid(format!("não é JSON válido: {e}")))?;
+    let value = serde_json::from_str(&raw).or_else(|e| invalid(format!("not valid JSON: {e}")))?;
     migrate(value)
 }
 
@@ -515,7 +514,7 @@ fn file_name(path: &Path) -> String {
         .unwrap_or_default()
 }
 
-/// Saves to the current path, or asks for one (first save / "Guardar como").
+/// Saves to the current path, or asks for one (first save / "Save as").
 /// `Ok(None)` = the user cancelled the dialog.
 pub fn save_project(
     app: &AppHandle,
@@ -788,7 +787,7 @@ mod tests {
         let mut newer = serde_json::to_value(sample()).unwrap();
         newer["version"] = json!(CURRENT_VERSION + 1);
         let err = migrate(newer).unwrap_err().to_string();
-        assert!(err.contains("mais recente"), "{err}");
+        assert!(err.contains("is newer than the supported"), "{err}");
 
         let mut zero = serde_json::to_value(sample()).unwrap();
         zero["version"] = json!(0);
