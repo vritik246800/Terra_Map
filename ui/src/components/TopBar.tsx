@@ -1,6 +1,7 @@
 /**
  * Top navigation bar: panel toggles (narrow screens), project actions
- * (Guardar/Abrir/Importar/Exportar) and the editable project title.
+ * (Guardar/Abrir/Importar/Exportar, Camadas, Relatório — Fase 12) and the
+ * editable project title.
  * Import/Export (`.glb`) are wired in Fase 5; Save/Open and the title
  * (store `projectName`, dot while there are unsaved changes) in Fase 8.
  */
@@ -73,6 +74,15 @@ const ICONS = {
       <path d="M2 13l10 5 10-5" />
     </Icon>
   ),
+  report: (
+    <Icon>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <polyline points="14 3 14 9 20 9" />
+      <line x1="8" y1="17" x2="8" y2="14" />
+      <line x1="12" y1="17" x2="12" y2="12" />
+      <line x1="16" y1="17" x2="16" y2="15" />
+    </Icon>
+  ),
   export: (
     <Icon>
       <path d="M12 15V3" />
@@ -90,6 +100,7 @@ export function TopBar({ onSave, onOpen, onImport, onExport, onTogglePanel }: To
     { label: "Importar", icon: ICONS.import, onClick: onImport },
     { label: "Exportar", icon: ICONS.export, onClick: onExport },
     { label: "Camadas", icon: ICONS.layers, onClick: () => store.toggleLayersPanel() }, // Fase 10 (L)
+    { label: "Relatório", icon: ICONS.report, onClick: () => store.openModal("report") }, // Fase 12
   ];
 
   return (
