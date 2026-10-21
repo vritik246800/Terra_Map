@@ -149,6 +149,8 @@ export function createViewport(): ViewportHandles {
     camera,
     controls,
     getObject: (id) => registry.getObject(id) ?? cables.getObject(id) ?? roads.getObject(id),
+    host: canvasHost, // Fase 13: keyboard navigation (crosshair, arrows, Space)
+    canvas: renderer.domElement,
   });
   initEntityShortcuts({ registry, cables, roads });
   initBrush({
