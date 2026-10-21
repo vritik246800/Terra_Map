@@ -1,10 +1,12 @@
 /**
  * Top navigation bar: panel toggles (narrow screens), project actions
  * (Guardar/Abrir/Importar/Exportar) and the editable project title.
- * Import/Export (`.glb`) are wired in Fase 5; Save/Open arrive in Fase 8.
+ * Import/Export (`.glb`) are wired in Fase 5; Save/Open and the title
+ * (store `projectName`, dot while there are unsaved changes) in Fase 8.
  */
 import type { ReactNode } from "react";
 
+import { useStore } from "../state/use-store";
 import "./topbar.css";
 
 export interface TopBarProps {
@@ -65,6 +67,12 @@ const ICONS = {
       <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
     </Icon>
   ),
+  layers: (
+    <Icon>
+      <path d="M12 3 2 8l10 5 10-5z" />
+      <path d="M2 13l10 5 10-5" />
+    </Icon>
+  ),
   export: (
     <Icon>
       <path d="M12 15V3" />
@@ -75,11 +83,13 @@ const ICONS = {
 };
 
 export function TopBar({ onSave, onOpen, onImport, onExport, onTogglePanel }: TopBarProps) {
+  const store = useStore();
   const actions = [
     { label: "Guardar", icon: ICONS.save, onClick: onSave },
     { label: "Abrir", icon: ICONS.open, onClick: onOpen },
     { label: "Importar", icon: ICONS.import, onClick: onImport },
     { label: "Exportar", icon: ICONS.export, onClick: onExport },
+    { label: "Camadas", icon: ICONS.layers, onClick: () => store.toggleLayersPanel() }, // Fase 10 (L)
   ];
 
   return (
@@ -117,14 +127,22 @@ export function TopBar({ onSave, onOpen, onImport, onExport, onTogglePanel }: To
           </button>
         ))}
       </div>
-      <input
-        type="text"
-        className="project-title"
-        defaultValue="Sem título"
-        aria-label="Título do projeto"
-        spellCheck={false}
-        autoComplete="off"
-      />
+      <div className="project-title-wrap">
+        <input
+          type="text"
+          className="project-title"
+          value={store.projectName}
+          maxLength={80}
+          size={Math.max(10, store.projectName.length + 2)}
+          aria-label="Título do projeto"
+          spellCheck={false}
+          autoComplete="off"
+          onChange={(e) => store.setProjectName(e.target.value)}
+        />
+        {store.dirty && (
+          <span className="project-dirty" role="status" aria-label="Alterações por guardar" />
+        )}
+      </div>
     </header>
   );
 }
