@@ -9,11 +9,10 @@
  * camera position and the OrbitControls target. With reduced motion the
  * camera jumps straight to the final state (DESIGN.md §8.3).
  */
-import gsap from "gsap";
 import * as THREE from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import { prefersReducedMotion } from "../anim/reduced-motion";
+import { a21CameraTo } from "../anim/scene";
 import { store } from "../state/store";
 import { shouldIgnoreShortcut } from "./shortcuts";
 
@@ -25,8 +24,6 @@ const VIEWS = {
   front: new THREE.Vector3(0, 6, D * 1.4), // 0° elevation
   iso: new THREE.Vector3(D, D, D), // 45° azimuth / 35.26° elevation
 } as const;
-
-const A21_DURATION = 0.4; // seconds — DESIGN.md §8.1 (A21)
 
 export interface CameraControllerDeps {
   camera: THREE.PerspectiveCamera;
@@ -44,18 +41,7 @@ export function initCameraShortcuts(deps: CameraControllerDeps): () => void {
 
   /** A21: animated transition of camera position + controls target. */
   function flyTo(pos: THREE.Vector3, target: THREE.Vector3 = new THREE.Vector3()): void {
-    gsap.killTweensOf([camera.position, controls.target]);
-
-    if (prefersReducedMotion()) {
-      camera.position.copy(pos);
-      controls.target.copy(target);
-      controls.update();
-      return;
-    }
-
-    const tween = { duration: A21_DURATION, ease: "power2.inOut" };
-    gsap.to(camera.position, { x: pos.x, y: pos.y, z: pos.z, ...tween });
-    gsap.to(controls.target, { x: target.x, y: target.y, z: target.z, ...tween });
+    a21CameraTo(camera, controls, pos, target);
   }
 
   /** `F`: frames the selected object — target = bbox center, fit distance + 20% margin. */
