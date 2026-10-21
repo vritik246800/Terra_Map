@@ -37,7 +37,8 @@ import {
   type SnapGrid,
   type TransformData,
 } from "../state/store";
-import { KIND_LABELS } from "../state/labels";
+import { fmt, t, type MessageKey } from "../state/i18n";
+import { kindLabel } from "../state/labels";
 import { useStore } from "../state/use-store";
 import { arrangeSelection, type ArrangeAxis, type ArrangeMode } from "../tools/arrange";
 import type { SimulationActions } from "../tools/simulation";
@@ -47,32 +48,39 @@ import { SegmentedPicker } from "./SegmentedPicker";
 import { Spinner } from "./Spinner";
 import "./right-panel.css";
 
-/** pt-PT labels for cable types and routes (Fase 6, DESIGN.md §4.1). */
-const CABLE_TYPE_LABELS: Record<CableType, string> = {
-  fiber: "Fibra",
-  copper: "Cobre",
-  coax: "Coaxial",
-};
-const CABLE_ROUTE_LABELS: Record<CableRoute, string> = {
-  underground: "Subterrâneo",
-  aerial: "Aéreo",
-  direct: "Direto",
-};
+/** Labels of cable types and routes (Fase 6), in the current language (Fase 13). */
+const cableTypeLabels = (): Record<CableType, string> => ({
+  fiber: t("cable.fiber"),
+  copper: t("cable.copper"),
+  coax: t("cable.coax"),
+});
+const cableRouteLabels = (): Record<CableRoute, string> => ({
+  underground: t("cable.underground"),
+  aerial: t("cable.aerial"),
+  direct: t("cable.direct"),
+});
 
-/** Construction phase labels (DESIGN.md §6: fundações → estrutura → acabamento). */
-const PHASE_LABELS = ["Fundações", "Estrutura", "Acabamento"];
+/** Construction phases (DESIGN.md §6: fundações → estrutura → acabamento). */
+const PHASE_KEYS: MessageKey[] = [
+  "panel.entity.foundations",
+  "panel.entity.structure",
+  "panel.entity.finish",
+];
+
+/** `12.3` → "12,3 m" in pt (Fase 13 — numbers follow the language). */
+const meters = (v: number, decimals = 1) => `${fmt(v, decimals)} m`;
 
 /** Spinner bounds/steps (DESIGN.md §6: position 0.5, rotation 5°, scale 0.1). */
 const TRANSFORM_SECTIONS: Array<{
-  title: string;
+  title: MessageKey;
   field: keyof TransformData;
   min: number;
   max: number;
   step: number;
 }> = [
-  { title: "Posição", field: "position", min: -500, max: 500, step: 0.5 },
-  { title: "Rotação", field: "rotation", min: -360, max: 360, step: 5 },
-  { title: "Escala", field: "scale", min: 0.1, max: 10, step: 0.1 },
+  { title: "panel.entity.position", field: "position", min: -500, max: 500, step: 0.5 },
+  { title: "panel.entity.rotation", field: "rotation", min: -360, max: 360, step: 5 },
+  { title: "panel.entity.scale", field: "scale", min: 0.1, max: 10, step: 0.1 },
 ];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -114,10 +122,8 @@ function EmptyState() {
           strokeLinejoin="round"
         />
       </svg>
-      <p className="panel-right__empty-text">Seleciona um elemento</p>
-      <p className="panel-right__empty-hint">
-        Clique num objeto do viewport para editar as suas propriedades.
-      </p>
+      <p className="panel-right__empty-text">{t("panel.empty")}</p>
+      <p className="panel-right__empty-hint">{t("panel.emptyHint")}</p>
     </div>
   );
 }
@@ -126,9 +132,9 @@ function EmptyState() {
 function BrushSection() {
   const store = useStore();
   return (
-    <Section title="Pincel de terreno">
+    <Section title={t("panel.brush.title")}>
       <Spinner
-        label="Raio"
+        label={t("panel.brush.radius")}
         value={store.brush.radius}
         min={1}
         max={50}
@@ -136,16 +142,14 @@ function BrushSection() {
         onChange={store.setBrushRadius}
       />
       <Spinner
-        label="Intensidade"
+        label={t("panel.brush.intensity")}
         value={store.brush.intensity}
         min={0.1}
         max={5}
         step={0.1}
         onChange={store.setBrushIntensity}
       />
-      <p className="properties-section__hint">
-        Botão esquerdo eleva · Shift baixa · Esc sai da ferramenta.
-      </p>
+      <p className="properties-section__hint">{t("panel.brush.hint")}</p>
     </Section>
   );
 }
@@ -171,8 +175,8 @@ function SimulationSection({
     `phase-stepper__button${active ? (danger ? " phase-stepper__button--danger" : " phase-stepper__button--active") : ""}`;
 
   return (
-    <Section title="Simulação">
-      <div className="phase-stepper" role="group" aria-label="Simulação">
+    <Section title={t("panel.sim.title")}>
+      <div className="phase-stepper" role="group" aria-label={t("panel.sim.title")}>
         {!isCable &&
           (["from", "to"] as const).map((role) => {
             const active = (role === "from" ? sim.fromId : sim.toId) === id;
@@ -184,7 +188,7 @@ function SimulationSection({
                 aria-pressed={active}
                 onClick={() => store.setSimEndpoint(role, active ? null : id)}
               >
-                {role === "from" ? "Origem" : "Destino"}
+                {t(role === "from" ? "panel.sim.from" : "panel.sim.to")}
               </button>
             );
           })}
@@ -194,7 +198,7 @@ function SimulationSection({
           aria-pressed={failed}
           onClick={() => simulation.toggleFailure(id)}
         >
-          Em falha
+          {t("panel.sim.failed")}
         </button>
       </div>
       {isAntenna && (
@@ -203,65 +207,63 @@ function SimulationSection({
           className="properties-action"
           onClick={() => void simulation.coverage(id)}
         >
-          Simular cobertura
+          {t("panel.sim.coverage")}
         </button>
       )}
       <p className="properties-section__hint">
-        {isCable
-          ? "Um cabo em falha é ignorado pelo Dijkstra; a rota é recalculada."
-          : "Escolhe origem e destino e calcula o caminho no simulador."}
+        {t(isCable ? "panel.sim.hintCable" : "panel.sim.hintNode")}
       </p>
     </Section>
   );
 }
 
-const SNAP_LABELS: Record<string, string> = {
-  "0": "Desligado",
-  "0.25": "0,25 m",
-  "0.5": "0,5 m",
-  "1": "1 m",
-};
+const snapLabels = (): Record<string, string> => ({
+  "0": t("panel.snap.off"),
+  "0.25": meters(0.25, 2),
+  "0.5": meters(0.5),
+  "1": meters(1, 0),
+});
 
 /** Snap settings (Fase 10, Q_LIST.md Q15): gizmo, drag & drop and paste. */
 function SnapSection() {
   const store = useStore();
   return (
-    <Section title="Snap">
+    <Section title={t("panel.snap.title")}>
       <SegmentedPicker
-        label="Grelha"
-        options={SNAP_LABELS}
+        label={t("panel.snap.grid")}
+        options={snapLabels()}
         value={String(store.snap.grid)}
         onChange={(v) => store.setSnap({ grid: Number(v) as SnapGrid })}
       />
-      <div className="phase-stepper" role="group" aria-label="Snap a objetos">
+      <div className="phase-stepper" role="group" aria-label={t("panel.snap.objects")}>
         <button
           type="button"
           className={`phase-stepper__button${store.snap.objects ? " phase-stepper__button--active" : ""}`}
           aria-pressed={store.snap.objects}
           onClick={() => store.setSnap({ objects: !store.snap.objects })}
         >
-          Snap a objetos
+          {t("panel.snap.objects")}
         </button>
       </div>
     </Section>
   );
 }
 
-const ARRANGE_ROWS: Array<{ axis: ArrangeAxis; buttons: Array<[ArrangeMode, string]> }> = [
+const ARRANGE_ROWS: Array<{ axis: ArrangeAxis; buttons: Array<[ArrangeMode, MessageKey]> }> = [
   {
     axis: "x",
     buttons: [
-      ["min", "Esquerda"],
-      ["center", "Centro"],
-      ["distribute", "Distribuir"],
+      ["min", "panel.multi.left"],
+      ["center", "panel.multi.center"],
+      ["distribute", "panel.multi.distribute"],
     ],
   },
   {
     axis: "z",
     buttons: [
-      ["min", "Frente"],
-      ["center", "Centro"],
-      ["distribute", "Distribuir"],
+      ["min", "panel.multi.front"],
+      ["center", "panel.multi.center"],
+      ["distribute", "panel.multi.distribute"],
     ],
   },
 ];
@@ -283,15 +285,17 @@ function MultiSelectionPanel({
   const counts = new Map<string, number>();
   for (const id of store.selection) {
     const kind = store.getEntityInfo(id)?.kind;
-    const label = kind ? (KIND_LABELS[kind] ?? kind) : "Cabo";
+    const label = kind ? kindLabel(kind) : t(store.getRoadInfo(id) ? "kind.road" : "kind.cable");
     counts.set(label, (counts.get(label) ?? 0) + 1);
   }
   return (
     <div className="properties-info">
       <dl className="properties-list">
         <div className="properties-row">
-          <dt className="properties-row__label">Seleção</dt>
-          <dd className="properties-row__value">{store.selection.length} elementos</dd>
+          <dt className="properties-row__label">{t("panel.multi.selection")}</dt>
+          <dd className="properties-row__value">
+            {t("panel.multi.count", { n: store.selection.length })}
+          </dd>
         </div>
         {[...counts].map(([label, n]) => (
           <div key={label} className="properties-row">
@@ -301,14 +305,16 @@ function MultiSelectionPanel({
         ))}
       </dl>
 
-      <Section title="Alinhar e distribuir">
+      <Section title={t("panel.multi.arrange")}>
         {ARRANGE_ROWS.map(({ axis, buttons }) => (
           <div key={axis} className="segmented-picker">
-            <span className="segmented-picker__label">Eixo {axis.toUpperCase()}</span>
+            <span className="segmented-picker__label">
+              {t("panel.multi.axis", { axis: axis.toUpperCase() })}
+            </span>
             <div
               className="phase-stepper"
               role="group"
-              aria-label={`Alinhar em ${axis.toUpperCase()}`}
+              aria-label={t("panel.multi.alignIn", { axis: axis.toUpperCase() })}
             >
               {buttons.map(([mode, label]) => (
                 <button
@@ -317,7 +323,7 @@ function MultiSelectionPanel({
                   className="phase-stepper__button"
                   onClick={() => arrangeSelection(registry, axis, mode)}
                 >
-                  {label}
+                  {t(label)}
                 </button>
               ))}
             </div>
@@ -332,26 +338,27 @@ function MultiSelectionPanel({
         className="properties-action properties-action--danger"
         onClick={() => deleteSelection(registry, cables, roads)}
       >
-        Eliminar seleção
+        {t("panel.multi.delete")}
       </button>
-      <p className="properties-section__hint">
-        Shift+clique junta ou tira · Shift+arrastar seleciona por área · o gizmo move o lote.
-      </p>
+      <p className="properties-section__hint">{t("panel.multi.hint")}</p>
     </div>
   );
 }
 
 // ---- Fase 11: environment, material brush, vegetation, roads ----
 
-const MATERIAL_LABELS: Record<string, string> = {
-  "0": "Auto",
-  "1": "Relva",
-  "2": "Terra",
-  "3": "Areia",
-  "4": "Rocha",
-  "5": "Neve",
-};
-const PLANT_LABELS: Record<PlantKind, string> = { tree: "Árvores", bush: "Arbustos" };
+const materialLabels = (): Record<string, string> => ({
+  "0": t("panel.paint.auto"),
+  "1": t("panel.paint.grass"),
+  "2": t("panel.paint.dirt"),
+  "3": t("panel.paint.sand"),
+  "4": t("panel.paint.rock"),
+  "5": t("panel.paint.snow"),
+});
+const plantLabels = (): Record<PlantKind, string> => ({
+  tree: t("panel.veg.trees"),
+  bush: t("panel.veg.bushes"),
+});
 
 /** "13.5" → "13:30". */
 function clock(hour: number): string {
@@ -366,7 +373,7 @@ function EnvironmentSection() {
   const env = store.environment;
   return (
     <div className="properties-info">
-      <Section title={`Hora do dia — ${clock(env.hour)}`}>
+      <Section title={t("panel.env.hourTitle", { time: clock(env.hour) })}>
         <input
           type="range"
           className="properties-range"
@@ -374,11 +381,11 @@ function EnvironmentSection() {
           max={24}
           step={0.25}
           value={env.hour}
-          aria-label="Hora do dia"
+          aria-label={t("panel.env.hourSlider")}
           onChange={(e) => store.setEnvironment({ hour: Number(e.target.value) })}
         />
         <Spinner
-          label="Hora"
+          label={t("panel.env.hour")}
           value={env.hour}
           min={0}
           max={24}
@@ -386,9 +393,9 @@ function EnvironmentSection() {
           onChange={(hour) => store.setEnvironment({ hour })}
         />
       </Section>
-      <Section title="Céu e névoa">
+      <Section title={t("panel.env.sky")}>
         <Spinner
-          label="Névoa"
+          label={t("panel.env.fog")}
           value={env.fog}
           min={0}
           max={1}
@@ -396,8 +403,8 @@ function EnvironmentSection() {
           onChange={(fog) => store.setEnvironment({ fog })}
         />
       </Section>
-      <Section title="Água">
-        <div className="phase-stepper" role="group" aria-label="Água">
+      <Section title={t("panel.env.water")}>
+        <div className="phase-stepper" role="group" aria-label={t("panel.env.water")}>
           <button
             type="button"
             className={`phase-stepper__button${env.water.enabled ? " phase-stepper__button--active" : ""}`}
@@ -406,11 +413,11 @@ function EnvironmentSection() {
               store.setEnvironment({ water: { ...env.water, enabled: !env.water.enabled } })
             }
           >
-            {env.water.enabled ? "Água ligada" : "Água desligada"}
+            {t(env.water.enabled ? "panel.env.waterOn" : "panel.env.waterOff")}
           </button>
         </div>
         <Spinner
-          label="Nível (m)"
+          label={t("panel.env.level")}
           value={env.water.level}
           min={-50}
           max={100}
@@ -418,9 +425,7 @@ function EnvironmentSection() {
           onChange={(level) => store.setEnvironment({ water: { ...env.water, level } })}
         />
       </Section>
-      <p className="properties-section__hint">
-        A hora muda o sol, o céu e as sombras (A18). Guardado com o projeto, fora do desfazer.
-      </p>
+      <p className="properties-section__hint">{t("panel.env.hint")}</p>
     </div>
   );
 }
@@ -429,24 +434,22 @@ function EnvironmentSection() {
 function PaintToolSection() {
   const store = useStore();
   return (
-    <Section title="Pincel de materiais">
+    <Section title={t("panel.paint.title")}>
       <SegmentedPicker
-        label="Material"
-        options={MATERIAL_LABELS}
+        label={t("panel.paint.material")}
+        options={materialLabels()}
         value={String(store.paintTool.material)}
         onChange={(v) => store.setPaintMaterial(Number(v) as MaterialId)}
       />
       <Spinner
-        label="Raio"
+        label={t("panel.brush.radius")}
         value={store.brush.radius}
         min={1}
         max={50}
         step={1}
         onChange={store.setBrushRadius}
       />
-      <p className="properties-section__hint">
-        Arrastar pinta · «Auto» repõe o gradiente de altitude · Esc sai.
-      </p>
+      <p className="properties-section__hint">{t("panel.paint.hint")}</p>
     </Section>
   );
 }
@@ -455,15 +458,15 @@ function PaintToolSection() {
 function VegetationToolSection() {
   const store = useStore();
   return (
-    <Section title="Vegetação">
+    <Section title={t("panel.veg.title")}>
       <SegmentedPicker
-        label="Espécie"
-        options={PLANT_LABELS}
+        label={t("panel.veg.species")}
+        options={plantLabels()}
         value={store.vegetationTool.kind}
         onChange={(kind) => store.setVegetationTool({ kind })}
       />
       <Spinner
-        label="Densidade (por 100 m²)"
+        label={t("panel.veg.density")}
         value={Math.round(store.vegetationTool.density * 100)}
         min={1}
         max={50}
@@ -471,16 +474,14 @@ function VegetationToolSection() {
         onChange={(v) => store.setVegetationTool({ density: v / 100 })}
       />
       <Spinner
-        label="Raio"
+        label={t("panel.brush.radius")}
         value={store.brush.radius}
         min={1}
         max={50}
         step={1}
         onChange={store.setBrushRadius}
       />
-      <p className="properties-section__hint">
-        Arrastar planta até à densidade · Shift apaga · Esc sai.
-      </p>
+      <p className="properties-section__hint">{t("panel.veg.hint")}</p>
     </Section>
   );
 }
@@ -489,19 +490,16 @@ function VegetationToolSection() {
 function RoadToolSection() {
   const store = useStore();
   return (
-    <Section title="Ferramenta estrada">
+    <Section title={t("panel.road.toolTitle")}>
       <Spinner
-        label="Largura (m)"
+        label={t("panel.road.width")}
         value={store.roadTool.width}
         min={1}
         max={20}
         step={0.5}
         onChange={store.setRoadWidth}
       />
-      <p className="properties-section__hint">
-        Clique no terreno para cada ponto · Enter ou duplo clique termina · Backspace tira o último
-        · Esc cancela.
-      </p>
+      <p className="properties-section__hint">{t("panel.road.toolHint")}</p>
     </Section>
   );
 }
@@ -515,10 +513,10 @@ function RoadEditor({ roads, id }: { roads: RoadRegistry; id: string }) {
     <div className="properties-info">
       <dl className="properties-list">
         {[
-          ["ID", id],
-          ["Tipo", "Estrada"],
-          ["Pontos", String(info.points.length)],
-          ["Comprimento", `${roads.getLength(id).toFixed(1)} m`],
+          [t("common.id"), id],
+          [t("common.type"), t("kind.road")],
+          [t("panel.road.points"), String(info.points.length)],
+          [t("common.length"), meters(roads.getLength(id))],
         ].map(([label, value]) => (
           <div key={label} className="properties-row">
             <dt className="properties-row__label">{label}</dt>
@@ -526,9 +524,9 @@ function RoadEditor({ roads, id }: { roads: RoadRegistry; id: string }) {
           </div>
         ))}
       </dl>
-      <Section title="Largura">
+      <Section title={t("panel.road.widthTitle")}>
         <Spinner
-          label="Largura (m)"
+          label={t("panel.road.width")}
           value={info.width}
           min={1}
           max={20}
@@ -539,7 +537,7 @@ function RoadEditor({ roads, id }: { roads: RoadRegistry; id: string }) {
           }}
         />
       </Section>
-      <p className="properties-section__hint">Delete elimina a estrada selecionada.</p>
+      <p className="properties-section__hint">{t("panel.road.deleteHint")}</p>
     </div>
   );
 }
@@ -548,22 +546,20 @@ function RoadEditor({ roads, id }: { roads: RoadRegistry; id: string }) {
 function CableToolSection() {
   const store = useStore();
   return (
-    <Section title="Ferramenta cabo">
+    <Section title={t("panel.cableTool.title")}>
       <SegmentedPicker
-        label="Tipo"
-        options={CABLE_TYPE_LABELS}
+        label={t("panel.cableTool.type")}
+        options={cableTypeLabels()}
         value={store.cableTool.cableType}
         onChange={store.setCableType}
       />
       <SegmentedPicker
-        label="Percurso"
-        options={CABLE_ROUTE_LABELS}
+        label={t("panel.cableTool.route")}
+        options={cableRouteLabels()}
         value={store.cableTool.route}
         onChange={store.setCableRoute}
       />
-      <p className="properties-section__hint">
-        Clique no elemento de origem e depois no destino. Esc cancela.
-      </p>
+      <p className="properties-section__hint">{t("panel.cableTool.hint")}</p>
     </Section>
   );
 }
@@ -575,16 +571,13 @@ function RulerSection() {
   const rows =
     from && to
       ? [
-          [
-            "Distância 3D",
-            `${Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z).toFixed(2)} m`,
-          ],
-          ["Horizontal", `${Math.hypot(to.x - from.x, to.z - from.z).toFixed(2)} m`],
-          ["Desnível", `${to.y >= from.y ? "+" : ""}${(to.y - from.y).toFixed(2)} m`],
+          [t("panel.ruler.d3"), meters(Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z), 2)],
+          [t("panel.ruler.horizontal"), meters(Math.hypot(to.x - from.x, to.z - from.z), 2)],
+          [t("panel.ruler.rise"), `${to.y >= from.y ? "+" : ""}${meters(to.y - from.y, 2)}`],
         ]
       : [];
   return (
-    <Section title="Régua">
+    <Section title={t("panel.ruler.title")}>
       {rows.length > 0 && (
         <dl className="properties-list">
           {rows.map(([label, value]) => (
@@ -601,14 +594,12 @@ function RulerSection() {
         disabled={!to}
         onClick={() => store.openModal("profile")}
       >
-        Perfil do terreno
+        {t("panel.ruler.profile")}
       </button>
       <p className="properties-section__hint">
-        {!from
-          ? "Clique no terreno para o 1.º ponto. R ou Esc sai."
-          : !to
-            ? "Clique no 2.º ponto — a etiqueta mostra a distância até ao cursor."
-            : "Clique de novo para outra medida · R ou Esc sai."}
+        {t(
+          !from ? "panel.ruler.hintStart" : !to ? "panel.ruler.hintSecond" : "panel.ruler.hintDone",
+        )}
       </p>
     </Section>
   );
@@ -617,10 +608,8 @@ function RulerSection() {
 /** Marker tool hint (Fase 6): the tool has no settings. */
 function MarkerToolSection() {
   return (
-    <Section title="Ferramenta marcador">
-      <p className="properties-section__hint">
-        Clique no terreno ou num elemento para colocar um pin com etiqueta. Esc cancela.
-      </p>
+    <Section title={t("panel.markerTool.title")}>
+      <p className="properties-section__hint">{t("panel.markerTool.hint")}</p>
     </Section>
   );
 }
@@ -630,9 +619,9 @@ function CustomSection({ actions }: { actions: TerrainActions }) {
   const store = useStore();
   const p = store.customParams;
   return (
-    <Section title="Terreno personalizado">
+    <Section title={t("panel.custom.title")}>
       <Spinner
-        label="Semente"
+        label={t("panel.custom.seed")}
         value={p.seed}
         min={0}
         max={9999}
@@ -640,7 +629,7 @@ function CustomSection({ actions }: { actions: TerrainActions }) {
         onChange={(v) => store.setCustomParams({ seed: Math.round(v) })}
       />
       <Spinner
-        label="Amplitude"
+        label={t("panel.custom.amplitude")}
         value={p.amplitude}
         min={1}
         max={100}
@@ -648,7 +637,7 @@ function CustomSection({ actions }: { actions: TerrainActions }) {
         onChange={(v) => store.setCustomParams({ amplitude: v })}
       />
       <Spinner
-        label="Frequência"
+        label={t("panel.custom.frequency")}
         value={p.frequency}
         min={0.1}
         max={10}
@@ -656,7 +645,7 @@ function CustomSection({ actions }: { actions: TerrainActions }) {
         onChange={(v) => store.setCustomParams({ frequency: v })}
       />
       <Spinner
-        label="Tamanho"
+        label={t("panel.custom.size")}
         value={p.size}
         min={50}
         max={1000}
@@ -668,7 +657,7 @@ function CustomSection({ actions }: { actions: TerrainActions }) {
         className="properties-action"
         onClick={() => void actions.createFromPreset("custom")}
       >
-        Gerar terreno
+        {t("panel.custom.generate")}
       </button>
     </Section>
   );
@@ -726,8 +715,8 @@ function EntityEditor({
     <div className="properties-info">
       <dl className="properties-list">
         {[
-          ["ID", id],
-          ["Tipo", KIND_LABELS[info.kind] ?? info.kind],
+          [t("common.id"), id],
+          [t("common.type"), kindLabel(info.kind)],
         ].map(([label, value]) => (
           <div key={label} className="properties-row">
             <dt className="properties-row__label">{label}</dt>
@@ -738,15 +727,15 @@ function EntityEditor({
 
       {info.colliding && (
         <p className="collision-badge" role="alert">
-          A colidir com outra infraestrutura.
+          {t("panel.entity.colliding")}
         </p>
       )}
 
       {/* Lots ignore the phase (§6); imported .glb models and markers have none (Fases 5–6). */}
       {info.kind !== "lot" && info.kind !== CUSTOM_GLB_KIND && info.kind !== MARKER_KIND && (
-        <Section title="Fase">
-          <div className="phase-stepper" role="group" aria-label="Fase de construção">
-            {PHASE_LABELS.map((label, phase) => (
+        <Section title={t("panel.entity.phase")}>
+          <div className="phase-stepper" role="group" aria-label={t("panel.entity.phaseGroup")}>
+            {PHASE_KEYS.map((label, phase) => (
               <button
                 key={label}
                 type="button"
@@ -754,7 +743,7 @@ function EntityEditor({
                 aria-pressed={phase === info.phase}
                 onClick={() => writePhase(phase)}
               >
-                {label}
+                {t(label)}
               </button>
             ))}
           </div>
@@ -762,9 +751,9 @@ function EntityEditor({
       )}
 
       {info.kind === "building" && (
-        <Section title="Pisos">
+        <Section title={t("panel.entity.floors")}>
           <Spinner
-            label="Pisos"
+            label={t("panel.entity.floors")}
             value={info.params.floors ?? DEFAULT_FLOORS}
             min={1}
             max={50}
@@ -776,9 +765,9 @@ function EntityEditor({
 
       {/* Fase 6: marker pins carry a label (3D sprite) and a note. */}
       {info.kind === MARKER_KIND && (
-        <Section title="Marcador">
+        <Section title={t("panel.entity.marker")}>
           <label className="properties-field">
-            <span className="properties-field__label">Etiqueta</span>
+            <span className="properties-field__label">{t("panel.entity.label")}</span>
             <input
               type="text"
               className="properties-input"
@@ -788,7 +777,7 @@ function EntityEditor({
             />
           </label>
           <label className="properties-field">
-            <span className="properties-field__label">Nota</span>
+            <span className="properties-field__label">{t("panel.entity.note")}</span>
             <input
               type="text"
               className="properties-input"
@@ -798,14 +787,16 @@ function EntityEditor({
             />
           </label>
           {info.targetId && (
-            <p className="properties-section__hint">Colocado em: {info.targetId}</p>
+            <p className="properties-section__hint">
+              {t("panel.entity.placedOn", { id: info.targetId })}
+            </p>
           )}
         </Section>
       )}
 
       {/* Fase 6: dynamic key-value props of network elements (DESIGN.md §4.2). */}
       {isNetworkKind(info.kind) && (
-        <Section title="Propriedades dinâmicas">
+        <Section title={t("panel.entity.dynProps")}>
           <DynamicPropsEditor
             props={info.dynamicProps}
             onChange={(dynamicProps) => store.updateEntity(id, { dynamicProps })}
@@ -821,7 +812,7 @@ function EntityEditor({
       <SnapSection />
 
       {TRANSFORM_SECTIONS.map(({ title, field, min, max, step }) => (
-        <Section key={field} title={title}>
+        <Section key={field} title={t(title)}>
           {(["x", "y", "z"] as const).map((axis) => (
             <Spinner
               key={axis}
@@ -843,9 +834,7 @@ function EntityEditor({
         </Section>
       ))}
 
-      <p className="properties-section__hint">
-        Gizmo: W mover · E rodar · T escalar. Editar X/Z volta a assentar no terreno.
-      </p>
+      <p className="properties-section__hint">{t("panel.entity.hint")}</p>
     </div>
   );
 }
@@ -884,10 +873,10 @@ function CableEditor({
     <div className="properties-info">
       <dl className="properties-list">
         {[
-          ["ID", id],
-          ["Tipo", "Cabo"],
-          ["Ligação", `${info.fromId} → ${info.toId}`],
-          ["Comprimento", length === undefined ? "—" : `${length.toFixed(1)} m`],
+          [t("common.id"), id],
+          [t("common.type"), t("kind.cable")],
+          [t("panel.cable.link"), `${info.fromId} → ${info.toId}`],
+          [t("common.length"), length === undefined ? "—" : meters(length)],
         ].map(([label, value]) => (
           <div key={label} className="properties-row">
             <dt className="properties-row__label">{label}</dt>
@@ -896,25 +885,25 @@ function CableEditor({
         ))}
       </dl>
 
-      <Section title="Tipo de cabo">
+      <Section title={t("panel.cable.type")}>
         <SegmentedPicker
-          label="Tipo de cabo"
-          options={CABLE_TYPE_LABELS}
+          label={t("panel.cable.type")}
+          options={cableTypeLabels()}
           value={info.cableType}
           onChange={writeType}
         />
       </Section>
 
-      <Section title="Percurso">
+      <Section title={t("panel.cable.route")}>
         <SegmentedPicker
-          label="Percurso"
-          options={CABLE_ROUTE_LABELS}
+          label={t("panel.cable.route")}
+          options={cableRouteLabels()}
           value={info.route}
           onChange={writeRoute}
         />
       </Section>
 
-      <Section title="Propriedades dinâmicas">
+      <Section title={t("panel.entity.dynProps")}>
         <DynamicPropsEditor
           props={info.dynamicProps}
           onChange={(dynamicProps) => store.updateCable(id, { dynamicProps })}
@@ -923,7 +912,7 @@ function CableEditor({
 
       <SimulationSection id={id} simulation={simulation} isCable />
 
-      <p className="properties-section__hint">Delete elimina o cabo selecionado.</p>
+      <p className="properties-section__hint">{t("panel.cable.deleteHint")}</p>
     </div>
   );
 }
@@ -1032,10 +1021,10 @@ export function RightPanel({
     <aside
       className={`panel-right glass${open ? " open" : ""}`}
       role="complementary"
-      aria-label="Propriedades"
+      aria-label={t("panel.label")}
     >
       <header className="panel-right__header">
-        <h2 className="panel-right__title">Propriedades</h2>
+        <h2 className="panel-right__title">{t("panel.title")}</h2>
       </header>
       <div ref={contentRef} className="properties-content">
         {content}
