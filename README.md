@@ -2,7 +2,7 @@
 
 Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **terreno** (plano, montanhas, vale), colocar **infraestruturas** (casas, prédios, lotes) por arrastar e largar, montar **redes de telecomunicação** (antenas, OLT, splitters, ONU, cabos de fibra, cobre e coaxial) e **simular** a rede — caminho óptimo por cabo com o **algoritmo de Dijkstra**, latência, débito, cobertura de antena e link budget.
 
-> Estado: **fases 0–13 feitas** (layout, viewport 3D, terrenos, infraestruturas, import/export `.glb`, redes e telecomunicação, simulador de redes, projecto `.json`, polish e qualidade, produtividade, ambiente, medição e relatórios, experiência e robustez); frontend em **React**; build de produção para macOS (`.app`/`.dmg`). Próximas ideias no backlog do roadmap.
+> Estado: **fases 0–14 feitas** (layout, viewport 3D, terrenos, infraestruturas, import/export `.glb`, redes e telecomunicação, simulador de redes, projecto `.json`, polish e qualidade, produtividade, ambiente, medição e relatórios, experiência e robustez, distribuição — interface em inglês, aviso de atualização e landing page); frontend em **React**; build de produção para macOS (`.app`/`.dmg`). Próximas ideias no backlog do roadmap.
 
 ## Funcionalidades
 
@@ -18,7 +18,8 @@ Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **ter
 - **Produtividade**: desfazer/refazer até 100 acções (com histórico clicável), selecção múltipla (`Shift`+clique ou rectângulo com `Shift`+arrastar) com mover, alinhar, distribuir e eliminar em lote, copiar/colar, camadas (terreno, infraestruturas, redes, marcadores) com visibilidade e bloqueio, snap à grelha e a objectos, pesquisa no catálogo.
 - **Ambiente**: ciclo dia/noite com sombras e céu em gradiente, névoa, lagos (plano de água), pincel de materiais (relva, terra, areia, rocha, neve), vegetação (árvores e arbustos com instancing), estradas desenhadas sobre o relevo, modo apresentação com voo de câmara.
 - **Medição e relatórios**: régua (`R`) com distância 3D, horizontal e desnível; perfil do terreno entre os dois pontos (gráfico); relatório com estatísticas do projecto, lista de materiais (BOM com preços e mão de obra simbólicos) e a última simulação; comparador de cenários guardado no projecto; exportar o relatório em PDF (com imagem da maquete, gerado no núcleo Rust) e a BOM em CSV.
-- **Experiência**: tema claro e escuro (contraste AA nos dois), português e inglês em toda a interface e no relatório, a app toda pelo teclado (viewport focável com mira — setas movem a câmara, `Espaço` clica, `N` salta para o elemento seguinte; catálogo por `Enter`), introdução de 3 passos na primeira execução, guia do programa actualizado.
+- **Experiência**: tema claro e escuro (contraste AA nos dois), interface, relatório e mensagens em inglês, a app toda pelo teclado (viewport focável com mira — setas movem a câmara, `Espaço` clica, `N` salta para o elemento seguinte; catálogo por `Enter`), introdução de 3 passos na primeira execução, guia do programa actualizado.
+- **Actualizações**: no arranque a app consulta a última release no GitHub e, se houver uma versão mais recente, avisa — «Download» abre a página da release, «Later» continua (actualizar é sempre opcional).
 - **Projecto**: guardar e abrir `.json` versionado (com os modelos `.glb` incluídos), guardar como, autosave a cada minuto com recuperação depois de um crash, aviso de alterações por guardar ao fechar ou abrir outro projecto; menus de atalhos e guia do programa.
 
 ### Ideias (backlog)
@@ -35,6 +36,7 @@ Aplicação **desktop** para criar **maquetes 3D** de uma área: modelar o **ter
 | Animação | [GSAP](https://gsap.com) (interface) e [anime.js](https://animejs.com) (3D e micro-interacções) |
 | Dados | projectos em JSON (serde), modelos em `.glb` |
 | Qualidade | rustfmt, clippy, ESLint, Prettier, `cargo test`, `tsc --noEmit` |
+| Landing page | [Astro](https://astro.build) (página estática em `landing/`, deploy na [Vercel](https://vercel.com)) |
 
 O frontend faz a cena 3D e a interface; tudo o que toca no disco ou é pesado (ruído, grafos) vive no núcleo Rust e chega ao frontend por comandos Tauri, todos chamados a partir de `ui/src/net/bridge.ts`.
 
@@ -52,6 +54,7 @@ Terra_Map/
 │   │   ├── glb.rs          # diálogos e leitura/escrita de .glb
 │   │   ├── network/        # simulador: grafo, Dijkstra, métricas, cobertura, CSV
 │   │   ├── report/         # relatório: estatísticas, BOM, perfil do terreno, CSV, PDF
+│   │   ├── update.rs       # aviso de atualização: versão da última release, abrir a página
 │   │   └── error.rs        # erros tipados (thiserror)
 │   ├── capabilities/
 │   ├── icons/
@@ -62,13 +65,14 @@ Terra_Map/
 │   │   ├── App.tsx         # layout
 │   │   ├── components/     # barra superior, painéis, viewport, simulador, modais (relatório, perfil…), spinner, toasts, menu de atalhos
 │   │   ├── scene/          # viewport, câmara, terreno, entidades, cabos, selecção, gizmo, overlay do simulador
-│   │   ├── tools/          # pincel, arrastar e largar, cabo, marcador, régua, import/export .glb, simulador, projecto, relatório
-│   │   ├── state/          # store, hook useStore, fila de toasts, idioma (t/fmt), tema
+│   │   ├── tools/          # pincel, arrastar e largar, cabo, marcador, régua, import/export .glb, simulador, projecto, relatório, aviso de atualização
+│   │   ├── state/          # store, hook useStore, fila de toasts, textos (t/fmt), tema
 │   │   ├── anim/           # animações (GSAP, anime.js, movimento reduzido)
 │   │   ├── net/            # ponte para o núcleo Rust
-│   │   └── locales/        # textos da interface: pt.json, en.json
+│   │   └── locales/        # textos da interface (en.json)
 │   ├── index.html
 │   └── vite.config.ts
+├── landing/                # landing page (Astro): src/pages/index.astro, public/ (ícone e capturas)
 ├── scripts/                # utilitários (gerar ícone)
 ├── Cargo.toml              # workspace Rust
 └── package.json            # atalhos para os scripts de ui/
@@ -94,6 +98,27 @@ npm run typecheck         # tsc --noEmit
 npm run lint              # ESLint
 cargo tauri build         # instalador de produção
 ```
+
+Landing page (`landing/`, só Astro):
+
+```sh
+npm install --prefix landing
+npm --prefix landing run dev     # http://localhost:4321
+npm --prefix landing run build   # página estática em landing/dist
+```
+
+## Publicar uma actualização
+
+1. Subir a versão em `src-tauri/tauri.conf.json` (`version`, ex.: `0.2.0`) — e, para ficarem iguais, em `src-tauri/Cargo.toml`, `package.json` e `ui/package.json`.
+2. `cargo tauri build` → `target/release/bundle/dmg/Terra_Map_<versão>_aarch64.dmg`.
+3. No GitHub: **Releases → Draft a new release**, tag `v0.2.0` (com `v` e três números), anexar o `.dmg` e publicar (não marcar como *pre-release*).
+4. Quem tem a app instalada recebe o aviso no arranque seguinte; actualizar não é obrigatório.
+
+O aviso usa a API pública do GitHub: com o repositório **privado** ela responde 404 e o aviso nunca aparece (e os utilizadores também não conseguem descarregar). O repositório tem de estar público.
+
+## Landing page na Vercel
+
+Na Vercel: *Add New → Project*, importar este repositório e definir **Root Directory = `landing`**. O preset **Astro** é detectado sozinho (build `npm run build`, saída `dist`); não é preciso adaptador — a página é estática. Node ≥ 22.23.4 (indicado em `landing/package.json`).
 
 ## Atalhos principais
 
