@@ -20,6 +20,12 @@
   box-shadow: var(--shadow-2);
 }
 
+/* Fase 13 (DESIGN.md §1.3): opaque card — glass over the backdrop broke AA for
+ * muted text. Two classes so it wins over `.glass` (style.css loads later). */
+.modal .modal__card {
+  background: var(--surface-strong);
+}
+
 .modal__card--wide {
   width: min(680px, 100%);
 }
@@ -97,7 +103,7 @@
 }
 
 .modal__button--danger {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 /* ---- Atalhos ---- */
@@ -154,7 +160,7 @@
 
 .guide-steps__icon {
   flex: none;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .guide-steps__title {
@@ -247,7 +253,7 @@
 
 .report-remove:hover {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .report-scenario-form {
@@ -323,4 +329,25 @@
   margin-top: 12px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+/* ---- Introdução (Fase 13, DESIGN.md §1.9) ---- */
+.modal--corner {
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 16px 16px 80px;
+}
+
+.onboarding__step {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* The real zone of the current step: above the backdrop, ringed, still usable. */
+.is-onboarding-target {
+  z-index: 61;
+  box-shadow:
+    0 0 0 3px var(--accent),
+    var(--shadow-2);
 }
