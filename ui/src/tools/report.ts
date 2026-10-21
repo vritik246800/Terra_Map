@@ -22,7 +22,7 @@ import {
 import type { CableRegistry } from "../scene/cables";
 import type { RoadRegistry } from "../scene/roads";
 import type { Terrain } from "../scene/terrain";
-import { i18n, t } from "../state/i18n";
+import { t } from "../state/i18n";
 import { store } from "../state/store";
 import { errorText, showToast } from "../state/toasts";
 
@@ -49,7 +49,7 @@ export function createReportActions(deps: {
     const { nodes, edges } = store.networkGraph();
     return {
       name: store.projectName,
-      date: new Date().toLocaleDateString(i18n.tag),
+      date: new Date().toLocaleDateString("en"),
       terrainSize: terrain.current.size,
       entities: nodes.map((n) => ({ id: n.id, kind: n.kind, props: n.dynamicProps })),
       cables: edges.map((c) => ({
@@ -61,7 +61,6 @@ export function createReportActions(deps: {
       roads: store.allRoads().map((r) => ({ length: roads.getLength(r.id) })),
       simulation: store.simulation.result,
       scenarios: [...store.scenarios],
-      lang: i18n.locale, // Fase 13: BOM, PDF and CSV in the UI language
     };
   }
 
