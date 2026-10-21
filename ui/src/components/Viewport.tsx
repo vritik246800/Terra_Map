@@ -10,6 +10,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { a20Resize } from "../anim/ui";
 import type { Minimap } from "../scene/minimap";
 import { shouldIgnoreShortcut } from "../scene/shortcuts";
+import { t } from "../state/i18n";
 import { store } from "../state/store";
 import type { HistoryActions } from "../tools/history";
 import type { SimulationActions } from "../tools/simulation";
@@ -61,14 +62,14 @@ export function Viewport({
   }, [expanded]);
 
   return (
-    <main ref={ref} className="viewport" aria-label="Viewport 3D">
+    <main ref={ref} className="viewport" aria-label={t("viewport.label")}>
       <SimulationPanel simulation={simulation} />
       <LayersPanel history={history} />
-      <div ref={mapRef} className="minimap glass" aria-label="Minimap — clique para mover a câmara">
+      <div ref={mapRef} className="minimap glass" aria-label={t("viewport.minimap")}>
         <button
           type="button"
           className="minimap-toggle"
-          aria-label={expanded ? "Recolher minimap" : "Expandir minimap"}
+          aria-label={t(expanded ? "viewport.collapse" : "viewport.expand")}
           aria-expanded={expanded}
           onClick={() => setExpanded((e) => !e)}
         >
