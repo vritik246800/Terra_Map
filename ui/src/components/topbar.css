@@ -105,10 +105,3 @@
   border-radius: var(--radius-full);
   background: var(--accent);
 }
-
-/* Fase 13: theme + language buttons (DESIGN.md §1.9). */
-.tb-btn--lang {
-  min-width: 36px;
-  font-family: var(--font-mono);
-  font-weight: 600;
-}
