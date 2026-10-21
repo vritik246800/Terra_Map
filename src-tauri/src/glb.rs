@@ -13,9 +13,9 @@ use tauri_plugin_dialog::DialogExt;
 
 use crate::error::AppError;
 
-const GLB_FILTER_NAME: &str = "Modelo 3D";
+const GLB_FILTER_NAME: &str = "3D model";
 const GLB_EXTENSION: &str = "glb";
-const DEFAULT_FILE_NAME: &str = "maquete.glb";
+const DEFAULT_FILE_NAME: &str = "model.glb";
 
 /// Contents of a `.glb` file picked by the user in the open dialog.
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -38,7 +38,7 @@ pub fn read_glb(path: &Path) -> Result<PickedGlb, AppError> {
     let name = path
         .file_stem()
         .and_then(|s| s.to_str())
-        .unwrap_or("modelo")
+        .unwrap_or("model")
         .to_string();
     Ok(PickedGlb { name, bytes })
 }
