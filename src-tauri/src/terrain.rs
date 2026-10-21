@@ -57,12 +57,12 @@ const VALLEY_DEPTH: f64 = 18.0;
 pub fn validate_grid(size: u32, res: u32) -> Result<(), AppError> {
     if !(MIN_RES..=MAX_RES).contains(&res) {
         return Err(AppError::InvalidTerrainParams(format!(
-            "resolução {res} fora de {MIN_RES}..={MAX_RES}"
+            "resolution {res} outside {MIN_RES}..={MAX_RES}"
         )));
     }
     if !(MIN_SIZE..=MAX_SIZE).contains(&size) {
         return Err(AppError::InvalidTerrainParams(format!(
-            "tamanho {size} fora de {MIN_SIZE}..={MAX_SIZE}"
+            "size {size} outside {MIN_SIZE}..={MAX_SIZE}"
         )));
     }
     Ok(())
@@ -107,12 +107,12 @@ pub fn generate_heightmap(
     if preset == TerrainPreset::Custom {
         if !(amplitude.is_finite() && amplitude > 0.0 && amplitude <= 500.0) {
             return Err(AppError::InvalidTerrainParams(
-                "amplitude tem de estar entre 0 e 500".into(),
+                "amplitude must be between 0 and 500".into(),
             ));
         }
         if !(frequency.is_finite() && frequency > 0.0 && frequency <= 100.0) {
             return Err(AppError::InvalidTerrainParams(
-                "frequência tem de estar entre 0 e 100".into(),
+                "frequency must be between 0 and 100".into(),
             ));
         }
     }
