@@ -156,7 +156,7 @@ impl TerrainGrid {
             || self.heights.len() != self.resolution * self.resolution
             || self.heights.iter().any(|h| !h.is_finite())
         {
-            return Err(AppError::InvalidNetwork("terreno inválido".into()));
+            return Err(AppError::InvalidNetwork("invalid terrain".into()));
         }
         Ok(())
     }
@@ -213,7 +213,7 @@ fn required(props: &Props, key: &str) -> Result<f64, AppError> {
     match num(props, key) {
         Some(v) if v.is_finite() && (key == "power" || v > 0.0) => Ok(v),
         _ => Err(AppError::InvalidNetwork(format!(
-            "a antena precisa de «{key}» numérico{}",
+            "the antenna needs a numeric “{key}”{}",
             if key == "power" { "" } else { " > 0" }
         ))),
     }
