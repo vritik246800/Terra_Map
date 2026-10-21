@@ -178,6 +178,11 @@ export function a21CameraTo(
   gsap.to(controls.target, { x: target.x, y: target.y, z: target.z, ...tween });
 }
 
+/** Stops a running A21 (keyboard camera moves take over — Fase 13). */
+export function a21Stop(camera: THREE.Camera, controls: OrbitControls): void {
+  gsap.killTweensOf([camera.position, controls.target]);
+}
+
 /** Standard materials of an object tree (flash/fade targets). */
 function standardMaterials(objects: THREE.Object3D[]): THREE.MeshStandardMaterial[] {
   const found = new Set<THREE.MeshStandardMaterial>();
