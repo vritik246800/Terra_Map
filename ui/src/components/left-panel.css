@@ -124,6 +124,7 @@
 }
 
 .catalog-preset-empty {
+  margin: 0;
   padding: 6px 12px;
   font-size: 12px;
   color: var(--text-muted);
@@ -133,4 +134,14 @@
   .catalog-item {
     transition: none;
   }
+}
+
+/* Fase 10: catalog search (UX.md §2). */
+.catalog-search {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.catalog-results {
+  margin-top: 4px;
 }
