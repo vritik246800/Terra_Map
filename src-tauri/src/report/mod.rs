@@ -2,12 +2,13 @@
 //! materials, terrain profile, BOM CSV and the PDF document.
 //!
 //! The frontend sends a `ReportInput` (entities with their dynamic props,
-//! cables with the measured length, roads, the last simulation and the saved
-//! scenarios); everything that is computed — counts, meters, costs, totals —
-//! is computed here. Prices are symbolic (`Q_LIST.md` Q20): a catalog price
-//! per network kind, overridden by the dynamic prop `price`; cables cost
-//! `length × costPerMeter`; labor is a fixed amount per element plus a cost
-//! per metre that depends on the route.
+//! cables with the measured length, roads, the last simulation, the saved
+//! scenarios and the UI language); everything that is computed — counts,
+//! meters, costs, totals — is computed here. Prices are symbolic
+//! (`Q_LIST.md` Q20): a catalog price per network kind, overridden by the
+//! dynamic prop `price`; cables cost `length × costPerMeter`; labor is a fixed
+//! amount per element plus a cost per metre that depends on the route. Fase 13:
+//! every text and number follows `lang` (pt-PT by default, `Q_LIST.md` Q24).
 
 pub mod pdf;
 
@@ -25,47 +26,247 @@ use crate::network::PathResult;
 use crate::project_file::Scenario;
 use pdf::Pdf;
 
-/// Symbolic catalog: kind, pt-PT label, unit price (€).
-const ELEMENT_CATALOG: [(&str, &str, f64); 8] = [
-    ("olt", "OLT", 3500.0),
-    ("splitter", "Splitter ótico", 40.0),
-    ("onu", "ONU", 60.0),
-    ("antenna", "Antena", 2500.0),
-    ("router", "Router", 180.0),
-    ("switch", "Switch", 250.0),
-    ("pole", "Poste", 150.0),
-    ("box", "Caixa de distribuição", 80.0),
+/// Symbolic catalog: kind, unit price (€). Labels: `Texts::elements`.
+const ELEMENT_CATALOG: [(&str, f64); 8] = [
+    ("olt", 3500.0),
+    ("splitter", 40.0),
+    ("onu", 60.0),
+    ("antenna", 2500.0),
+    ("router", 180.0),
+    ("switch", 250.0),
+    ("pole", 150.0),
+    ("box", 80.0),
 ];
 const BUILDING_KINDS: [&str; 4] = ["house", "building", "lot", "customGlb"];
-const CABLE_TYPES: [(&str, &str); 3] = [
-    ("fiber", "Cabo de fibra"),
-    ("copper", "Cabo de cobre"),
-    ("coax", "Cabo coaxial"),
-];
-/// Labor (€): per installed element, and per metre of cable by route.
+/// Labels: `Texts::cables`.
+const CABLE_TYPES: [&str; 3] = ["fiber", "copper", "coax"];
+/// Labor (€): per installed element, and per metre of cable by route
+/// (labels: `Texts::labor_routes`).
 const INSTALL_PER_ELEMENT: f64 = 30.0;
-const LABOR_PER_M: [(&str, &str, f64); 3] = [
-    (
-        "underground",
-        "Mão de obra — vala para cabo subterrâneo",
-        12.0,
-    ),
-    ("aerial", "Mão de obra — cabo aéreo", 5.0),
-    ("direct", "Mão de obra — ligação direta", 2.0),
-];
+const LABOR_PER_M: [(&str, f64); 3] = [("underground", 12.0), ("aerial", 5.0), ("direct", 2.0)];
 const PROFILE_SAMPLES: usize = 100;
-/// Scenario metrics written by `tools/report.ts`: key, pt-PT header, decimals.
-const SCENARIO_METRICS: [(&str, &str, usize); 7] = [
-    ("buildings", "Edifícios", 0),
-    ("elements", "Elementos de rede", 0),
-    ("cableM", "Cabo (m)", 1),
-    ("cost", "Custo da BOM (€)", 2),
-    ("latencyMs", "Latência (ms)", 3),
-    ("bandwidthMbps", "Débito (Mbps)", 1),
-    ("attenuationDb", "Atenuação (dB)", 2),
+/// Scenario metrics written by `tools/report.ts`: key, decimals (labels:
+/// `Texts::scenario_metrics`).
+const SCENARIO_METRICS: [(&str, usize); 7] = [
+    ("buildings", 0),
+    ("elements", 0),
+    ("cableM", 1),
+    ("cost", 2),
+    ("latencyMs", 3),
+    ("bandwidthMbps", 1),
+    ("attenuationDb", 2),
 ];
 /// Scenarios per comparison table in the PDF (columns side by side).
 const SCENARIOS_PER_TABLE: usize = 4;
+
+/// Report language (Fase 13): the UI language, pt-PT by default.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Lang {
+    #[default]
+    Pt,
+    En,
+}
+
+/// Every text the report writes, in one language. The arrays follow the
+/// order of `ELEMENT_CATALOG`, `CABLE_TYPES`, `LABOR_PER_M` and `SCENARIO_METRICS`.
+struct Texts {
+    elements: [&'static str; 8],
+    cables: [&'static str; 3],
+    labor_install: &'static str,
+    labor_routes: [&'static str; 3],
+    scenario_metrics: [&'static str; 7],
+    piece: &'static str,
+    decimal: char,
+    title: &'static str,
+    stats: &'static str,
+    metric: &'static str,
+    value: &'static str,
+    area: &'static str,
+    buildings: &'static str,
+    elements_row: &'static str,
+    markers: &'static str,
+    roads: &'static str,
+    cables_word: &'static str,
+    cable_total: &'static str,
+    bom: &'static str,
+    item: &'static str,
+    quantity: &'static str,
+    unit_cost: &'static str,
+    total: &'static str,
+    project_total: &'static str,
+    prices_note: &'static str,
+    simulation: &'static str,
+    path: &'static str,
+    length: &'static str,
+    latency: &'static str,
+    bandwidth: &'static str,
+    cost: &'static str,
+    attenuation: &'static str,
+    received_power: &'static str,
+    headroom: &'static str,
+    no_simulation: &'static str,
+    scenarios: &'static str,
+    appendix: &'static str,
+    kind: &'static str,
+    properties: &'static str,
+    csv_header: [&'static str; 5],
+    pdf_filter: &'static str,
+    pdf_file: &'static str,
+    csv_filter: &'static str,
+    csv_file: &'static str,
+}
+
+const PT: Texts = Texts {
+    elements: [
+        "OLT",
+        "Splitter ótico",
+        "ONU",
+        "Antena",
+        "Router",
+        "Switch",
+        "Poste",
+        "Caixa de distribuição",
+    ],
+    cables: ["Cabo de fibra", "Cabo de cobre", "Cabo coaxial"],
+    labor_install: "Mão de obra — instalação de elementos",
+    labor_routes: [
+        "Mão de obra — vala para cabo subterrâneo",
+        "Mão de obra — cabo aéreo",
+        "Mão de obra — ligação direta",
+    ],
+    scenario_metrics: [
+        "Edifícios",
+        "Elementos de rede",
+        "Cabo (m)",
+        "Custo da BOM (€)",
+        "Latência (ms)",
+        "Débito (Mbps)",
+        "Atenuação (dB)",
+    ],
+    piece: "un",
+    decimal: ',',
+    title: "Relatório",
+    stats: "Estatísticas",
+    metric: "Métrica",
+    value: "Valor",
+    area: "Área do terreno",
+    buildings: "Edifícios",
+    elements_row: "Elementos de rede",
+    markers: "Marcadores",
+    roads: "Estradas",
+    cables_word: "cabos",
+    cable_total: "Cabo no total",
+    bom: "Lista de materiais (BOM)",
+    item: "Elemento",
+    quantity: "Quantidade",
+    unit_cost: "Custo unitário",
+    total: "Total",
+    project_total: "Total do projeto",
+    prices_note:
+        "Preços e mão de obra simbólicos (catálogo ou prop «price»; cabos pelo «costPerMeter»).",
+    simulation: "Simulação de rede",
+    path: "Caminho",
+    length: "Comprimento",
+    latency: "Latência",
+    bandwidth: "Débito (gargalo)",
+    cost: "Custo",
+    attenuation: "Atenuação",
+    received_power: "Potência recebida",
+    headroom: "folga",
+    no_simulation: "Sem simulação calculada.",
+    scenarios: "Cenários",
+    appendix: "Apêndice — propriedades dinâmicas",
+    kind: "Tipo",
+    properties: "Propriedades",
+    csv_header: [
+        "Elemento",
+        "Quantidade",
+        "Unidade",
+        "Custo unitário (€)",
+        "Total (€)",
+    ],
+    pdf_filter: "Documento PDF",
+    pdf_file: "relatorio.pdf",
+    csv_filter: "Folha de cálculo CSV",
+    csv_file: "lista-de-materiais.csv",
+};
+
+const EN: Texts = Texts {
+    elements: [
+        "OLT",
+        "Optical splitter",
+        "ONU",
+        "Antenna",
+        "Router",
+        "Switch",
+        "Pole",
+        "Distribution box",
+    ],
+    cables: ["Fiber cable", "Copper cable", "Coaxial cable"],
+    labor_install: "Labor — element installation",
+    labor_routes: [
+        "Labor — trench for underground cable",
+        "Labor — aerial cable",
+        "Labor — direct link",
+    ],
+    scenario_metrics: [
+        "Buildings",
+        "Network elements",
+        "Cable (m)",
+        "BOM cost (€)",
+        "Latency (ms)",
+        "Throughput (Mbps)",
+        "Attenuation (dB)",
+    ],
+    piece: "pcs",
+    decimal: '.',
+    title: "Report",
+    stats: "Statistics",
+    metric: "Metric",
+    value: "Value",
+    area: "Terrain area",
+    buildings: "Buildings",
+    elements_row: "Network elements",
+    markers: "Markers",
+    roads: "Roads",
+    cables_word: "cables",
+    cable_total: "Total cable",
+    bom: "Bill of materials (BOM)",
+    item: "Item",
+    quantity: "Quantity",
+    unit_cost: "Unit cost",
+    total: "Total",
+    project_total: "Project total",
+    prices_note:
+        "Symbolic prices and labor (catalog or the “price” prop; cables by “costPerMeter”).",
+    simulation: "Network simulation",
+    path: "Path",
+    length: "Length",
+    latency: "Latency",
+    bandwidth: "Throughput (bottleneck)",
+    cost: "Cost",
+    attenuation: "Attenuation",
+    received_power: "Received power",
+    headroom: "margin",
+    no_simulation: "No simulation computed.",
+    scenarios: "Scenarios",
+    appendix: "Appendix — dynamic properties",
+    kind: "Kind",
+    properties: "Properties",
+    csv_header: ["Item", "Quantity", "Unit", "Unit cost (€)", "Total (€)"],
+    pdf_filter: "PDF document",
+    pdf_file: "report.pdf",
+    csv_filter: "CSV spreadsheet",
+    csv_file: "bill-of-materials.csv",
+};
+
+fn texts(lang: Lang) -> &'static Texts {
+    match lang {
+        Lang::Pt => &PT,
+        Lang::En => &EN,
+    }
+}
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -97,7 +298,7 @@ pub struct ReportRoad {
 #[serde(rename_all = "camelCase")]
 pub struct ReportInput {
     pub name: String,
-    /// Display date (the frontend formats it in pt-PT).
+    /// Display date (the frontend formats it in the UI language).
     pub date: String,
     pub terrain_size: f64,
     pub entities: Vec<ReportEntity>,
@@ -108,6 +309,9 @@ pub struct ReportInput {
     pub simulation: Option<PathResult>,
     #[serde(default)]
     pub scenarios: Vec<Scenario>,
+    /// Fase 13: language of the texts and numbers (absent = pt-PT).
+    #[serde(default)]
+    pub lang: Lang,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -136,7 +340,7 @@ pub struct Stats {
 pub struct BomRow {
     pub item: String,
     pub quantity: f64,
-    /// `un` or `m`.
+    /// `m`, or pieces in the report language (`un` / `pcs`).
     pub unit: String,
     pub unit_cost: f64,
     pub total: f64,
@@ -197,10 +401,14 @@ fn validate(input: &ReportInput) -> Result<(), AppError> {
     Ok(())
 }
 
+fn is_element(kind: &str) -> bool {
+    ELEMENT_CATALOG.iter().any(|(k, _)| *k == kind)
+}
+
 pub fn stats(input: &ReportInput) -> Stats {
     let cables = CABLE_TYPES
         .iter()
-        .map(|(t, _)| {
+        .map(|t| {
             let of_type = input.cables.iter().filter(|c| c.cable_type == *t);
             CableMeters {
                 cable_type: t.to_string(),
@@ -219,7 +427,7 @@ pub fn stats(input: &ReportInput) -> Stats {
         elements: input
             .entities
             .iter()
-            .filter(|e| ELEMENT_CATALOG.iter().any(|(k, _, _)| *k == e.kind))
+            .filter(|e| is_element(&e.kind))
             .count(),
         markers: input.entities.iter().filter(|e| e.kind == "marker").count(),
         roads: input.roads.len(),
@@ -229,79 +437,73 @@ pub fn stats(input: &ReportInput) -> Stats {
     }
 }
 
+/// Adds `amount` to the group with the same unit price (rows with equal prices merge).
+fn group(groups: &mut Vec<(f64, f64)>, price: f64, amount: f64) {
+    match groups.iter_mut().find(|(p, _)| *p == price) {
+        Some(g) => g.1 += amount,
+        None => groups.push((price, amount)),
+    }
+}
+
 pub fn bom(input: &ReportInput) -> Bom {
+    let t = texts(input.lang);
     let mut rows = Vec::new();
+    let mut push = |item: &str, quantity: f64, unit: &str, unit_cost: f64| {
+        rows.push(BomRow {
+            item: item.into(),
+            quantity,
+            unit: unit.into(),
+            unit_cost,
+            total: quantity * unit_cost,
+        })
+    };
     // Network elements, grouped by (kind, unit price).
-    for (kind, label, catalog) in ELEMENT_CATALOG {
-        let mut groups: Vec<(f64, f64)> = Vec::new(); // (price, quantity)
-        for e in input.entities.iter().filter(|e| e.kind == kind) {
-            let price = num(&e.props, "price").unwrap_or(catalog);
-            match groups.iter_mut().find(|(p, _)| *p == price) {
-                Some(g) => g.1 += 1.0,
-                None => groups.push((price, 1.0)),
-            }
+    for ((kind, catalog), label) in ELEMENT_CATALOG.iter().zip(t.elements) {
+        let mut groups = Vec::new(); // (price, quantity)
+        for e in input.entities.iter().filter(|e| e.kind == *kind) {
+            group(&mut groups, num(&e.props, "price").unwrap_or(*catalog), 1.0);
         }
         for (price, quantity) in groups {
-            rows.push(BomRow {
-                item: label.into(),
-                quantity,
-                unit: "un".into(),
-                unit_cost: price,
-                total: price * quantity,
-            });
+            push(label, quantity, t.piece, price);
         }
     }
     // Cables, grouped by (type, cost per metre).
-    for (t, label) in CABLE_TYPES {
-        let mut groups: Vec<(f64, f64)> = Vec::new(); // (€/m, metres)
-        for c in input.cables.iter().filter(|c| c.cable_type == t) {
-            let cpm = num(&c.props, "costPerMeter").unwrap_or(0.0);
-            match groups.iter_mut().find(|(p, _)| *p == cpm) {
-                Some(g) => g.1 += c.length,
-                None => groups.push((cpm, c.length)),
-            }
+    for (kind, label) in CABLE_TYPES.iter().zip(t.cables) {
+        let mut groups = Vec::new(); // (€/m, metres)
+        for c in input.cables.iter().filter(|c| c.cable_type == *kind) {
+            group(
+                &mut groups,
+                num(&c.props, "costPerMeter").unwrap_or(0.0),
+                c.length,
+            );
         }
         for (cpm, meters) in groups {
-            rows.push(BomRow {
-                item: label.into(),
-                quantity: meters,
-                unit: "m".into(),
-                unit_cost: cpm,
-                total: cpm * meters,
-            });
+            push(label, meters, "m", cpm);
         }
     }
     // Symbolic labor.
     let elements = input
         .entities
         .iter()
-        .filter(|e| ELEMENT_CATALOG.iter().any(|(k, _, _)| *k == e.kind))
+        .filter(|e| is_element(&e.kind))
         .count();
     if elements > 0 {
-        let q = elements as f64;
-        rows.push(BomRow {
-            item: "Mão de obra — instalação de elementos".into(),
-            quantity: q,
-            unit: "un".into(),
-            unit_cost: INSTALL_PER_ELEMENT,
-            total: q * INSTALL_PER_ELEMENT,
-        });
+        push(
+            t.labor_install,
+            elements as f64,
+            t.piece,
+            INSTALL_PER_ELEMENT,
+        );
     }
-    for (route, label, per_m) in LABOR_PER_M {
+    for ((route, per_m), label) in LABOR_PER_M.iter().zip(t.labor_routes) {
         let meters: f64 = input
             .cables
             .iter()
-            .filter(|c| c.route == route)
+            .filter(|c| c.route == *route)
             .map(|c| c.length)
             .sum();
         if meters > 0.0 {
-            rows.push(BomRow {
-                item: label.into(),
-                quantity: meters,
-                unit: "m".into(),
-                unit_cost: per_m,
-                total: meters * per_m,
-            });
+            push(label, meters, "m", *per_m);
         }
     }
     let total = rows.iter().map(|r| r.total).sum();
@@ -335,28 +537,16 @@ pub fn terrain_profile(
         .collect())
 }
 
-/// pt-PT number: `1234.5` → `1234,50`. `+ 0.0` turns the `-0.0` of an empty
-/// `f64` sum into `0.0` (it printed «-0,0 m»).
-fn n2(v: f64) -> String {
-    fixed(v, 2)
+/// `1234.5` → `1234,50` (pt) / `1234.50` (en). `+ 0.0` turns the `-0.0` of an
+/// empty `f64` sum into `0.0` (it printed «-0,0 m» — `ERRORS.md` E36).
+fn fixed(v: f64, decimals: usize, t: &Texts) -> String {
+    format!("{:.*}", decimals, v + 0.0).replace('.', &t.decimal.to_string())
 }
 
-fn n1(v: f64) -> String {
-    fixed(v, 1)
-}
-
-fn fixed(v: f64, decimals: usize) -> String {
-    format!("{:.*}", decimals, v + 0.0).replace('.', ",")
-}
-
-pub fn bom_csv(bom: &Bom) -> String {
-    let mut out = row(&[
-        "Elemento",
-        "Quantidade",
-        "Unidade",
-        "Custo unitário (€)",
-        "Total (€)",
-    ]);
+/// CSV of the BOM — dot decimals in both languages (spreadsheets).
+pub fn bom_csv(bom: &Bom, lang: Lang) -> String {
+    let t = texts(lang);
+    let mut out = row(&t.csv_header);
     for r in &bom.rows {
         out += &row(&[
             &r.item,
@@ -366,52 +556,46 @@ pub fn bom_csv(bom: &Bom) -> String {
             &format!("{:.2}", r.total),
         ]);
     }
-    out += &row(&["Total do projeto", "", "", "", &format!("{:.2}", bom.total)]);
+    out += &row(&[t.project_total, "", "", "", &format!("{:.2}", bom.total)]);
     out
-}
-
-fn cable_label(t: &str) -> &str {
-    CABLE_TYPES
-        .iter()
-        .find(|(k, _)| *k == t)
-        .map(|(_, l)| *l)
-        .unwrap_or(t)
 }
 
 /// The report document (cover → stats → BOM → simulation → scenarios → appendix).
 pub fn report_pdf(input: &ReportInput, data: &ReportData, image: Option<Vec<u8>>) -> Vec<u8> {
+    let t = texts(input.lang);
+    let n = |v: f64, decimals: usize| fixed(v, decimals, t);
     let mut pdf = Pdf::new();
-    pdf.heading(&format!("Relatório — {}", input.name));
+    pdf.heading(&format!("{} — {}", t.title, input.name));
     pdf.paragraph(&format!("Terra_Map · {}", input.date));
     if let Some(jpeg) = image {
         pdf.image(jpeg);
     }
 
     let s = &data.stats;
-    pdf.subheading("Estatísticas");
+    pdf.subheading(t.stats);
     let mut rows = vec![
-        vec!["Área do terreno".into(), format!("{} m²", n1(s.area_m2))],
-        vec!["Edifícios".into(), s.buildings.to_string()],
-        vec!["Elementos de rede".into(), s.elements.to_string()],
-        vec!["Marcadores".into(), s.markers.to_string()],
+        vec![t.area.into(), format!("{} m²", n(s.area_m2, 1))],
+        vec![t.buildings.into(), s.buildings.to_string()],
+        vec![t.elements_row.into(), s.elements.to_string()],
+        vec![t.markers.into(), s.markers.to_string()],
         vec![
-            "Estradas".into(),
-            format!("{} ({} m)", s.roads, n1(s.road_length_m)),
+            t.roads.into(),
+            format!("{} ({} m)", s.roads, n(s.road_length_m, 1)),
         ],
     ];
-    for c in &s.cables {
+    for (c, label) in s.cables.iter().zip(t.cables) {
         rows.push(vec![
-            cable_label(&c.cable_type).into(),
-            format!("{} cabos · {} m", c.count, n1(c.meters)),
+            label.into(),
+            format!("{} {} · {} m", c.count, t.cables_word, n(c.meters, 1)),
         ]);
     }
     rows.push(vec![
-        "Cabo no total".into(),
-        format!("{} m", n1(s.cable_length_m)),
+        t.cable_total.into(),
+        format!("{} m", n(s.cable_length_m, 1)),
     ]);
-    pdf.table(&["Métrica", "Valor"], &[0.55, 0.45], &rows);
+    pdf.table(&[t.metric, t.value], &[0.55, 0.45], &rows);
 
-    pdf.subheading("Lista de materiais (BOM)");
+    pdf.subheading(t.bom);
     let mut bom_rows: Vec<Vec<String>> = data
         .bom
         .rows
@@ -419,62 +603,65 @@ pub fn report_pdf(input: &ReportInput, data: &ReportData, image: Option<Vec<u8>>
         .map(|r| {
             vec![
                 r.item.clone(),
-                format!("{} {}", n2(r.quantity), r.unit),
-                format!("{} €", n2(r.unit_cost)),
-                format!("{} €", n2(r.total)),
+                format!("{} {}", n(r.quantity, 2), r.unit),
+                format!("{} €", n(r.unit_cost, 2)),
+                format!("{} €", n(r.total, 2)),
             ]
         })
         .collect();
     bom_rows.push(vec![
-        "Total do projeto".into(),
+        t.project_total.into(),
         String::new(),
         String::new(),
-        format!("{} €", n2(data.bom.total)),
+        format!("{} €", n(data.bom.total, 2)),
     ]);
     pdf.table(
-        &["Elemento", "Quantidade", "Custo unitário", "Total"],
+        &[t.item, t.quantity, t.unit_cost, t.total],
         &[0.46, 0.18, 0.18, 0.18],
         &bom_rows,
     );
-    pdf.paragraph(
-        "Preços e mão de obra simbólicos (catálogo ou prop «price»; cabos pelo «costPerMeter»).",
-    );
+    pdf.paragraph(t.prices_note);
 
-    pdf.subheading("Simulação de rede");
+    pdf.subheading(t.simulation);
     match &input.simulation {
         Some(r) => {
             let m = &r.metrics;
             let mut rows = vec![
-                vec!["Caminho".into(), r.nodes.join(" > ")],
-                vec!["Comprimento".into(), format!("{} m", n1(m.length_m))],
+                vec![t.path.into(), r.nodes.join(" > ")],
+                vec![t.length.into(), format!("{} m", n(m.length_m, 1))],
+                vec![t.latency.into(), format!("{} ms", n(m.latency_ms, 3))],
                 vec![
-                    "Latência".into(),
-                    format!("{} ms", format!("{:.3}", m.latency_ms).replace('.', ",")),
-                ],
-                vec![
-                    "Débito (gargalo)".into(),
+                    t.bandwidth.into(),
                     m.bandwidth_mbps
-                        .map(|b| format!("{} Mbps", n1(b)))
+                        .map(|b| format!("{} Mbps", n(b, 1)))
                         .unwrap_or_else(|| "—".into()),
                 ],
-                vec!["Custo".into(), format!("{} €", n2(m.cost))],
-                vec!["Atenuação".into(), format!("{} dB", n2(m.attenuation_db))],
+                vec![t.cost.into(), format!("{} €", n(m.cost, 2))],
+                vec![
+                    t.attenuation.into(),
+                    format!("{} dB", n(m.attenuation_db, 2)),
+                ],
             ];
             if let Some(lb) = &m.link_budget {
                 rows.push(vec![
-                    "Potência recebida".into(),
-                    format!("{} dBm (folga {} dB)", n1(lb.prx_dbm), n1(lb.headroom_db)),
+                    t.received_power.into(),
+                    format!(
+                        "{} dBm ({} {} dB)",
+                        n(lb.prx_dbm, 1),
+                        t.headroom,
+                        n(lb.headroom_db, 1)
+                    ),
                 ]);
             }
-            pdf.table(&["Métrica", "Valor"], &[0.35, 0.65], &rows);
+            pdf.table(&[t.metric, t.value], &[0.35, 0.65], &rows);
         }
-        None => pdf.paragraph("Sem simulação calculada."),
+        None => pdf.paragraph(t.no_simulation),
     }
 
     if !input.scenarios.is_empty() {
-        pdf.subheading("Cenários");
+        pdf.subheading(t.scenarios);
         // Rows = metrics (every key any scenario has, known ones first), columns = scenarios.
-        let mut keys: Vec<&str> = SCENARIO_METRICS.iter().map(|(k, _, _)| *k).collect();
+        let mut keys: Vec<&str> = SCENARIO_METRICS.iter().map(|(k, _)| *k).collect();
         for m in input.scenarios.iter().flat_map(|sc| &sc.metrics) {
             if !keys.contains(&m.key.as_str()) {
                 keys.push(&m.key);
@@ -492,18 +679,19 @@ pub fn report_pdf(input: &ReportInput, data: &ReportData, image: Option<Vec<u8>>
                 .map(|key| {
                     let (label, decimals) = SCENARIO_METRICS
                         .iter()
-                        .find(|(k, _, _)| k == key)
-                        .map(|(_, l, d)| (*l, *d))
+                        .zip(t.scenario_metrics)
+                        .find(|((k, _), _)| k == key)
+                        .map(|((_, d), l)| (l, *d))
                         .unwrap_or((key, 2));
                     let mut row = vec![label.to_string()];
                     for sc in chunk {
                         let v = sc.metrics.iter().find(|m| m.key == *key).map(|m| m.value);
-                        row.push(v.map_or_else(|| "—".into(), |v| fixed(v, decimals)));
+                        row.push(v.map_or_else(|| "—".into(), |v| n(v, decimals)));
                     }
                     row
                 })
                 .collect();
-            let headers: Vec<&str> = std::iter::once("Métrica")
+            let headers: Vec<&str> = std::iter::once(t.metric)
                 .chain(chunk.iter().map(|sc| sc.name.as_str()))
                 .collect();
             let w = 0.7 / chunk.len() as f64;
@@ -520,7 +708,7 @@ pub fn report_pdf(input: &ReportInput, data: &ReportData, image: Option<Vec<u8>>
         .filter(|e| !e.props.is_empty())
         .collect();
     if !with_props.is_empty() {
-        pdf.subheading("Apêndice — propriedades dinâmicas");
+        pdf.subheading(t.appendix);
         let rows: Vec<Vec<String>> = with_props
             .iter()
             .map(|e| {
@@ -531,7 +719,7 @@ pub fn report_pdf(input: &ReportInput, data: &ReportData, image: Option<Vec<u8>>
                 vec![e.id.clone(), e.kind.clone(), props]
             })
             .collect();
-        pdf.table(&["ID", "Tipo", "Propriedades"], &[0.15, 0.15, 0.7], &rows);
+        pdf.table(&["ID", t.kind, t.properties], &[0.15, 0.15, 0.7], &rows);
     }
     pdf.finish()
 }
@@ -576,11 +764,12 @@ pub fn export_pdf(
 ) -> Result<Option<String>, AppError> {
     let data = project_report(input)?;
     let image = image.filter(|bytes| pdf::jpeg_size(bytes).is_some()); // hostile input: ignore a bad image
+    let t = texts(input.lang);
     save_with_dialog(
         app,
-        "Documento PDF",
+        t.pdf_filter,
         "pdf",
-        "relatorio.pdf",
+        t.pdf_file,
         &report_pdf(input, &data, image),
     )
 }
@@ -588,12 +777,13 @@ pub fn export_pdf(
 /// BOM as CSV via a native save dialog. `Ok(None)` = cancelled.
 pub fn export_bom_csv(app: &AppHandle, input: &ReportInput) -> Result<Option<String>, AppError> {
     let data = project_report(input)?;
+    let t = texts(input.lang);
     save_with_dialog(
         app,
-        "Folha de cálculo CSV",
+        t.csv_filter,
         "csv",
-        "lista-de-materiais.csv",
-        bom_csv(&data.bom).as_bytes(),
+        t.csv_file,
+        bom_csv(&data.bom, input.lang).as_bytes(),
     )
 }
 
@@ -645,6 +835,7 @@ mod tests {
             roads: vec![ReportRoad { length: 40.0 }],
             simulation: None,
             scenarios: vec![],
+            lang: Lang::Pt,
         }
     }
 
@@ -689,10 +880,44 @@ mod tests {
     }
 
     #[test]
-    fn numbers_print_in_pt_and_never_negative_zero() {
+    fn numbers_print_in_the_language_and_never_negative_zero() {
         let empty: f64 = Vec::<f64>::new().into_iter().sum();
-        assert_eq!(n1(empty), "0,0");
-        assert_eq!(n2(1234.5), "1234,50");
+        assert_eq!(fixed(empty, 1, &PT), "0,0");
+        assert_eq!(fixed(1234.5, 2, &PT), "1234,50");
+        assert_eq!(fixed(1234.5, 2, &EN), "1234.50");
+    }
+
+    /// Fase 13: `lang: "en"` translates the BOM, the CSV and the PDF; absent = pt-PT.
+    #[test]
+    fn english_report_texts() {
+        let mut input = ftth();
+        input.lang = serde_json::from_value(json!("en")).unwrap();
+        let b = bom(&input);
+        assert!(b
+            .rows
+            .iter()
+            .any(|r| r.item == "Fiber cable" && r.unit == "m"));
+        assert!(b.rows.iter().any(|r| r.item == "OLT" && r.unit == "pcs"));
+        assert!(b
+            .rows
+            .iter()
+            .any(|r| r.item == "Labor — trench for underground cable"));
+        let csv = bom_csv(&b, input.lang);
+        assert!(csv.starts_with("Item,Quantity,Unit,Unit cost (€),Total (€)\r\n"));
+        assert!(csv.trim_end().ends_with("Project total,,,,5930.00"));
+        let data = project_report(&input).unwrap();
+        let text = String::from_utf8_lossy(&report_pdf(&input, &data, None)).to_string();
+        assert!(text.contains("(Report \u{FFFD} Bairro Norte)")); // — is the WinAnsi byte 0x97
+        assert!(text.contains("(Bill of materials \\(BOM\\))")); // parentheses are escaped
+        assert!(text.contains("(5930.00 \u{FFFD})") && text.contains("(No simulation computed.)"));
+        // Every language has a label for every catalog entry.
+        for t in [&PT, &EN] {
+            assert!(t.elements.iter().chain(&t.cables).all(|l| !l.is_empty()));
+        }
+        // Older inputs without `lang` are pt-PT.
+        let old: ReportInput =
+            serde_json::from_str(include_str!("../fixtures/frontend-report.json")).unwrap();
+        assert_eq!(old.lang, Lang::Pt);
     }
 
     #[test]
@@ -725,9 +950,52 @@ mod tests {
         assert!((p[PROFILE_SAMPLES / 2].height - 3.0).abs() < 1e-9);
     }
 
+    /// Contract with the frontend: the `ReportInput` that `tools/report.ts`
+    /// sent in the Fase 12 smoke test (OLT → splitter → ONU, a house, two
+    /// underground fiber cables, the simulated path and one scenario).
+    #[test]
+    fn frontend_written_report_input_is_valid() {
+        let input: ReportInput =
+            serde_json::from_str(include_str!("../fixtures/frontend-report.json")).unwrap();
+        let data = project_report(&input).unwrap();
+        assert_eq!((data.stats.buildings, data.stats.elements), (1, 3));
+        let meters: f64 = input.cables.iter().map(|c| c.length).sum();
+        assert!(meters > 0.0 && (data.stats.cable_length_m - meters).abs() < 1e-9);
+        // Catalog (OLT + splitter + ONU) + fiber at 1.2 €/m + labor (3 × 30 € + 12 €/m underground).
+        let expected = 3500.0 + 40.0 + 60.0 + meters * 1.2 + 3.0 * 30.0 + meters * 12.0;
+        assert!(
+            (data.bom.total - expected).abs() < 1e-6,
+            "{}",
+            data.bom.total
+        );
+        let sim = input.simulation.as_ref().unwrap();
+        assert_eq!(sim.nodes, ["bld_1", "bld_2", "bld_3"]);
+        let elements = input.scenarios[0]
+            .metrics
+            .iter()
+            .find(|m| m.key == "elements");
+        assert_eq!(elements.map(|m| m.value), Some(3.0));
+
+        let text = String::from_utf8_lossy(&report_pdf(&input, &data, None)).to_string();
+        assert!(text.contains("(bld_1 > bld_2 > bld_3)"));
+        assert!(text.contains(&format!("({} \u{FFFD})", fixed(expected, 2, &PT))));
+        assert!(text.contains("(Cen") && text.contains("rio 2)"));
+
+        // Manual check with the real snapshot:
+        // FRONTEND_REPORT_IMAGE=<jpg> FRONTEND_REPORT_PDF=<pdf> cargo test frontend_written_report
+        if let (Ok(image), Ok(out)) = (
+            std::env::var("FRONTEND_REPORT_IMAGE"),
+            std::env::var("FRONTEND_REPORT_PDF"),
+        ) {
+            let jpeg = std::fs::read(image).unwrap();
+            assert!(pdf::jpeg_size(&jpeg).is_some());
+            write_file(Path::new(&out), &report_pdf(&input, &data, Some(jpeg))).unwrap();
+        }
+    }
+
     #[test]
     fn bom_csv_has_rows_and_total() {
-        let csv = bom_csv(&bom(&ftth()));
+        let csv = bom_csv(&bom(&ftth()), Lang::Pt);
         assert!(csv.starts_with("Elemento,Quantidade,Unidade,Custo unitário (€),Total (€)\r\n"));
         assert!(csv.contains("OLT,1.00,un,3500.00,3500.00\r\n"));
         assert!(csv.trim_end().ends_with("Total do projeto,,,,5930.00"));
