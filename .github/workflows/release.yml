@@ -1,9 +1,13 @@
-# Builds the installers for macOS, Windows and Linux and attaches them to a
-# draft GitHub release tagged v<version> (version from src-tauri/tauri.conf.json).
-# Run it by hand: Actions → Release → Run workflow; then review and publish the draft.
+# Builds the installers for macOS, Windows and Linux into a GitHub release
+# tagged v<version> (version from src-tauri/tauri.conf.json). Runs when that tag
+# is pushed (git tag -a v0.2.0 -m v0.2.0 && git push origin v0.2.0) or by hand
+# (Actions → Release → Run workflow). The release stays a draft until the three
+# builds succeed; then the publish job makes it the latest release.
 name: Release
 
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
 
 jobs:
@@ -36,6 +40,11 @@ jobs:
           cache: npm
           cache-dependency-path: ui/package-lock.json
 
+      - name: Tag matches the app version
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: test "$GITHUB_REF_NAME" = "v$(node -p "require('./src-tauri/tauri.conf.json').version")"
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
@@ -64,3 +73,16 @@ jobs:
             - **Linux** (64-bit): the `.AppImage` (make it executable, then run it), the `.deb` (Debian, Ubuntu) or the `.rpm` (Fedora, openSUSE).
 
             Updating is optional: Terra_Map tells you when a new version is out.
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "v$(node -p "require('./src-tauri/tauri.conf.json').version")" --draft=false --latest

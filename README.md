@@ -110,18 +110,26 @@ npm --prefix landing run build   # static page in landing/dist
 
 ## Publishing an update
 
-1. Bump the version in `src-tauri/tauri.conf.json` (`version`, e.g. `0.2.0`) — and, to keep them in sync, in `src-tauri/Cargo.toml`, `package.json` and `ui/package.json`. The first release is not bumped: it stays `0.1.0`, tag `v0.1.0`.
-2. Make sure the code to release is on `main`.
-3. On GitHub: **Actions → Release → Run workflow** (branch `main`). It builds on each system and creates a **draft release** `v<version>` with install notes and the installers:
+1. Bump the version in `src-tauri/tauri.conf.json` (`version`, e.g. `0.2.0`) — and, to keep them in sync, in `src-tauri/Cargo.toml`, `package.json` and `ui/package.json` — and commit it.
+2. Tag that commit and push the tag (the tag must be `v` + that version — the workflow checks it):
+
+   ```sh
+   git tag -a v0.2.0 -m "Terra_Map 0.2.0"
+   git push origin v0.2.0
+   ```
+
+3. The **Release** workflow (Actions tab) builds on each system and attaches the installers to the release `v0.2.0`:
    - macOS: one universal `.dmg` (Apple Silicon and Intel);
    - Windows: `-setup.exe` and `.msi` (64-bit);
    - Linux: `.AppImage`, `.deb` and `.rpm` (64-bit).
-4. Open the draft, check it and press **Publish release** (not as a *pre-release*). Anyone with the app installed gets the notice on the next start; updating is not mandatory.
+
+   The release stays a draft until the three builds succeed; then it is published as the latest release. The workflow can also be started by hand: **Actions → Release → Run workflow**.
+4. Anyone with the app installed gets the notice on the next start (updating is not mandatory), and the landing page's download buttons point to the new installers.
 
 Notes:
 
-- The macOS app is ad-hoc signed and not notarized (that needs a paid Apple Developer account): macOS blocks the first launch and the app opens via **System Settings › Privacy & Security › Open Anyway**. The Windows installers are not code-signed: SmartScreen may ask — **More info › Run anyway**. The draft's notes already say this.
-- The update notice and the downloads use the public GitHub API: with a **private** repository it answers 404, so the notice never shows and users cannot download. With a private repository the workflow also spends Actions minutes (macOS runners count ×10); public repositories run for free.
+- The macOS app is ad-hoc signed and not notarized (that needs a paid Apple Developer account): macOS blocks the first launch and the app opens via **System Settings › Privacy & Security › Open Anyway**. The Windows installers are not code-signed: SmartScreen may ask — **More info › Run anyway**. The release notes already say this.
+- The update notice and the landing page read the latest release from the public GitHub API, so the repository has to stay public.
 - `cargo tauri build` still works locally, but only for the system you are on (on a Mac: `target/release/bundle/dmg/Terra_Map_<version>_aarch64.dmg`).
 
 ## Landing page on Vercel
