@@ -4,6 +4,7 @@
  *
  * Keeps the invoke + store + Terrain orchestration out of the UI components.
  */
+import { t } from "../state/i18n";
 import {
   listTerrainPresets,
   loadTerrainPreset,
@@ -107,7 +108,7 @@ export function createTerrainActions(terrain: Terrain): TerrainActions {
   }
 
   async function saveCurrentAsPreset(): Promise<void> {
-    const name = window.prompt("Nome do preset de terreno:");
+    const name = window.prompt(t("catalog.presetPrompt"));
     if (!name || !name.trim()) return; // cancelado ou nome vazio
 
     const config = terrain.current;
