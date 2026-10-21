@@ -1,0 +1,326 @@
+/* Modals (Fase 8, UX.md §1.1): glass card over the --backdrop layer.
+ * Colors/radius/shadows only via DESIGN.md tokens. */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--backdrop);
+}
+
+.modal__card {
+  width: min(460px, 100%);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: var(--shadow-2);
+}
+
+.modal__card--wide {
+  width: min(680px, 100%);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modal__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal__close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal__close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.modal__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.modal__button {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modal__button:hover {
+  box-shadow: var(--shadow-1);
+}
+
+.modal__button--primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.modal__button--primary:hover {
+  background: var(--accent-hover);
+}
+
+.modal__button--danger {
+  color: var(--danger);
+}
+
+/* ---- Atalhos ---- */
+.shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.shortcuts-table th,
+.shortcuts-table td {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.shortcuts-table th {
+  width: 45%;
+  font-weight: 400;
+}
+
+.shortcuts-table kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.shortcuts-table td {
+  color: var(--text-muted);
+}
+
+/* ---- Guia ---- */
+.guide-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.guide-steps__item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+}
+
+.guide-steps__icon {
+  flex: none;
+  color: var(--accent);
+}
+
+.guide-steps__title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.guide-steps__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+/* ---- Relatório (Fase 12, DESIGN.md §1.8) ---- */
+.report-section {
+  margin-top: 16px;
+}
+
+.report-section__title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.report-table th,
+.report-table td {
+  padding: 5px 8px 5px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  text-align: left;
+}
+
+.report-table th {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.report-table td {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text);
+  text-align: right;
+}
+
+.report-table thead th:not(:first-child) {
+  text-align: right;
+}
+
+.report-table--total tbody tr:last-child td {
+  font-weight: 600;
+}
+
+.report-scroll {
+  overflow-x: auto;
+}
+
+.report-table--compare th,
+.report-table--compare td {
+  white-space: nowrap;
+}
+
+.report-scenario-name {
+  display: inline-block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.report-remove {
+  margin-left: 4px;
+  padding: 0 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.report-remove:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.report-scenario-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.report-scenario-form .properties-input {
+  flex: 1;
+}
+
+.modal__button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---- Perfil do terreno (Fase 12, DESIGN.md §1.8) ---- */
+.profile-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+}
+
+.profile-chart__grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.profile-chart__axis {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-base);
+}
+
+.profile-chart__area {
+  fill: var(--accent-soft);
+}
+
+.profile-chart__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.profile-chart__cross {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+}
+
+.profile-chart__dot {
+  fill: var(--accent);
+}
+
+.profile-chart__tip {
+  fill: var(--surface-strong);
+  stroke: var(--border);
+  filter: drop-shadow(var(--shadow-1));
+}
+
+.profile-chart__tip-text {
+  fill: var(--text);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.profile-stats {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
