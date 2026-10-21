@@ -10,20 +10,19 @@
  * falls from the "sky" and settles), then the tool selects the marker and
  * returns to `select` (DESIGN.md §12: `marker --> select: clique`).
  */
-import anime from "animejs";
 import * as THREE from "three";
 
-import { prefersReducedMotion } from "../anim/reduced-motion";
+import { a13PinDrop } from "../anim/scene";
 import type { EntityRegistry } from "../scene/entities";
 import { shouldIgnoreShortcut } from "../scene/shortcuts";
 import type { Terrain } from "../scene/terrain";
+import { layerBlockReason } from "../state/labels";
 import { identityTransform, store } from "../state/store";
+import { showToast } from "../state/toasts";
 
 /** Max pointer travel (px) between down/up for the gesture to count as a click. */
 const CLICK_THRESHOLD_PX = 4;
 /** A13: height (m) the pin falls from before settling (DESIGN.md §8.1). */
-const A13_DROP_HEIGHT = 12;
-const A13_DURATION_MS = 400; // DESIGN.md §8.1 (A13, easeOutBounce)
 
 export interface MarkerToolDeps {
   canvas: HTMLCanvasElement;
@@ -43,18 +42,6 @@ function findEntityId(object: THREE.Object3D): string | null {
     current = current.parent;
   }
   return null;
-}
-
-/** A13 (Anime.js): the pin drops from the "sky" and settles with a bounce. */
-function playMarkerDrop(content: THREE.Group): void {
-  if (prefersReducedMotion()) return; // §8.3: keep only the final state
-  content.position.y = A13_DROP_HEIGHT;
-  anime({
-    targets: content.position,
-    y: 0,
-    duration: A13_DURATION_MS,
-    easing: "easeOutBounce",
-  });
 }
 
 /** Wires the marker tool. Returns a cleanup function that removes listeners. */
@@ -77,10 +64,10 @@ export function initMarkerTool(deps: MarkerToolDeps): () => void {
     );
     raycaster.setFromCamera(p, camera);
 
-    const entityHit = raycaster.intersectObjects(pickables, true)[0];
-    if (entityHit) {
-      const targetId = findEntityId(entityHit.object);
-      if (targetId) return { point: entityHit.point, targetId };
+    // Fase 10: elements of hidden/locked layers are not marker targets.
+    for (const hit of raycaster.intersectObjects(pickables, true)) {
+      const targetId = findEntityId(hit.object);
+      if (targetId && store.isPickable(targetId)) return { point: hit.point, targetId };
     }
     const terrainHit = raycaster.intersectObject(terrain.mesh, false)[0];
     return terrainHit ? { point: terrainHit.point } : null;
@@ -96,6 +83,11 @@ export function initMarkerTool(deps: MarkerToolDeps): () => void {
     if (e.button !== 0 || store.tool !== "marker") return;
     if (Math.hypot(e.clientX - downX, e.clientY - downY) > CLICK_THRESHOLD_PX) return;
 
+    const blocked = layerBlockReason("markers"); // Fase 10
+    if (blocked) {
+      showToast(blocked, "info");
+      return;
+    }
     const hit = pickTarget(e);
     if (!hit) return; // empty space: keep the tool armed (Esc cancels)
 
@@ -104,7 +96,7 @@ export function initMarkerTool(deps: MarkerToolDeps): () => void {
     const info = registry.spawnMarker(transform, hit.targetId);
 
     const content = registry.getContent(info.id);
-    if (content) playMarkerDrop(content);
+    if (content) a13PinDrop(content);
     store.setTool("select"); // §12: marker --> select on click
     store.select(info.id);
   }
