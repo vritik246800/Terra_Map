@@ -12,7 +12,8 @@
 //! }
 //! ```
 //!
-//! Full project save/load arrives in Fase 8 and reuses this module.
+//! Full project save/load (Fase 8) lives in `project_file.rs` and reuses
+//! `TerrainPresetParams` and the file-stem sanitizer.
 
 use std::path::PathBuf;
 
@@ -60,7 +61,7 @@ pub struct PresetSummary {
 
 /// Turns a display name into a safe file stem ("As minhas montanhas!" →
 /// "as-minhas-montanhas"). Errors when nothing usable remains.
-fn preset_file_stem(name: &str) -> Result<String, AppError> {
+pub(crate) fn preset_file_stem(name: &str) -> Result<String, AppError> {
     let mut stem = String::with_capacity(name.len());
     let mut last_dash = false;
     for ch in name.chars().flat_map(char::to_lowercase) {
