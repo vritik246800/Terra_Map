@@ -124,7 +124,7 @@
   border: none;
   border-radius: var(--radius-sm);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font: inherit;
   font-weight: 500;
   cursor: pointer;
@@ -132,6 +132,18 @@
 
 .properties-action:hover {
   background: var(--accent-hover);
+}
+
+.properties-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Fase 10: destructive action (multi-selection delete). */
+.properties-action--danger,
+.properties-action--danger:hover {
+  margin-top: 12px;
+  background: var(--danger);
 }
 
 /* ---- Entity editor (Fase 4): phase stepper + collision badge ---- */
@@ -164,7 +176,14 @@
 .phase-stepper__button--active,
 .phase-stepper__button--active:hover {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
+}
+
+/* Fase 7: simulated failure toggle (UX.md §2). */
+.phase-stepper__button--danger,
+.phase-stepper__button--danger:hover {
+  background: var(--danger);
+  color: var(--on-accent);
 }
 
 .collision-badge {
@@ -172,7 +191,7 @@
   padding: 6px 10px;
   border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
-  background: rgba(255, 59, 48, 0.08); /* --danger at low alpha */
+  background: var(--danger-soft);
   color: var(--danger);
   font-size: 12px;
   font-weight: 500;
@@ -218,4 +237,15 @@
 .segmented-picker__label {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+/* Fase 11: hour slider (Q_LIST.md Q17 — not a textbox). */
+.properties-range {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+/* Six materials fit the 300px panel: let the segmented buttons wrap. */
+.phase-stepper {
+  flex-wrap: wrap;
 }
