@@ -52,6 +52,7 @@ import {
   type CableType,
   type TerrainPresetId,
 } from "../state/store";
+import { t } from "../state/i18n";
 import { errorText, showToast } from "../state/toasts";
 import type { HistoryActions } from "./history";
 
@@ -187,13 +188,13 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
 
   /** Rebuilds the scene from a validated file. Throws before clearing on bad data. */
   async function load(project: ProjectFile): Promise<void> {
-    const { terrain: t } = project;
-    const heights = decodeHeightmap(t.heightmap, t.params.resolution ** 2);
-    if (!heights) throw new Error("heightmap do terreno ilegível");
+    const { terrain: file } = project;
+    const heights = decodeHeightmap(file.heightmap, file.params.resolution ** 2);
+    if (!heights) throw new Error(t("toast.unreadableHeightmap"));
     const models = new Map<string, { name: string; scene: THREE.Object3D; bytes: Uint8Array }>();
     for (const m of project.customModels) {
       const bytes = decodeBytes(m.glb);
-      if (!bytes) throw new Error(`modelo «${m.name}» ilegível`);
+      if (!bytes) throw new Error(t("toast.unreadableModel", { name: m.name }));
       const gltf = await new GLTFLoader().parseAsync(bytes.slice().buffer, "");
       models.set(m.id, { name: m.name, scene: gltf.scene, bytes });
     }
@@ -205,11 +206,11 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
     registry.clear();
     roads.clear();
 
-    await terrain.applyPresetFile({ name: project.name, ...t });
-    const materials = t.materialMap ? decodeBytes(t.materialMap) : null;
+    await terrain.applyPresetFile({ name: project.name, ...file });
+    const materials = file.materialMap ? decodeBytes(file.materialMap) : null;
     if (materials) terrain.setMaterialMap(materials);
-    store.setTerrainPreset(t.preset as TerrainPresetId);
-    const { seed, amplitude, frequency, size } = t.params;
+    store.setTerrainPreset(file.preset as TerrainPresetId);
+    const { seed, amplitude, frequency, size } = file.params;
     store.setCustomParams({ seed, amplitude, frequency, size });
 
     for (const m of models.values()) registry.setCustomGlbTemplate(m.name, m.scene, m.bytes);
@@ -281,11 +282,11 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
       if (!fileName) return false; // dialog cancelled
       store.markSaved(revision);
       autosavedRevision = revision;
-      showToast(`Projeto guardado: ${fileName}`, "success");
+      showToast(t("toast.saved", { file: fileName }), "success");
       return true;
     } catch (err) {
       console.error("[projeto] falha ao guardar:", err);
-      showToast(`Não foi possível guardar: ${errorText(err)}`, "danger");
+      showToast(t("toast.saveFailed", { error: errorText(err) }), "danger");
       return false;
     }
   }
@@ -295,7 +296,7 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
     try {
       opened = await openProject();
     } catch (err) {
-      showToast(`Não foi possível abrir: ${errorText(err)}`, "danger");
+      showToast(t("toast.openFailed", { error: errorText(err) }), "danger");
       return;
     }
     if (!opened) return; // dialog cancelled
@@ -303,14 +304,14 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
       await load(opened.project);
     } catch (err) {
       console.error("[projeto] falha ao reconstruir:", err);
-      showToast(`Não foi possível abrir: ${errorText(err)}`, "danger");
+      showToast(t("toast.openFailed", { error: errorText(err) }), "danger");
       return; // the core keeps the previous save target (no commitOpen)
     }
     await commitOpen();
     store.markSaved();
     autosavedRevision = store.projectRevision;
     await clearAutosave().catch(() => {});
-    showToast(`Projeto aberto: ${opened.fileName}`, "success");
+    showToast(t("toast.opened", { file: opened.fileName }), "success");
   }
 
   /** Continues the action the unsaved-changes prompt was guarding. */
@@ -364,7 +365,7 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
       try {
         recovery = await loadAutosave();
       } catch (err) {
-        showToast(`Cópia de recuperação inválida, descartada: ${errorText(err)}`, "danger");
+        showToast(t("toast.recoveryInvalid", { error: errorText(err) }), "danger");
         return;
       }
       if (recovery) store.openModal("recovery");
@@ -381,9 +382,9 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
       try {
         await load(project);
         // Stays dirty (never saved to a file); the copy stays until a save.
-        showToast("Trabalho recuperado. Guarda o projeto para não o perder.", "info");
+        showToast(t("toast.recovered"), "info");
       } catch (err) {
-        showToast(`Não foi possível recuperar: ${errorText(err)}`, "danger");
+        showToast(t("toast.recoverFailed", { error: errorText(err) }), "danger");
       }
     },
 
