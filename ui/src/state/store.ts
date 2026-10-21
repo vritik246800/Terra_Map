@@ -274,7 +274,8 @@ export interface LayerState {
 export type SnapGrid = 0 | 0.25 | 0.5 | 1;
 
 /** Modals of the app (Fase 8, UX.md §1.1). */
-export type ModalId = "shortcuts" | "guide" | "recovery" | "unsaved" | "report" | "profile";
+export type ModalId =
+  "shortcuts" | "guide" | "recovery" | "unsaved" | "report" | "profile" | "onboarding";
 
 type Listener = () => void;
 
