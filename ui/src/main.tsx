@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { shouldShowOnboarding } from "./components/OnboardingModal";
 import { createViewport } from "./scene/viewport";
-import { t } from "./state/i18n";
 import { store } from "./state/store";
 import { createGlbActions, initGlbShortcuts } from "./tools/glb-io";
 import { createHistory } from "./tools/history";
@@ -12,6 +11,7 @@ import { createProjectActions, initProjectShortcuts } from "./tools/project-io";
 import { createReportActions } from "./tools/report";
 import { createSimulationActions } from "./tools/simulation";
 import { createTerrainActions } from "./tools/terrain-actions";
+import { update } from "./tools/update-check";
 import "./style.css";
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -19,8 +19,6 @@ const app = document.querySelector<HTMLDivElement>("#app");
 if (app) {
   // The three.js scene is built once, outside React (ARCHITECTURE.md);
   // components talk to it through the store and these handles.
-  // Fase 13: the default title follows the language (renamed later = user data).
-  store.setProjectIdentity(store.projectId, t("app.untitled"));
   const viewport = createViewport();
   const terrainActions = createTerrainActions(viewport.terrain);
   // Fase 5: .glb import/export (topbar buttons + Ctrl/Cmd+E / Ctrl/Cmd+I).
@@ -68,6 +66,7 @@ if (app) {
       void projectActions.checkRecovery().then(() => {
         // Fase 13 (Q_LIST.md Q26): first-run intro, unless the recovery prompt is up.
         if (!store.modal && shouldShowOnboarding()) store.openModal("onboarding");
+        void update.check(); // Fase 14 (Q_LIST.md Q29): optional update notice
       });
     });
 }
