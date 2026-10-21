@@ -1,6 +1,6 @@
 /**
  * UI animations of the DESIGN.md §8.1 catalog used by the React components
- * (A7, A8, A9, A10, A11, A15). Durations/eases unchanged from the imperative UI.
+ * (A7, A8, A9, A10, A11, A15, A20, A23). Durations/eases unchanged from the imperative UI.
  * With `prefers-reduced-motion` every one jumps to its final state, or does
  * a 100ms fade where §8.3 says so (A11).
  */
@@ -16,6 +16,7 @@ const A20_DURATION = 0.25;
 const A11_IN = 0.25;
 const A11_OUT = 0.3;
 const A15_DURATION = 0.25;
+const A23_DURATION = 0.2;
 const REDUCED_FADE = 0.1;
 
 /** A7 out: fades the panel content; `done` runs when it is safe to swap. */
@@ -194,4 +195,12 @@ export function a15Toggle(items: HTMLElement, chevron: HTMLElement, open: boolea
   }
 
   gsap.to(chevron, { rotate: open ? 90 : 0, duration: A15_DURATION, ease: "power2.inOut" });
+}
+
+/** A23 (Fase 13): theme switch — `swap` changes the tokens while the app fades 0.97 → 1. */
+export function a23ThemeFade(swap: () => void): void {
+  const app = document.querySelector<HTMLElement>(".app");
+  swap();
+  if (!app || prefersReducedMotion()) return;
+  gsap.fromTo(app, { opacity: 0.97 }, { opacity: 1, duration: A23_DURATION, ease: "power1.inOut" });
 }
