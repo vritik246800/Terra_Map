@@ -1,0 +1,126 @@
+{
+  "name": "Sem título",
+  "date": "21/10/2026",
+  "terrainSize": 200,
+  "entities": [
+    {
+      "id": "bld_1",
+      "kind": "olt",
+      "props": {
+        "bandwidth": 10000,
+        "latency": 1,
+        "power": 5
+      }
+    },
+    {
+      "id": "bld_2",
+      "kind": "splitter",
+      "props": {
+        "splitRatio": "1:32",
+        "attenuation": 17
+      }
+    },
+    {
+      "id": "bld_3",
+      "kind": "onu",
+      "props": {
+        "bandwidth": 1000,
+        "power": 2,
+        "sensitivity": -28
+      }
+    },
+    {
+      "id": "bld_5",
+      "kind": "house",
+      "props": {}
+    }
+  ],
+  "cables": [
+    {
+      "cableType": "fiber",
+      "route": "underground",
+      "length": 23.264957846204506,
+      "props": {
+        "bandwidth": 10000,
+        "attenuation": 0.35,
+        "costPerMeter": 1.2
+      }
+    },
+    {
+      "cableType": "fiber",
+      "route": "underground",
+      "length": 36.96201345154314,
+      "props": {
+        "bandwidth": 10000,
+        "attenuation": 0.35,
+        "costPerMeter": 1.2
+      }
+    }
+  ],
+  "roads": [],
+  "simulation": {
+    "nodes": [
+      "bld_1",
+      "bld_2",
+      "bld_3"
+    ],
+    "edges": [
+      "cab_1",
+      "cab_2"
+    ],
+    "weight": "distance",
+    "totalWeight": 60.22697129774765,
+    "metrics": {
+      "lengthM": 60.22697129774765,
+      "latencyMs": 0.00030113485648873827,
+      "bandwidthMbps": 10000,
+      "cost": 72.27236555729718,
+      "attenuationDb": 1.0210794399542116,
+      "linkBudget": {
+        "ptxDbm": 5,
+        "gainDb": 0,
+        "lossDb": 18.7,
+        "marginDb": 3,
+        "prxDbm": -16.7,
+        "sensitivityDbm": -28,
+        "headroomDb": 11.3,
+        "status": "ok"
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Cenário 2",
+      "metrics": [
+        {
+          "key": "buildings",
+          "value": 1
+        },
+        {
+          "key": "elements",
+          "value": 3
+        },
+        {
+          "key": "cableM",
+          "value": 60.22697129774765
+        },
+        {
+          "key": "cost",
+          "value": 372.2723655572972
+        },
+        {
+          "key": "latencyMs",
+          "value": 0.00030113485648873827
+        },
+        {
+          "key": "bandwidthMbps",
+          "value": 10000
+        },
+        {
+          "key": "attenuationDb",
+          "value": 1.0210794399542116
+        }
+      ]
+    }
+  ]
+}
