@@ -1,0 +1,122 @@
+/* Simulator card over the viewport (Fase 7, UX.md §1.1). Shares the
+ * properties-* / phase-stepper / segmented-picker classes of right-panel.css;
+ * colors only via DESIGN.md tokens (§1.6 for the status dot). */
+
+.sim-panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  width: 280px;
+  /* Never overlaps the minimap (180px + 12px gaps) below it. */
+  max-height: calc(100% - 216px);
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sim-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sim-panel__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sim-panel__clear,
+.sim-panel__secondary {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sim-panel__clear:hover,
+.sim-panel__secondary:hover {
+  box-shadow: var(--shadow-1);
+}
+
+.sim-panel .properties-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sim-panel__alert {
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sim-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.sim-panel__table th,
+.sim-panel__table td {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.sim-panel__table th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--text-muted);
+  padding-right: 8px;
+  white-space: nowrap;
+}
+
+.sim-panel__table td {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.sim-panel__status {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sim-panel__status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.sim-panel__status--ok {
+  color: var(--ok);
+}
+
+.sim-panel__status--warn {
+  color: var(--warn);
+}
+
+.sim-panel__status--danger {
+  color: var(--danger);
+}
