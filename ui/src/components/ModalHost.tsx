@@ -10,6 +10,7 @@ import { useStore } from "../state/use-store";
 import type { ProjectActions } from "../tools/project-io";
 import type { ReportActions } from "../tools/report";
 import { GuideModal } from "./GuideModal";
+import { OnboardingModal } from "./OnboardingModal";
 import { ProfileModal } from "./ProfileModal";
 import { RecoveryModal } from "./RecoveryModal";
 import { ReportModal } from "./ReportModal";
@@ -45,6 +46,7 @@ export function ModalHost({ project, report }: { project: ProjectActions; report
       {shown === "unsaved" && <UnsavedModal project={project} />}
       {shown === "report" && <ReportModal report={report} onClose={close} />}
       {shown === "profile" && <ProfileModal report={report} onClose={close} />}
+      {shown === "onboarding" && <OnboardingModal onClose={close} />}
     </div>
   );
 }
