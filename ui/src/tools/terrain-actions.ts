@@ -103,6 +103,7 @@ export function createTerrainActions(terrain: Terrain): TerrainActions {
       frequency: preset === "custom" ? custom.frequency : DEFAULT_TERRAIN.frequency,
     });
     store.setTerrainPreset(preset);
+    store.markTerrainChanged(); // unsaved change + undo snapshot (Fases 8, 10)
   }
 
   async function saveCurrentAsPreset(): Promise<void> {
@@ -129,6 +130,7 @@ export function createTerrainActions(terrain: Terrain): TerrainActions {
     const data = await loadTerrainPreset(file);
     await terrain.applyPresetFile(data);
     store.setTerrainPreset(terrain.current.preset);
+    store.markTerrainChanged();
     if (terrain.current.preset === "custom") {
       const { seed, amplitude, frequency, size } = terrain.current;
       store.setCustomParams({ seed, amplitude, frequency, size });
@@ -145,6 +147,7 @@ export function createTerrainActions(terrain: Terrain): TerrainActions {
     const heights = await decodeHeightmapImage(file, resolution, amp);
     terrain.applyHeightmapImage(heights, amp);
     store.setTerrainPreset("custom");
+    store.markTerrainChanged();
     const { seed, amplitude: a, frequency, size } = terrain.current;
     store.setCustomParams({ seed, amplitude: a, frequency, size });
   }
