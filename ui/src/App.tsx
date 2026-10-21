@@ -13,6 +13,7 @@ import type { GlbActions } from "./tools/glb-io";
 import type { HistoryActions } from "./tools/history";
 import type { PresentationActions } from "./tools/presentation";
 import type { ProjectActions } from "./tools/project-io";
+import type { ReportActions } from "./tools/report";
 import type { SimulationActions } from "./tools/simulation";
 import type { TerrainActions } from "./tools/terrain-actions";
 
@@ -24,6 +25,7 @@ export interface AppProps {
   projectActions: ProjectActions;
   history: HistoryActions;
   presentation: PresentationActions;
+  report: ReportActions;
 }
 
 /** App layout (DESIGN.md §5): top bar, catalog, viewport, properties, FAB, modals, toasts. */
@@ -35,6 +37,7 @@ export function App({
   projectActions,
   history,
   presentation,
+  report,
 }: AppProps) {
   const layoutRef = useRef<HTMLDivElement>(null);
   // Narrow screens: side panels slide over the viewport when toggled.
@@ -72,7 +75,7 @@ export function App({
         />
       </div>
       <FabMenu />
-      <ModalHost project={projectActions} />
+      <ModalHost project={projectActions} report={report} />
       <Toasts />
     </>
   );
