@@ -1,0 +1,621 @@
+---
+// Terra_Map landing page (Fase 14, Q_LIST.md Q30): one static page, Astro only.
+// Colors, radius and shadows are the app's tokens (Docs/development/DESIGN.md).
+const REPO = "https://github.com/vritik246800/Terra_Map";
+const DOWNLOAD = `${REPO}/releases/latest`;
+
+const features = [
+  {
+    title: "Terrain",
+    text: "Start flat or generate mountains, a valley or custom noise. Sculpt with a brush, paint materials or import a PNG heightmap.",
+    icon: '<path d="M3 19l6-9 4 6 3-4 5 7z"/>',
+  },
+  {
+    title: "Infrastructure",
+    text: "Drag houses, buildings and lots onto the relief, with construction phases. Import your own .glb models and export the scene.",
+    icon: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  },
+  {
+    title: "Networks & telecom",
+    text: "Antennas, routers, OLTs, splitters, ONUs, poles and boxes. Fiber, copper or coax — underground along the relief, aerial with sag, or direct.",
+    icon: '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6.2 7.7l4.6 8.6M17.8 7.7l-4.6 8.6"/>',
+  },
+  {
+    title: "Network simulator",
+    text: "The optimal path by distance, cost, latency or attenuation with Dijkstra: end-to-end latency, bottleneck throughput, optical link budget, antenna coverage and what-if failures.",
+    icon: '<circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 18c5 0 3-12 10-12"/>',
+  },
+  {
+    title: "Measure & report",
+    text: "A ruler with the terrain profile, project statistics, a bill of materials with costs and scenarios side by side — exported as PDF and CSV.",
+    icon: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 17v-3M12 17v-5M16 17v-2"/>',
+  },
+  {
+    title: "Environment",
+    text: "Day and night with real shadows, sky, fog, lakes, vegetation and roads — plus a cinematic presentation mode.",
+    icon: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  },
+];
+
+const extras = [
+  "Undo / redo (100 steps)",
+  "Layers",
+  "Snap to grid and objects",
+  "Copy & paste",
+  "Works fully from the keyboard",
+  "Light and dark themes",
+  "Autosave + crash recovery",
+  "Versioned .json projects",
+];
+
+const steps = [
+  { title: "Shape the terrain", text: "Pick a preset or sculpt the relief by hand." },
+  { title: "Place and connect", text: "Drop buildings and network gear, then draw cables between them." },
+  { title: "Simulate and report", text: "Find the best route, test a failure and export the report." },
+];
+
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Terra_Map — 3D terrain and telecom network mock-ups</title>
+    <meta
+      name="description"
+      content="A desktop app to build 3D mock-ups: sculpt terrain, place buildings, lay fiber, copper and coax, and find the optimal cable path with Dijkstra."
+    />
+    <meta property="og:title" content="Terra_Map" />
+    <meta
+      property="og:description"
+      content="Shape the land. Wire the network. Find the best path."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="top">
+      <div class="wrap top__inner">
+        <a class="brand" href="#top" aria-label="Terra_Map home">
+          <img src="/icon.png" alt="" width="28" height="28" />
+          <span>Terra_Map</span>
+        </a>
+        <nav class="top__nav" aria-label="Sections">
+          <a href="#features">Features</a>
+          <a href="#how">How it works</a>
+          <a href={REPO}>GitHub</a>
+        </nav>
+        <a class="btn btn--primary btn--small" href={DOWNLOAD}>Download</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="wrap">
+          <p class="eyebrow">3D mock-ups · telecom networks</p>
+          <h1>Shape the land. Wire the network. Find&nbsp;the&nbsp;best&nbsp;path.</h1>
+          <p class="lede">
+            Terra_Map is a desktop app for 3D mock-ups of an area: sculpt the terrain, place houses
+            and buildings, lay fiber, copper and coax — then let Dijkstra find the optimal cable
+            route, with latency, throughput and an optical link budget.
+          </p>
+          <div class="cta">
+            <a class="btn btn--primary" href={DOWNLOAD}>Download for macOS</a>
+            <a class="btn btn--ghost" href={REPO}>View on GitHub</a>
+          </div>
+          <p class="note">
+            Free and open source (MIT). The app tells you when a new version is out — updating is
+            always your call.
+          </p>
+        </div>
+        <div class="wrap wrap--wide">
+          <picture class="shot">
+            <source srcset="/app-dark.webp" media="(prefers-color-scheme: dark)" />
+            <img
+              src="/app-light.webp"
+              width="2880"
+              height="1800"
+              alt="Terra_Map with a hillside village: 3D terrain with houses, buildings and a fiber network, the simulator card with the optimal path and its link budget, the catalog on the left and the properties on the right."
+            />
+          </picture>
+        </div>
+      </section>
+
+      <section class="section" id="features" aria-labelledby="features-title">
+        <div class="wrap">
+          <h2 id="features-title">Everything for the mock-up, in one window</h2>
+          <ul class="grid">
+            {
+              features.map((f) => (
+                <li class="card">
+                  <svg
+                    class="card__icon"
+                    viewBox="0 0 24 24"
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    set:html={f.icon}
+                  />
+                  <h3>{f.title}</h3>
+                  <p>{f.text}</p>
+                </li>
+              ))
+            }
+          </ul>
+          <ul class="chips" aria-label="Also included">
+            {extras.map((e) => <li>{e}</li>)}
+          </ul>
+        </div>
+      </section>
+
+      <section class="section section--alt" id="how" aria-labelledby="how-title">
+        <div class="wrap">
+          <h2 id="how-title">How it works</h2>
+          <ol class="steps">
+            {
+              steps.map((s, i) => (
+                <li>
+                  <span class="steps__n" aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  <h3>{s.title}</h3>
+                  <p>{s.text}</p>
+                </li>
+              ))
+            }
+          </ol>
+          <p class="under">
+            Under the hood, a Rust core (Tauri) does the heavy lifting — terrain noise, Dijkstra,
+            coverage, the PDF report — while React and three.js draw the 3D view. Everything runs
+            locally on your machine.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="download" aria-labelledby="download-title">
+        <div class="wrap">
+          <div class="get">
+            <h2 id="download-title">Get Terra_Map</h2>
+            <p>
+              Installers for every version are on GitHub Releases. On start, the app checks for a
+              newer release and offers it — you choose if and when to update.
+            </p>
+            <a class="btn btn--primary" href={DOWNLOAD}>Download the latest release</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot__inner">
+        <span>© {year} Terra_Map · MIT License</span>
+        <a href={REPO}>Source on GitHub</a>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --bg: #f5f5f7;
+    --surface: rgba(255, 255, 255, 0.72);
+    --surface-strong: #ffffff;
+    --text: #1d1d1f;
+    --text-muted: #6e6e73;
+    --accent: #0071e3;
+    --accent-hover: #0062cc;
+    --accent-text: #0066cc;
+    --on-accent: #ffffff;
+    --border: rgba(0, 0, 0, 0.08);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-full: 999px;
+    --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --blur: blur(20px) saturate(180%);
+    --font: -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --surface: rgba(44, 44, 46, 0.72);
+      --surface-strong: #2c2c2e;
+      --text: #f5f5f7;
+      --text-muted: #98989d;
+      --accent: #0a72e6;
+      --accent-hover: #0a6fd8;
+      --accent-text: #409cff;
+      --border: rgba(255, 255, 255, 0.12);
+      --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-padding-top: 72px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 var(--font);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: var(--accent-text);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  h1,
+  h2,
+  h3 {
+    margin: 0;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .skip {
+    position: absolute;
+    left: 16px;
+    top: -48px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-strong);
+    z-index: 10;
+  }
+
+  .skip:focus {
+    top: 12px;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+
+  .wrap--wide {
+    max-width: 1240px;
+  }
+
+  @media (min-width: 720px) {
+    .wrap {
+      padding: 0 24px;
+    }
+  }
+
+  /* Header: glass bar like the app's top navbar. */
+  .top {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--surface);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .top__inner {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    height: 56px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 17px;
+  }
+
+  .brand:hover {
+    text-decoration: none;
+  }
+
+  .brand img {
+    border-radius: 7px;
+  }
+
+  .top__nav {
+    display: none;
+    gap: 24px;
+    margin-left: auto;
+    font-size: 14px;
+  }
+
+  .top__nav a {
+    color: var(--text-muted);
+  }
+
+  .top__nav a:hover {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .top__inner > .btn {
+    margin-left: auto;
+  }
+
+  @media (min-width: 720px) {
+    .top__nav {
+      display: flex;
+    }
+
+    .top__inner > .btn {
+      margin-left: 0;
+    }
+  }
+
+  /* Buttons. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 22px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 15px;
+    transition:
+      background 150ms ease-out,
+      box-shadow 150ms ease-out;
+  }
+
+  .btn:hover {
+    text-decoration: none;
+  }
+
+  .btn--primary {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .btn--primary:hover {
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-2);
+  }
+
+  .btn--ghost {
+    background: var(--surface-strong);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn--ghost:hover {
+    box-shadow: var(--shadow-2);
+  }
+
+  .btn--small {
+    min-height: 34px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+
+  /* Hero. */
+  .hero {
+    padding: 72px 0 48px;
+    text-align: center;
+  }
+
+  .eyebrow {
+    margin: 0 0 12px;
+    color: var(--accent-text);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .hero h1 {
+    max-width: 880px;
+    margin: 0 auto;
+    font-size: clamp(2.1rem, 5.4vw, 3.6rem);
+  }
+
+  .lede {
+    max-width: 720px;
+    margin: 20px auto 0;
+    color: var(--text-muted);
+    font-size: clamp(1.02rem, 2vw, 1.2rem);
+  }
+
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 32px;
+  }
+
+  .note {
+    margin: 16px auto 0;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .shot {
+    display: block;
+    margin-top: 56px;
+  }
+
+  .shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-2);
+  }
+
+  /* Sections. */
+  .section {
+    padding: 72px 0;
+  }
+
+  .section--alt {
+    background: var(--surface-strong);
+    border-block: 1px solid var(--border);
+  }
+
+  .section h2 {
+    font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+    text-align: center;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 16px;
+    margin: 40px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .card {
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-1);
+  }
+
+  .card__icon {
+    color: var(--accent-text);
+  }
+
+  .card h3 {
+    margin-top: 14px;
+    font-size: 18px;
+  }
+
+  .card p {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 15px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 32px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .chips li {
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border);
+    background: var(--surface-strong);
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 32px;
+    margin: 40px 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: center;
+  }
+
+  .steps__n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+  }
+
+  .steps h3 {
+    margin-top: 14px;
+    font-size: 18px;
+  }
+
+  .steps p {
+    margin: 6px 0 0;
+    color: var(--text-muted);
+  }
+
+  .under {
+    max-width: 720px;
+    margin: 48px auto 0;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .get {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    border-radius: var(--radius-lg);
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-1);
+    text-align: center;
+  }
+
+  .get p {
+    margin: 12px 0 24px;
+    color: var(--text-muted);
+  }
+
+  .foot {
+    padding: 32px 0 48px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .foot__inner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+  }
+</style>
