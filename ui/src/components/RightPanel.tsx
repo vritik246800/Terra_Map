@@ -67,7 +67,7 @@ const PHASE_KEYS: MessageKey[] = [
   "panel.entity.finish",
 ];
 
-/** `12.3` → "12,3 m" in pt (Fase 13 — numbers follow the language). */
+/** `12.3` → "12.3 m". */
 const meters = (v: number, decimals = 1) => `${fmt(v, decimals)} m`;
 
 /** Spinner bounds/steps (DESIGN.md §6: position 0.5, rotation 5°, scale 0.1). */
