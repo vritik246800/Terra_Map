@@ -17,27 +17,26 @@
  *    cancel. `Esc` cancels the drag natively (the browser fires `dragend`
  *    on the source), and dropping outside the viewport is a no-op.
  */
-import anime from "animejs";
-import gsap from "gsap";
 import * as THREE from "three";
 
-import { prefersReducedMotion } from "../anim/reduced-motion";
+import { a4GhostIn, a4GhostOut, a5DropBounce } from "../anim/scene";
 import { buildContent, DEFAULT_FLOORS } from "../scene/buildings";
 import type { EntityRegistry } from "../scene/entities";
 import { buildNetworkContent } from "../scene/network-models";
 import type { Terrain } from "../scene/terrain";
+import { layerBlockReason } from "../state/labels";
 import {
   identityTransform,
   isNetworkKind,
+  layerOfKind,
   store,
   CUSTOM_GLB_KIND,
   type BuildingKind,
   type NetworkKind,
 } from "../state/store";
+import { showToast } from "../state/toasts";
 
 const GHOST_OPACITY = 0.55; // semi-transparent preview (A4)
-const A4_DURATION = 0.2; // seconds — DESIGN.md §8.1 (A4, power2.out)
-const A5_DURATION_MS = 350; // DESIGN.md §8.1 (A5, easeOutElastic(1,.7))
 const DROP_PHASE = 2; // entities drop finished (fundações → estrutura → acabamento)
 
 const BUILDING_KINDS = new Set<string>(["house", "building", "lot"]);
@@ -113,20 +112,6 @@ function disposeGhost(root: THREE.Object3D): void {
   });
 }
 
-/** A5 (Anime.js): the dropped entity "settles" with a subtle scale bounce. */
-export function playDropBounce(content: THREE.Group): void {
-  if (prefersReducedMotion()) return; // §8.3: keep only the final state
-  content.scale.setScalar(1.15);
-  anime({
-    targets: content.scale,
-    x: 1,
-    y: 1,
-    z: 1,
-    duration: A5_DURATION_MS,
-    easing: "easeOutElastic(1, .7)",
-  });
-}
-
 /**
  * Wires the viewport side of the catalog drag & drop (ghost preview + drop).
  * Returns a cleanup function that removes the listeners and any live ghost.
@@ -184,16 +169,7 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
       m.opacity = 0;
     }
     scene.add(ghost);
-
-    if (prefersReducedMotion()) {
-      for (const m of ghostMaterials) m.opacity = GHOST_OPACITY;
-    } else {
-      gsap.to(ghostMaterials, {
-        opacity: GHOST_OPACITY,
-        duration: A4_DURATION,
-        ease: "power2.out",
-      });
-    }
+    a4GhostIn(ghostMaterials, GHOST_OPACITY);
   }
 
   function removeGhost(immediate = false): void {
@@ -207,18 +183,7 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
       disposeGhost(current);
     };
 
-    if (immediate || prefersReducedMotion()) {
-      gsap.killTweensOf(collectMaterials(current));
-      dispose();
-      return;
-    }
-    // A4 fade-out.
-    gsap.to(collectMaterials(current), {
-      opacity: 0,
-      duration: A4_DURATION,
-      ease: "power2.out",
-      onComplete: dispose,
-    });
+    a4GhostOut(collectMaterials(current), dispose, immediate);
   }
 
   function onDragOver(e: DragEvent): void {
@@ -249,9 +214,17 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
     const point = pickTerrain(e);
     removeGhost();
     if (!point) return; // dropped off-terrain: no-op
+    const blocked = layerBlockReason(layerOfKind(kind)); // Fase 10
+    if (blocked) {
+      showToast(blocked, "info");
+      return;
+    }
 
+    // Fase 10: grid snap on the drop position.
+    const x = store.snapToGrid(point.x);
+    const z = store.snapToGrid(point.z);
     const transform = identityTransform();
-    transform.position = { x: point.x, y: registry.snapY(point.x, point.z), z: point.z };
+    transform.position = { x, y: registry.snapY(x, z), z };
     // Fase 5: the custom .glb spawns from the imported template.
     const info =
       kind === CUSTOM_GLB_KIND
@@ -262,7 +235,7 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
         : registry.spawn(kind, transform, DROP_PHASE);
     if (!info) return;
     const content = registry.getContent(info.id);
-    if (content) playDropBounce(content);
+    if (content) a5DropBounce(content);
   }
 
   activeSession = { removeGhost };
