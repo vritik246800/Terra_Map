@@ -1,0 +1,152 @@
+/* Layers + history card (Fase 10, UX.md §1.1): top-right of the viewport.
+ * Colors/radius only via DESIGN.md tokens. */
+
+.layers-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  width: 240px;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layers-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.layers-panel__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.layers-panel__title--section {
+  margin-top: 8px;
+}
+
+.layers-panel__close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.layers-panel__close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.layers-list,
+.history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.layers-list__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+}
+
+.layers-list__name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.layers-list__item.is-hidden .layers-list__name {
+  color: var(--text-muted);
+}
+
+.layers-list__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.layers-list__toggle:hover,
+.layers-list__toggle.is-active {
+  color: var(--accent);
+}
+
+.history-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.history-actions__button {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.history-actions__button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.history-list {
+  /* Long histories scroll inside the card instead of covering the viewport. */
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.history-list__item {
+  width: 100%;
+  padding: 5px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-list__item:hover {
+  background: var(--surface-strong);
+}
+
+.history-list__item.is-current {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.history-list__item.is-undone {
+  color: var(--text-muted);
+}
