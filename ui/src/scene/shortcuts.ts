@@ -2,10 +2,12 @@
  * Guard for global viewport keyboard shortcuts (PLAN.md Fase 2) plus the
  * entity action shortcuts of Fase 4 (DESIGN.md §10):
  *
- *  - `Ctrl/Cmd + D`: duplicate the selected entity (+2 m offset in X/Z,
- *    snapped to the terrain); Fase 6: dynamic props and the marker
- *    label/note copy over — cables are not duplicated;
- *  - `Delete` / `Backspace`: remove the selected entity or cable (Fase 6).
+ *  - `Ctrl/Cmd + C` / `Ctrl/Cmd + V` (Fase 10): copy the selection — entities
+ *    plus the cables between them — and paste it +2 m in X/Z per paste
+ *    (grid snap, Y on the relief); the pasted copy becomes the selection;
+ *  - `Ctrl/Cmd + D`: the same clone, +2 m, without touching the clipboard
+ *    (params, dynamic props, marker label/note and `.glb` templates copy over);
+ *  - `Delete` / `Backspace`: remove every selected entity and cable.
  *
  * A shortcut is ignored when the focus is inside a UI control (input, button,
  * select, textarea, contenteditable — e.g. spinners in the properties panel).
@@ -13,15 +15,18 @@
  * (DESIGN.md §10); `Ctrl/Cmd + D` is the exception and checks its modifier
  * explicitly.
  */
+import type * as THREE from "three";
+
 import {
-  cloneTransform,
-  CUSTOM_GLB_KIND,
-  MARKER_KIND,
+  cloneCableInfo,
+  cloneEntityInfo,
   store,
-  type EntityKind,
+  type CableInfo,
+  type EntityInfo,
 } from "../state/store";
 import type { CableRegistry } from "./cables";
 import type { EntityRegistry } from "./entities";
+import type { RoadRegistry } from "./roads";
 
 /** True when the event target is (or is inside) a UI control. */
 export function isUiControlFocused(e: KeyboardEvent): boolean {
@@ -40,79 +45,118 @@ export function shouldIgnoreShortcut(e: KeyboardEvent): boolean {
   return isUiControlFocused(e);
 }
 
+/** Delete/Backspace and «Eliminar seleção»: removes every selected cable and entity. */
+export function deleteSelection(
+  registry: EntityRegistry,
+  cables: CableRegistry,
+  roads: RoadRegistry,
+): void {
+  for (const id of [...store.selection]) {
+    if (store.getCableInfo(id)) cables.remove(id);
+    else if (store.getRoadInfo(id))
+      roads.remove(id); // Fase 11
+    else registry.remove(id);
+  }
+}
+
+/** Offset of each paste / duplicate (m, X and Z). */
+const PASTE_STEP = 2;
+
+interface Clip {
+  entities: Array<{ info: EntityInfo; template?: THREE.Object3D }>;
+  cables: CableInfo[];
+}
+
 /**
- * Wires the entity action shortcuts (Fase 4). Returns a cleanup function
- * that removes the listener.
+ * Wires the entity action shortcuts (Fases 4, 6, 10). Returns a cleanup
+ * function that removes the listener.
  */
 export function initEntityShortcuts(deps: {
   registry: EntityRegistry;
   cables: CableRegistry;
+  roads: RoadRegistry;
 }): () => void {
-  const { registry, cables } = deps;
+  const { registry, cables, roads } = deps;
+  let clipboard: Clip | null = null;
+  let pastes = 0;
 
-  /** Ctrl/Cmd+D: spawns a copy of the selected entity +2 m in X and Z. */
-  function duplicateSelected(): void {
-    const id = store.selected;
-    if (!id) return;
-    const info = store.getEntityInfo(id);
-    if (!info) return; // cables (Fase 6) are not duplicated
-
-    const transform = cloneTransform(info.transform);
-    transform.position.x += 2;
-    transform.position.z += 2;
-    transform.position.y = registry.snapY(transform.position.x, transform.position.z);
-
-    // Imported .glb models (Fase 5) spawn from their stored template.
-    const copy =
-      info.kind === CUSTOM_GLB_KIND
-        ? (() => {
-            const template = registry.getEntityTemplate(id);
-            return template ? registry.spawnCustomGlb(template, transform) : null;
-          })()
-        : registry.spawn(info.kind as EntityKind, transform, info.phase);
-    if (!copy) return;
-    if (Object.keys(info.params).length > 0) {
-      // spawn only seeds default params; copy the originals and rebuild.
-      store.updateEntity(copy.id, { params: { ...info.params } });
-      registry.applyPhase(copy.id);
-    }
-    // Fase 6: dynamic props copy over (network elements).
-    if (Object.keys(info.dynamicProps).length > 0) {
-      store.updateEntity(copy.id, { dynamicProps: { ...info.dynamicProps } });
-    }
-    // Fase 6: markers keep the label/note; the label sprite is rebuilt.
-    if (info.kind === MARKER_KIND) {
-      store.updateEntity(copy.id, { label: info.label, note: info.note });
-      registry.applyPhase(copy.id);
-    }
-    registry.updateCollisionWarnings();
-    store.select(copy.id);
+  /** The selected entities plus every cable whose two ends are selected. */
+  function copySelection(): Clip | null {
+    const ids = new Set(store.selection.filter((id) => store.getEntityInfo(id)));
+    if (ids.size === 0) return null;
+    return {
+      entities: [...ids].flatMap((id) => {
+        const info = store.getEntityInfo(id);
+        return info
+          ? [{ info: cloneEntityInfo(info), template: registry.getEntityTemplate(id) }]
+          : [];
+      }),
+      cables: store
+        .allCables()
+        .filter((c) => ids.has(c.fromId) && ids.has(c.toId))
+        .map(cloneCableInfo),
+    };
   }
 
-  /** Delete/Backspace: removes the selected cable (Fase 6) or entity. */
-  function deleteSelected(): void {
-    const id = store.selected;
-    if (!id) return;
-    if (store.getCableInfo(id)) {
-      cables.remove(id);
-      return;
+  /** Recreates a clip `offset` m away in X/Z with fresh ids and selects it. */
+  function paste(clip: Clip, offset: number): void {
+    const newIds = new Map<string, string>();
+    for (const { info } of clip.entities) newIds.set(info.id, registry.newId());
+    for (const { info, template } of clip.entities) {
+      const copy = cloneEntityInfo(info);
+      copy.id = newIds.get(info.id) ?? registry.newId();
+      const x = store.snapToGrid(info.transform.position.x + offset);
+      const z = store.snapToGrid(info.transform.position.z + offset);
+      copy.transform.position = { x, y: registry.snapY(x, z), z };
+      // A marker points at the copy of its target, else the original (if still there).
+      if (copy.targetId) {
+        const target = newIds.get(copy.targetId);
+        if (target) copy.targetId = target;
+        else if (!store.getEntityInfo(copy.targetId)) delete copy.targetId;
+      }
+      registry.restore(copy, template);
     }
-    registry.remove(id);
+    for (const cable of clip.cables) {
+      const fromId = newIds.get(cable.fromId);
+      const toId = newIds.get(cable.toId);
+      if (fromId && toId)
+        cables.restore({ ...cloneCableInfo(cable), id: cables.newId(), fromId, toId });
+    }
+    registry.updateCollisionWarnings();
+    store.selectMany([...newIds.values()]);
   }
 
   function onKeydown(e: KeyboardEvent): void {
     if (isUiControlFocused(e)) return;
 
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "d" || e.key === "D")) {
-      e.preventDefault(); // browser bookmark shortcut
-      duplicateSelected();
-      return;
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+      const key = e.key.toLowerCase();
+      if (key === "d") {
+        e.preventDefault(); // browser bookmark shortcut
+        const clip = copySelection();
+        if (clip) paste(clip, PASTE_STEP);
+        return;
+      }
+      if (key === "c") {
+        const clip = copySelection();
+        if (!clip) return;
+        e.preventDefault();
+        clipboard = clip;
+        pastes = 0;
+        return;
+      }
+      if (key === "v" && clipboard) {
+        e.preventDefault();
+        pastes++;
+        paste(clipboard, PASTE_STEP * pastes);
+        return;
+      }
     }
 
     if (shouldIgnoreShortcut(e)) return;
     if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
-      deleteSelected();
+      deleteSelection(registry, cables, roads);
     }
   }
 
