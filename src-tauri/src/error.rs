@@ -26,6 +26,21 @@ pub enum AppError {
     #[error("o diálogo de ficheiros não devolveu um caminho local")]
     InvalidFilePath,
 
+    #[error("projeto inválido: {0}")]
+    InvalidProject(String),
+
+    #[error("relatório inválido: {0}")]
+    InvalidReport(String),
+
+    #[error("rede inválida: {0}")]
+    InvalidNetwork(String),
+
+    #[error("elemento de rede desconhecido: {0}")]
+    UnknownNode(String),
+
+    #[error("erro da janela: {0}")]
+    Window(String),
+
     #[error("erro de E/S: {0}")]
     Io(#[from] std::io::Error),
 
