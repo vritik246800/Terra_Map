@@ -5,7 +5,8 @@
  */
 import type { ReactNode } from "react";
 
-import { LAYER_LABELS } from "../state/labels";
+import { t } from "../state/i18n";
+import { layerLabel } from "../state/labels";
 import { LAYER_IDS } from "../state/store";
 import { useStore } from "../state/use-store";
 import type { HistoryActions } from "../tools/history";
@@ -61,13 +62,13 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
   const position = history.position;
 
   return (
-    <section className="layers-panel glass" aria-label="Camadas e histórico">
+    <section className="layers-panel glass" aria-label={t("layersPanel.label")}>
       <header className="layers-panel__header">
-        <h2 className="layers-panel__title">Camadas</h2>
+        <h2 className="layers-panel__title">{t("layersPanel.title")}</h2>
         <button
           type="button"
           className="layers-panel__close"
-          aria-label="Fechar camadas"
+          aria-label={t("layersPanel.close")}
           onClick={() => store.toggleLayersPanel()}
         >
           ×
@@ -76,7 +77,7 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
       <ul className="layers-list">
         {LAYER_IDS.map((id) => {
           const { visible, locked } = store.layer(id);
-          const name = LAYER_LABELS[id];
+          const name = layerLabel(id);
           return (
             <li key={id} className={`layers-list__item${visible ? "" : " is-hidden"}`}>
               <span className="layers-list__name">{name}</span>
@@ -84,7 +85,7 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
                 type="button"
                 className="layers-list__toggle"
                 aria-pressed={visible}
-                aria-label={`${visible ? "Esconder" : "Mostrar"} ${name}`}
+                aria-label={t(visible ? "layersPanel.hide" : "layersPanel.show", { name })}
                 onClick={() => store.setLayer(id, { visible: !visible })}
               >
                 {visible ? EYE : EYE_OFF}
@@ -93,7 +94,7 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
                 type="button"
                 className={`layers-list__toggle${locked ? " is-active" : ""}`}
                 aria-pressed={locked}
-                aria-label={`${locked ? "Desbloquear" : "Bloquear"} ${name}`}
+                aria-label={t(locked ? "layersPanel.unlock" : "layersPanel.lock", { name })}
                 onClick={() => store.setLayer(id, { locked: !locked })}
               >
                 {locked ? LOCK : UNLOCK}
@@ -103,7 +104,9 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
         })}
       </ul>
 
-      <h2 className="layers-panel__title layers-panel__title--section">Histórico</h2>
+      <h2 className="layers-panel__title layers-panel__title--section">
+        {t("layersPanel.history")}
+      </h2>
       <div className="history-actions">
         <button
           type="button"
@@ -111,7 +114,7 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
           disabled={position === 0}
           onClick={history.undo}
         >
-          Desfazer
+          {t("layersPanel.undo")}
         </button>
         <button
           type="button"
@@ -119,10 +122,10 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
           disabled={position === labels.length}
           onClick={history.redo}
         >
-          Refazer
+          {t("layersPanel.redo")}
         </button>
       </div>
-      <ol className="history-list" aria-label="Histórico de ações">
+      <ol className="history-list" aria-label={t("layersPanel.historyList")}>
         {labels
           .map((label, i) => ({ label, i }))
           .reverse()
@@ -145,7 +148,7 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
             aria-current={position === 0 ? "step" : undefined}
             onClick={() => history.jumpTo(0)}
           >
-            Estado inicial
+            {t("layersPanel.initial")}
           </button>
         </li>
       </ol>
