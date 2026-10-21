@@ -36,6 +36,7 @@ import {
   DEFAULT_NETWORK_PROPS,
 } from "../state/store";
 import { buildContent } from "./buildings";
+import { mergeContent } from "./merge-content";
 import { buildMarkerContent, buildNetworkContent } from "./network-models";
 import type { Terrain } from "./terrain";
 
@@ -56,6 +57,11 @@ function disposeChildren(root: THREE.Object3D): void {
   });
 }
 
+/** Numeric part of a session id (`bld_12` → 12; anything else → 0). */
+export function idNumber(id: string): number {
+  return Number(/_(\d+)$/.exec(id)?.[1] ?? 0);
+}
+
 export class EntityRegistry {
   private objects = new Map<string, THREE.Group>();
   private contents = new Map<string, THREE.Group>();
@@ -66,6 +72,8 @@ export class EntityRegistry {
   private customTemplates = new Map<string, THREE.Object3D>();
   /** Last imported `.glb` model — the reusable "personalizado" catalog item. */
   private currentTemplate: { name: string; scene: THREE.Object3D } | null = null;
+  /** Name + original bytes of imported `.glb` templates (saved verbatim with the project, Fase 8). */
+  private templateSources = new WeakMap<THREE.Object3D, { name: string; bytes: Uint8Array }>();
   private counter = 0;
 
   /**
@@ -145,6 +153,33 @@ export class EntityRegistry {
     return info;
   }
 
+  /**
+   * Re-creates an entity from a project file with its saved id and data
+   * (Fase 8). `template` = the embedded `.glb` of a `customGlb` entity. The id
+   * counter stays ahead of every restored id so new entities never collide.
+   */
+  restore(info: EntityInfo, template?: THREE.Object3D): void {
+    this.counter = Math.max(this.counter, idNumber(info.id));
+    const content = new THREE.Group();
+    if (template) {
+      this.customTemplates.set(info.id, template);
+      content.add(this.cloneCustomTemplate(template));
+    } else {
+      this.buildContentFor(info, content);
+    }
+    this.attach(info, content);
+  }
+
+  /** Fresh session id for an entity created outside `spawn` (paste, Fase 10). */
+  newId(): string {
+    return `bld_${++this.counter}`;
+  }
+
+  /** Removes every entity (and, by cascade, every cable) — before opening a project. */
+  clear(): void {
+    for (const id of [...this.objects.keys()]) this.remove(id);
+  }
+
   /** Picks the procedural builder for an entity kind (phase rebuilds too). */
   private buildContentFor(info: EntityInfo, content: THREE.Group): void {
     if (info.kind === MARKER_KIND) {
@@ -154,6 +189,7 @@ export class EntityRegistry {
     } else {
       buildContent(content, info.kind as BuildingKind, info.phase, info.params);
     }
+    mergeContent(content); // Fase 9: one draw call per entity
   }
 
   /**
@@ -181,8 +217,17 @@ export class EntityRegistry {
   }
 
   /** Registers the last imported `.glb` as the reusable catalog template. */
-  setCustomGlbTemplate(name: string, scene: THREE.Object3D): void {
+  setCustomGlbTemplate(name: string, scene: THREE.Object3D, bytes: Uint8Array): void {
     this.currentTemplate = { name, scene };
+    this.templateSources.set(scene, { name, bytes });
+  }
+
+  /**
+   * Name and original `.glb` bytes of a template (Fase 8): the project embeds
+   * them as they came — re-exporting would nest the scene on every round trip.
+   */
+  getTemplateSource(template: THREE.Object3D): { name: string; bytes: Uint8Array } | undefined {
+    return this.templateSources.get(template);
   }
 
   /** The reusable "Modelo personalizado" template (`null` before the first import). */
@@ -238,8 +283,7 @@ export class EntityRegistry {
     // .glb clones share geometry/materials with the template — never dispose.
     if (!isCustomGlb) disposeChildren(root);
     this.removeCollisionRing(id);
-    store.unregisterEntity(id);
-    if (store.selected === id) store.select(null);
+    store.unregisterEntity(id); // also drops it from the selection
     this.updateCollisionWarnings();
   }
 
