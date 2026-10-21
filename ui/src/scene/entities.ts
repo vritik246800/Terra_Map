@@ -35,6 +35,7 @@ import {
   type TransformData,
   DEFAULT_NETWORK_PROPS,
 } from "../state/store";
+import { t } from "../state/i18n";
 import { buildContent } from "./buildings";
 import { mergeContent } from "./merge-content";
 import { buildMarkerContent, buildNetworkContent } from "./network-models";
@@ -143,7 +144,7 @@ export class EntityRegistry {
       params: {},
       dynamicProps: {},
       colliding: false,
-      label: `Marcador ${this.counter}`,
+      label: t("kind.markerLabel", { n: this.counter }),
     };
     if (targetId !== undefined) info.targetId = targetId;
 
