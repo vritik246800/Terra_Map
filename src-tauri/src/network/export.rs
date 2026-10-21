@@ -14,24 +14,24 @@ use super::metrics::Status;
 use super::PathResult;
 use crate::error::AppError;
 
-const CSV_FILTER_NAME: &str = "Folha de cálculo CSV";
+const CSV_FILTER_NAME: &str = "CSV spreadsheet";
 const CSV_EXTENSION: &str = "csv";
-const DEFAULT_FILE_NAME: &str = "simulacao.csv";
+const DEFAULT_FILE_NAME: &str = "simulation.csv";
 
 fn weight_label(w: Weight) -> &'static str {
     match w {
-        Weight::Distance => "Distância",
-        Weight::Cost => "Custo",
-        Weight::Latency => "Latência",
-        Weight::Attenuation => "Atenuação",
+        Weight::Distance => "Distance",
+        Weight::Cost => "Cost",
+        Weight::Latency => "Latency",
+        Weight::Attenuation => "Attenuation",
     }
 }
 
 fn status_label(s: Status) -> &'static str {
     match s {
         Status::Ok => "ok",
-        Status::Warn => "aviso",
-        Status::Danger => "falha",
+        Status::Warn => "warning",
+        Status::Danger => "fail",
     }
 }
 
@@ -59,25 +59,25 @@ pub fn simulation_csv(result: &PathResult) -> String {
     let m = &result.metrics;
     let origin = result.nodes.first().map(String::as_str).unwrap_or("");
     let destination = result.nodes.last().map(String::as_str).unwrap_or("");
-    let mut out = row(&["Métrica", "Valor", "Unidade"]);
-    out += &row(&["Origem", origin, ""]);
-    out += &row(&["Destino", destination, ""]);
-    out += &row(&["Critério", weight_label(result.weight), ""]);
-    out += &row(&["Comprimento", &fmt(m.length_m), "m"]);
-    out += &row(&["Latência", &fmt(m.latency_ms), "ms"]);
+    let mut out = row(&["Metric", "Value", "Unit"]);
+    out += &row(&["Origin", origin, ""]);
+    out += &row(&["Destination", destination, ""]);
+    out += &row(&["Criterion", weight_label(result.weight), ""]);
+    out += &row(&["Length", &fmt(m.length_m), "m"]);
+    out += &row(&["Latency", &fmt(m.latency_ms), "ms"]);
     let bandwidth = m.bandwidth_mbps.map(fmt).unwrap_or_default();
-    out += &row(&["Débito (gargalo)", &bandwidth, "Mbps"]);
-    out += &row(&["Custo", &fmt(m.cost), "€"]);
-    out += &row(&["Atenuação", &fmt(m.attenuation_db), "dB"]);
+    out += &row(&["Throughput (bottleneck)", &bandwidth, "Mbps"]);
+    out += &row(&["Cost", &fmt(m.cost), "€"]);
+    out += &row(&["Attenuation", &fmt(m.attenuation_db), "dB"]);
     if let Some(lb) = &m.link_budget {
-        out += &row(&["Potência emitida", &fmt(lb.ptx_dbm), "dBm"]);
-        out += &row(&["Potência recebida", &fmt(lb.prx_dbm), "dBm"]);
-        out += &row(&["Sensibilidade", &fmt(lb.sensitivity_dbm), "dBm"]);
-        out += &row(&["Folga", &fmt(lb.headroom_db), "dB"]);
+        out += &row(&["Transmitted power", &fmt(lb.ptx_dbm), "dBm"]);
+        out += &row(&["Received power", &fmt(lb.prx_dbm), "dBm"]);
+        out += &row(&["Sensitivity", &fmt(lb.sensitivity_dbm), "dBm"]);
+        out += &row(&["Margin", &fmt(lb.headroom_db), "dB"]);
         out += &row(&["Link budget", status_label(lb.status), ""]);
     }
     out += "\r\n";
-    out += &row(&["Passo", "Nó", "Cabo de chegada"]);
+    out += &row(&["Step", "Node", "Incoming cable"]);
     for (i, node) in result.nodes.iter().enumerate() {
         let cable = if i == 0 { "" } else { &result.edges[i - 1] };
         out += &row(&[&(i + 1).to_string(), node, cable]);
@@ -145,8 +145,8 @@ mod tests {
     #[test]
     fn csv_has_metrics_and_hops() {
         let csv = simulation_csv(&result());
-        assert!(csv.starts_with("Métrica,Valor,Unidade\r\n"));
-        assert!(csv.contains("Comprimento,150.000,m\r\n"));
+        assert!(csv.starts_with("Metric,Value,Unit\r\n"));
+        assert!(csv.contains("Length,150.000,m\r\n"));
         assert!(csv.contains("Link budget,ok,\r\n"));
         assert!(csv.contains("1,olt,\r\n"));
         assert!(csv.contains("3,onu,c2\r\n"));
@@ -164,13 +164,13 @@ mod tests {
         r.metrics.bandwidth_mbps = None;
         r.metrics.link_budget = None;
         let csv = simulation_csv(&r);
-        assert!(csv.contains("Débito (gargalo),,Mbps\r\n"));
+        assert!(csv.contains("Throughput (bottleneck),,Mbps\r\n"));
         assert!(!csv.contains("Link budget"));
     }
 
     #[test]
     fn write_csv_round_trip() {
-        let path = std::env::temp_dir().join("terra-map-test-simulacao.csv");
+        let path = std::env::temp_dir().join("terra-map-test-simulation.csv");
         write_csv(&path, "a,b\r\n").unwrap();
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "a,b\r\n");
         let _ = std::fs::remove_file(path);
