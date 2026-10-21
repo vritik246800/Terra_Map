@@ -81,3 +81,26 @@
   background: var(--surface-strong);
   box-shadow: 0 0 0 2px var(--accent);
 }
+
+/* Fase 8: title + unsaved-changes dot. The wrapper takes the title's flex
+ * slot; the input is sized to its text (`size`) so the dot sits beside it. */
+.project-title-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.project-title-wrap .project-title {
+  flex: 0 1 auto;
+}
+
+.project-dirty {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+}
