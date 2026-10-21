@@ -8,14 +8,15 @@ import { useEffect, useRef, useState } from "react";
 
 import { a9Popover } from "../anim/ui";
 import { shouldIgnoreShortcut } from "../scene/shortcuts";
+import { t, type MessageKey } from "../state/i18n";
 import { store } from "../state/store";
 import "./fab-menu.css";
 
 type FabAction = "shortcuts" | "guide";
 
-const MENU_ITEMS: ReadonlyArray<{ action: FabAction; label: string }> = [
-  { action: "shortcuts", label: "Atalhos" },
-  { action: "guide", label: "Guia do programa" },
+const MENU_ITEMS: ReadonlyArray<{ action: FabAction; label: MessageKey }> = [
+  { action: "shortcuts", label: "fab.shortcuts" },
+  { action: "guide", label: "fab.guide" },
 ];
 
 export function FabMenu() {
@@ -87,7 +88,7 @@ export function FabMenu() {
         ref={fabRef}
         type="button"
         className="fab"
-        aria-label="Ajuda e atalhos"
+        aria-label={t("fab.label")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -108,7 +109,7 @@ export function FabMenu() {
           <circle cx="12" cy="17" r="0.5" fill="currentColor" />
         </svg>
       </button>
-      <div ref={popoverRef} className="fab-popover glass" role="menu" aria-label="Ajuda e atalhos">
+      <div ref={popoverRef} className="fab-popover glass" role="menu" aria-label={t("fab.label")}>
         {MENU_ITEMS.map(({ action, label }, i) => (
           <button
             key={action}
@@ -124,7 +125,7 @@ export function FabMenu() {
               fabRef.current?.focus();
             }}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
