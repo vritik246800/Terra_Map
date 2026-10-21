@@ -61,8 +61,12 @@ export function initCableTool(deps: CableToolDeps): () => void {
       -((e.clientY - rect.top) / rect.height) * 2 + 1,
     );
     raycaster.setFromCamera(p, camera);
-    const hit = raycaster.intersectObjects(pickables, true)[0];
-    return hit ? findEntityId(hit.object) : null;
+    // Fase 10: elements of hidden/locked layers are not cable endpoints.
+    for (const hit of raycaster.intersectObjects(pickables, true)) {
+      const id = findEntityId(hit.object);
+      if (id && store.isPickable(id)) return id;
+    }
+    return null;
   }
 
   function onPointerDown(e: PointerEvent): void {
