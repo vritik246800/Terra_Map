@@ -2,7 +2,12 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
 import { createViewport } from "./scene/viewport";
+import { store } from "./state/store";
 import { createGlbActions, initGlbShortcuts } from "./tools/glb-io";
+import { createHistory } from "./tools/history";
+import { createPresentation } from "./tools/presentation";
+import { createProjectActions, initProjectShortcuts } from "./tools/project-io";
+import { createSimulationActions } from "./tools/simulation";
 import { createTerrainActions } from "./tools/terrain-actions";
 import "./style.css";
 
@@ -14,16 +19,46 @@ if (app) {
   const viewport = createViewport();
   const terrainActions = createTerrainActions(viewport.terrain);
   // Fase 5: .glb import/export (topbar buttons + Ctrl/Cmd+E / Ctrl/Cmd+I).
-  const glbActions = createGlbActions({ terrain: viewport.terrain, registry: viewport.registry });
+  const glbActions = createGlbActions({
+    terrain: viewport.terrain,
+    registry: viewport.registry,
+    // Fase 11: roads, water and vegetation go into a full-maquete export too.
+    extras: () => [
+      ...viewport.roads.pickables,
+      ...viewport.vegetation.objects,
+      ...(viewport.environment.water.visible ? [viewport.environment.water] : []),
+    ],
+  });
   initGlbShortcuts(glbActions);
+  // Fase 7: network simulator (Dijkstra, link budget, coverage in the core).
+  const simulationActions = createSimulationActions(viewport);
+  // Fase 8: project save/open, autosave, recovery, close guard.
+  // Fase 10: undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z).
+  const history = createHistory(viewport);
+  const projectActions = createProjectActions({ ...viewport, history });
+  initProjectShortcuts(projectActions);
 
   // No <StrictMode>: its double effects would attach the scene listeners twice.
   createRoot(app).render(
-    <App viewport={viewport} terrainActions={terrainActions} glbActions={glbActions} />,
+    <App
+      viewport={viewport}
+      terrainActions={terrainActions}
+      glbActions={glbActions}
+      simulationActions={simulationActions}
+      projectActions={projectActions}
+      history={history}
+      presentation={createPresentation(viewport)}
+    />,
   );
 
-  // Default terrain on start: flat (DESIGN.md §8.2).
+  // Default terrain on start: flat (DESIGN.md §8.2) — the clean starting
+  // point (not an unsaved change); then offer the crash-recovery copy.
   terrainActions
     .createFromPreset("flat")
-    .catch((err: unknown) => console.error("[terreno] falha ao criar terreno inicial:", err));
+    .catch((err: unknown) => console.error("[terreno] falha ao criar terreno inicial:", err))
+    .finally(() => {
+      store.markSaved();
+      history.reset(); // the initial terrain is the starting point, not an action
+      void projectActions.checkRecovery();
+    });
 }
