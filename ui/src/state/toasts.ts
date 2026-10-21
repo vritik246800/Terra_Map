@@ -24,6 +24,11 @@ export function showToast(message: string, kind: ToastKind = "info"): void {
   set([...toasts, { id: nextId++, message, kind }]);
 }
 
+/** Message of a failure — core errors arrive as the AppError display string. */
+export function errorText(err: unknown): string {
+  return typeof err === "string" ? err : err instanceof Error ? err.message : String(err);
+}
+
 export function dismissToast(id: number): void {
   set(toasts.filter((t) => t.id !== id));
 }
