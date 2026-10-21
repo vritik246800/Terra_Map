@@ -16,6 +16,10 @@
  *
  * `getHeight(x, z)` (bilinear interpolation) is the snap source used by
  * later phases (drag & drop, cables).
+ *
+ * Fase 11: a material map (one byte per vertex) overrides the gradient where
+ * the material brush painted (DESIGN.md §1.7); 0 = automatic. A new terrain
+ * (preset, loaded preset, heightmap image) starts with an empty map.
  */
 import * as THREE from "three";
 
@@ -52,6 +56,16 @@ const ALTITUDE_STOPS: Array<[number, THREE.Color]> = [
 
 const SCRATCH_COLOR = new THREE.Color();
 
+/** Material brush colors (DESIGN.md §1.7); index 0 = altitude gradient. */
+const MATERIAL_COLORS: ReadonlyArray<THREE.Color | null> = [
+  null,
+  new THREE.Color("#7da05c"), // relva
+  new THREE.Color("#8a6f4d"), // terra
+  new THREE.Color("#d8c690"), // areia
+  new THREE.Color("#8d8d93"), // rocha
+  new THREE.Color("#f4f6f8"), // neve
+];
+
 /** Interpolated gradient color for a height (meters). */
 function altitudeColor(height: number, target: THREE.Color): THREE.Color {
   if (height <= ALTITUDE_STOPS[0][0]) return target.copy(ALTITUDE_STOPS[0][1]);
@@ -65,9 +79,8 @@ function altitudeColor(height: number, target: THREE.Color): THREE.Color {
   return target.copy(ALTITUDE_STOPS[ALTITUDE_STOPS.length - 1][1]);
 }
 
-/** Encodes a heightmap as `base64:` + float32 LE bytes (DESIGN.md §18). */
-export function encodeHeightmap(heightmap: Float32Array): string {
-  const bytes = new Uint8Array(heightmap.buffer, heightmap.byteOffset, heightmap.byteLength);
+/** Encodes bytes as `base64:` text (heightmaps, Fase 8 embedded `.glb`). */
+export function encodeBytes(bytes: Uint8Array): string {
   let binary = "";
   const CHUNK = 0x8000; // String.fromCharCode argument limit
   for (let i = 0; i < bytes.length; i += CHUNK) {
@@ -76,23 +89,35 @@ export function encodeHeightmap(heightmap: Float32Array): string {
   return `base64:${btoa(binary)}`;
 }
 
-/** Decodes a `base64:` heightmap; `null` if malformed or wrong length. */
-export function decodeHeightmap(encoded: string, expectedLength: number): Float32Array | null {
+/** Decodes `base64:` text; `null` if malformed. */
+export function decodeBytes(encoded: string): Uint8Array | null {
   if (!encoded.startsWith("base64:")) return null;
   try {
     const binary = atob(encoded.slice("base64:".length));
-    if (binary.length !== expectedLength * 4) return null;
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new Float32Array(bytes.buffer);
+    return bytes;
   } catch {
     return null;
   }
 }
 
+/** Encodes a heightmap as `base64:` + float32 LE bytes (DESIGN.md §18). */
+export function encodeHeightmap(heightmap: Float32Array): string {
+  return encodeBytes(new Uint8Array(heightmap.buffer, heightmap.byteOffset, heightmap.byteLength));
+}
+
+/** Decodes a `base64:` heightmap; `null` if malformed or wrong length. */
+export function decodeHeightmap(encoded: string, expectedLength: number): Float32Array | null {
+  const bytes = decodeBytes(encoded);
+  if (!bytes || bytes.length !== expectedLength * 4) return null;
+  return new Float32Array(bytes.buffer);
+}
+
 export class Terrain {
   readonly mesh: THREE.Mesh;
   private heightmap: Float32Array;
+  private materials: Uint8Array;
   private config: TerrainConfig;
   /** Guards against out-of-order async regenerations (last call wins). */
   private generation = 0;
@@ -100,6 +125,7 @@ export class Terrain {
   constructor() {
     this.config = { ...DEFAULT_TERRAIN };
     this.heightmap = new Float32Array(this.config.resolution ** 2);
+    this.materials = new Uint8Array(this.config.resolution ** 2);
 
     const geometry = this.buildGeometry(this.config);
     const material = new THREE.MeshStandardMaterial({
@@ -203,8 +229,48 @@ export class Terrain {
     this.replaceHeightmap(heights);
   }
 
-  /** Swaps the heightmap, rebuilding the geometry if the grid changed. */
-  private replaceHeightmap(heightmap: Float32Array): void {
+  /** Undo/redo (Fases 10–11): puts back a previous config, heightmap and materials (copied). */
+  restoreState(config: TerrainConfig, heights: Float32Array, materials: Uint8Array): void {
+    this.generation++; // cancel any in-flight regeneration
+    this.config = { ...config };
+    this.replaceHeightmap(heights.slice(), materials.slice());
+  }
+
+  /** Material byte per vertex (Fase 11 — treat as read-only). */
+  get materialMap(): Uint8Array {
+    return this.materials;
+  }
+
+  /** Applies a saved material map (project open); ignored when the size does not match. */
+  setMaterialMap(map: Uint8Array): void {
+    if (map.length !== this.materials.length) return;
+    this.materials = map.map((m) => (m < MATERIAL_COLORS.length ? m : 0)); // unknown → automatic
+    this.refreshAll();
+  }
+
+  /** Material brush dab (Fase 11): sets `material` on every vertex within `radius`. */
+  paint(cx: number, cz: number, radius: number, material: number): void {
+    const { size, resolution: res } = this.config;
+    const step = size / (res - 1);
+    const cgx = (cx + size / 2) / step;
+    const cgz = (cz + size / 2) / step;
+    const rCells = radius / step;
+    const gx0 = Math.max(0, Math.ceil(cgx - rCells));
+    const gx1 = Math.min(res - 1, Math.floor(cgx + rCells));
+    const gz0 = Math.max(0, Math.ceil(cgz - rCells));
+    const gz1 = Math.min(res - 1, Math.floor(cgz + rCells));
+    for (let gz = gz0; gz <= gz1; gz++) {
+      for (let gx = gx0; gx <= gx1; gx++) {
+        if ((gx - cgx) ** 2 + (gz - cgz) ** 2 <= rCells * rCells) {
+          this.materials[gz * res + gx] = material;
+        }
+      }
+    }
+    this.refreshRange(gx0, gz0, gx1, gz1);
+  }
+
+  /** Swaps the heightmap (new terrain → empty material map unless given), rebuilding the geometry if the grid changed. */
+  private replaceHeightmap(heightmap: Float32Array, materials?: Uint8Array): void {
     const { size, resolution } = this.config;
     const geometry = this.mesh.geometry;
     const sameGrid =
@@ -215,6 +281,7 @@ export class Terrain {
       this.mesh.geometry = this.buildGeometry(this.config);
     }
     this.heightmap = heightmap;
+    this.materials = materials ?? new Uint8Array(resolution ** 2);
     this.refreshAll();
   }
 
@@ -302,8 +369,8 @@ export class Terrain {
         const i = gz * res + gx;
         const height = this.heightmap[i];
         positions.setZ(i, height);
-        altitudeColor(height, SCRATCH_COLOR);
-        colors.setXYZ(i, SCRATCH_COLOR.r, SCRATCH_COLOR.g, SCRATCH_COLOR.b);
+        const color = MATERIAL_COLORS[this.materials[i]] ?? altitudeColor(height, SCRATCH_COLOR);
+        colors.setXYZ(i, color.r, color.g, color.b);
       }
     }
     positions.needsUpdate = true;
