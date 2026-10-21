@@ -33,6 +33,7 @@
  */
 
 import type { CoverageResult, PathResult, Scenario, SimWeight } from "../net/bridge";
+import { t } from "./i18n";
 
 /** Kinds of infrastructure placeable from the catalog (Fase 4). */
 export type BuildingKind = "house" | "building" | "lot";
@@ -99,7 +100,7 @@ export interface TransformData {
 
 export interface EntityInfo {
   id: string;
-  /** Stable kind key (e.g. "house", "building", "olt"); the UI maps it to a pt-PT label. */
+  /** Stable kind key (e.g. "house", "building", "olt"); the UI maps it to a label. */
   kind: string;
   /** Construction phase: 0 fundações, 1 estrutura, 2 acabamento (DESIGN.md §6). */
   phase: number;
@@ -275,7 +276,7 @@ export type SnapGrid = 0 | 0.25 | 0.5 | 1;
 
 /** Modals of the app (Fase 8, UX.md §1.1). */
 export type ModalId =
-  "shortcuts" | "guide" | "recovery" | "unsaved" | "report" | "profile" | "onboarding";
+  "shortcuts" | "guide" | "recovery" | "unsaved" | "report" | "profile" | "onboarding" | "update";
 
 type Listener = () => void;
 
@@ -335,7 +336,7 @@ function forgetInSimulation(id: string): void {
   if (simulation.coverage?.antennaId === id) simulation.coverage = null;
 }
 
-let projectName = "Sem título";
+let projectName = t("app.untitled");
 let projectId = `proj_${Date.now().toString(36)}`;
 /** Bumped by every project mutation; `savedRevision` = last saved/opened. */
 let revision = 0;
