@@ -94,7 +94,7 @@
 
 .layers-list__toggle:hover,
 .layers-list__toggle.is-active {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .history-actions {
