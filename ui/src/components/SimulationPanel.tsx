@@ -6,23 +6,20 @@
  * is idle; values come straight from the core result.
  */
 import type { SimStatus, SimWeight } from "../net/bridge";
+import { fmt, t } from "../state/i18n";
 import { useStore } from "../state/use-store";
 import type { SimulationActions } from "../tools/simulation";
 import { SegmentedPicker } from "./SegmentedPicker";
 import "./simulation-panel.css";
 
-const WEIGHT_LABELS: Record<SimWeight, string> = {
-  distance: "Distância",
-  cost: "Custo",
-  latency: "Latência",
-  attenuation: "Atenuação",
-};
+const weightLabels = (): Record<SimWeight, string> => ({
+  distance: t("sim.distance"),
+  cost: t("sim.cost"),
+  latency: t("sim.latency"),
+  attenuation: t("sim.attenuation"),
+});
 
-const STATUS_LABELS: Record<SimStatus, string> = {
-  ok: "OK",
-  warn: "No limite",
-  danger: "Abaixo da sensibilidade",
-};
+const statusLabel = (status: SimStatus): string => t(`sim.${status}`);
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -47,18 +44,18 @@ export function SimulationPanel({ simulation }: { simulation: SimulationActions 
   }
 
   return (
-    <section className="sim-panel glass" aria-label="Simulador de redes">
+    <section className="sim-panel glass" aria-label={t("sim.label")}>
       <header className="sim-panel__header">
-        <h2 className="sim-panel__title">Simulador</h2>
+        <h2 className="sim-panel__title">{t("sim.title")}</h2>
         <button type="button" className="sim-panel__clear" onClick={simulation.clear}>
-          Limpar
+          {t("sim.clear")}
         </button>
       </header>
 
       <dl className="properties-list">
         {[
-          ["Origem", sim.fromId ?? "—"],
-          ["Destino", sim.toId ?? "—"],
+          [t("sim.from"), sim.fromId ?? "—"],
+          [t("sim.to"), sim.toId ?? "—"],
         ].map(([label, value]) => (
           <div key={label} className="properties-row">
             <dt className="properties-row__label">{label}</dt>
@@ -68,8 +65,8 @@ export function SimulationPanel({ simulation }: { simulation: SimulationActions 
       </dl>
 
       <SegmentedPicker
-        label="Critério"
-        options={WEIGHT_LABELS}
+        label={t("sim.weight")}
+        options={weightLabels()}
         value={sim.weight}
         onChange={changeWeight}
       />
@@ -80,12 +77,12 @@ export function SimulationPanel({ simulation }: { simulation: SimulationActions 
         disabled={!sim.fromId || !sim.toId}
         onClick={() => void simulation.run()}
       >
-        Calcular caminho
+        {t("sim.run")}
       </button>
 
       {sim.noPath && (
         <p className="sim-panel__alert" role="alert">
-          Sem caminho ativo entre a origem e o destino.
+          {t("sim.noPath")}
         </p>
       )}
 
@@ -93,44 +90,44 @@ export function SimulationPanel({ simulation }: { simulation: SimulationActions 
         <>
           <table className="sim-panel__table">
             <tbody>
-              <Row label="Caminho" value={sim.result.nodes.join(" → ")} />
-              <Row label="Cabos" value={String(sim.result.edges.length)} />
-              <Row label="Comprimento" value={`${m.lengthM.toFixed(1)} m`} />
-              <Row label="Latência" value={`${m.latencyMs.toFixed(3)} ms`} />
+              <Row label={t("sim.path")} value={sim.result.nodes.join(" → ")} />
+              <Row label={t("sim.cables")} value={String(sim.result.edges.length)} />
+              <Row label={t("sim.length")} value={`${fmt(m.lengthM, 1)} m`} />
+              <Row label={t("sim.latency")} value={`${fmt(m.latencyMs, 3)} ms`} />
               <Row
-                label="Débito"
-                value={m.bandwidthMbps === null ? "—" : `${m.bandwidthMbps} Mbps`}
+                label={t("sim.bandwidth")}
+                value={m.bandwidthMbps === null ? "—" : `${fmt(m.bandwidthMbps)} Mbps`}
               />
-              <Row label="Custo" value={`${m.cost.toFixed(2)} €`} />
-              <Row label="Atenuação" value={`${m.attenuationDb.toFixed(2)} dB`} />
-              {lb && <Row label="Prx" value={`${lb.prxDbm.toFixed(1)} dBm`} />}
-              {lb && <Row label="Folga" value={`${lb.headroomDb.toFixed(1)} dB`} />}
+              <Row label={t("sim.cost")} value={`${fmt(m.cost, 2)} €`} />
+              <Row label={t("sim.attenuation")} value={`${fmt(m.attenuationDb, 2)} dB`} />
+              {lb && <Row label={t("sim.prx")} value={`${fmt(lb.prxDbm, 1)} dBm`} />}
+              {lb && <Row label={t("sim.headroom")} value={`${fmt(lb.headroomDb, 1)} dB`} />}
             </tbody>
           </table>
           {lb ? (
             <p className={`sim-panel__status sim-panel__status--${lb.status}`}>
-              Link budget: {STATUS_LABELS[lb.status]}
+              {t("sim.budget", { status: statusLabel(lb.status) })}
             </p>
           ) : (
-            <p className="properties-section__hint">
-              Link budget: precisa de «power» na origem e «sensitivity» no destino.
-            </p>
+            <p className="properties-section__hint">{t("sim.budgetMissing")}</p>
           )}
           <button
             type="button"
             className="sim-panel__secondary"
             onClick={() => void simulation.exportCsv()}
           >
-            Exportar CSV
+            {t("sim.exportCsv")}
           </button>
         </>
       )}
 
       {sim.coverage && (
         <p className="properties-section__hint">
-          Cobertura de {sim.coverage.antennaId}:{" "}
-          {Math.round(sim.coverage.result.coveredRatio * 100)}% da área no alcance com sinal acima
-          de {sim.coverage.result.sensitivityDbm} dBm.
+          {t("sim.coverage", {
+            id: sim.coverage.antennaId,
+            pct: Math.round(sim.coverage.result.coveredRatio * 100),
+            dbm: fmt(sim.coverage.result.sensitivityDbm),
+          })}
         </p>
       )}
     </section>
