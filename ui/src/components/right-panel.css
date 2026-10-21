@@ -192,7 +192,7 @@
   border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: 12px;
   font-weight: 500;
 }
