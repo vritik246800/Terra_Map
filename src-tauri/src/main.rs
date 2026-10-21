@@ -9,6 +9,7 @@ mod project;
 mod project_file;
 mod report;
 mod terrain;
+mod update;
 
 fn main() {
     tauri::Builder::default()
@@ -43,6 +44,8 @@ fn main() {
             commands::export_report_pdf,
             commands::export_bom_csv,
             commands::terrain_profile,
+            commands::is_newer_version,
+            commands::open_releases_page,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
