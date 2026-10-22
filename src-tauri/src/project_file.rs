@@ -632,6 +632,17 @@ pub fn on_close_requested(window: &Window, api: &tauri::CloseRequestApi) {
     }
 }
 
+/// Fase 18 (`Q_LIST.md` Q53): the app menu's Quit (Cmd+Q) gets the same guard
+/// — with unsaved changes the frontend asks and closes the window itself (the
+/// app ends with its last window); a clean project quits at once.
+pub fn on_quit_requested(app: &AppHandle) {
+    if app.state::<ProjectSession>().is_dirty() {
+        let _ = app.emit(CLOSE_REQUESTED_EVENT, ());
+    } else {
+        app.exit(0);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
