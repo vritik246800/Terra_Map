@@ -1,6 +1,6 @@
 [package]
 name = "terra-map"
-version = "0.1.0"
+version = "0.2.0"
 description = "3D mock-ups of terrain, infrastructure and telecom networks"
 edition = "2021"
 build = "build.rs"
