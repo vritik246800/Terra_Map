@@ -298,7 +298,10 @@
     "canvas": "3D view — arrows move the camera, Shift+arrows rotate it, + and − zoom, Space clicks the crosshair",
     "minimap": "Minimap — click to move the camera",
     "expand": "Expand minimap",
-    "collapse": "Collapse minimap"
+    "collapse": "Collapse minimap",
+    "cameraMode": "Camera drag",
+    "orbit": "Rotate camera (H)",
+    "pan": "Move camera (H)"
   },
   "fab": {
     "label": "Help and shortcuts",
@@ -357,6 +360,7 @@
       "focus": "Focus the camera on the selection",
       "views": "Top / front / isometric view",
       "home": "Reset camera",
+      "cameraMode": "Mouse drag: rotate / move the camera",
       "next": "Next / previous element",
       "tab": "Move through panels, buttons and the viewport",
       "space": "Click the crosshair, at the center of the view",

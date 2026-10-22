@@ -8,9 +8,10 @@ A **desktop** app for **macOS, Windows and Linux** to build **3D mock-ups** of a
 
 ### Done
 
-- **Interface** in Apple style: top bar (Save, Import, Export, Open), catalog on the left, properties on the right, a round button for shortcuts and the guide, glass panels.
-- **3D viewport** (three.js): damped orbit, pan and zoom; top, front and isometric views (`1`/`2`/`3`, `Home`, `F`); click to select; grid (`G`); top-down minimap — click it to move the camera.
+- **Interface** in Apple style: top bar (Save, Import, Export, Open), catalog on the left with a 3D preview of every infrastructure and network element, properties on the right (shown only while something is selected or a tool is active), a round button for shortcuts and the guide, glass panels.
+- **3D viewport** (three.js): damped orbit, pan and zoom, with a Rotate / Move switch (`H`) so the left mouse button can also pan the view; top, front and isometric views (`1`/`2`/`3`, `Home`, `F`); click to select; grid (`G`); top-down minimap — click it to move the camera.
 - **Terrain**: flat, mountains, valley and custom presets (seed, amplitude, frequency), generated in the Rust core with Perlin noise; sculpting brush (`B`, `Shift` to lower) with Gaussian falloff; color gradient by altitude; save and load presets; import a PNG heightmap.
+- **3D models** made in Blender: every house, building, plot, network element, marker and tree is a `.glb` built by a versioned Blender script (`ui/models/build_models.py`), at real scale (a single-storey house is clearly lower than a 7 m pole).
 - **Infrastructure**: house, building (adjustable floors) and plot; drag and drop that snaps to the terrain; construction phases (foundations, structure, finishing); position, rotation and scale with spinners and arrow keys (`Shift` ×10, `Alt` ÷10); transform gizmo; duplicate and delete; collision warning.
 - **`.glb` models**: export the mock-up or the selection, import with validation; an imported model joins the catalog for reuse.
 - **Networks and telecom**: antennas, routers, switches, OLT, ONU, splitters, poles and distribution boxes by drag and drop; Cable tool (`C`) with underground (follows the terrain), aerial (catenary) or direct routes, in fiber, copper or coax; markers (`M`) with a label and a note; dynamic key-value properties per element and per cable; in-memory network graph.
@@ -33,6 +34,7 @@ A **desktop** app for **macOS, Windows and Linux** to build **3D mock-ups** of a
 | Core | [Rust](https://www.rust-lang.org) + [Tauri v2](https://v2.tauri.app) (files, presets, terrain generation, Dijkstra, PDF/CSV reports) |
 | Frontend | [React](https://react.dev) + strict TypeScript + [Vite](https://vite.dev) |
 | 3D | [three.js](https://threejs.org) (`OrbitControls`, `TransformControls`, `GLTFLoader`, `GLTFExporter`) |
+| 3D models | [Blender](https://www.blender.org) 5 — a Python script builds the models and exports `.glb` + catalog thumbnails (authoring tool, not a runtime dependency) |
 | Animation | [GSAP](https://gsap.com) (interface) and [anime.js](https://animejs.com) (3D and micro-interactions) |
 | Data | projects in JSON (serde), models in `.glb` |
 | Quality | rustfmt, clippy, ESLint, Prettier, `cargo test`, `tsc --noEmit` |
@@ -62,11 +64,14 @@ Terra_Map/
 │   ├── icons/              # app icon: icon.svg (source) → `cargo tauri icon` (PNG, .icns, .ico)
 │   └── tauri.conf.json
 ├── ui/                     # React + TypeScript frontend
+│   ├── models/
+│   │   └── build_models.py # Blender script: builds the 3D models, exports .glb + catalog thumbnails
+│   ├── public/models/      # the exported .glb models and their .png thumbnails
 │   ├── src/
 │   │   ├── main.tsx        # creates the 3D scene and mounts <App />
 │   │   ├── App.tsx         # layout
 │   │   ├── components/     # top bar, panels, viewport, simulator, modals (report, profile…), spinner, toasts, shortcuts menu
-│   │   ├── scene/          # viewport, camera, terrain, entities, cables, selection, gizmo, simulator overlay
+│   │   ├── scene/          # viewport, camera, terrain, entities, models (.glb loader), cables, selection, gizmo, simulator overlay
 │   │   ├── tools/          # brush, drag and drop, cable, marker, ruler, .glb import/export, simulator, project, report, update notice
 │   │   ├── state/          # store, useStore hook, toast queue, texts (t/fmt), theme
 │   │   ├── anim/           # animations (GSAP, anime.js, reduced motion)
@@ -106,6 +111,12 @@ Landing page (`landing/`, Astro + three.js + GSAP):
 npm install --prefix landing
 npm --prefix landing run dev     # http://localhost:4321
 npm --prefix landing run build   # static page in landing/dist
+```
+
+3D models (needs [Blender](https://www.blender.org) 5.x; rewrites `ui/public/models/`):
+
+```sh
+blender -b --factory-startup -P ui/models/build_models.py
 ```
 
 ## Publishing an update
@@ -152,6 +163,7 @@ On Vercel: *Add New → Project*, import this repository and set **Root Director
 | `W` / `E` / `T` | gizmo: move / rotate / scale |
 | `↑` / `↓` (+ `Shift`, `Alt`) | adjust the focused spinner (×10, ÷10) |
 | `F` · `1` / `2` / `3` · `Home` | focus the selection · top / front / iso view · reset the camera |
+| `H` | mouse drag rotates / moves (pans) the camera |
 | `G` | show/hide the grid |
 | `Esc` | clear the selection |
 | `?` | shortcuts menu |

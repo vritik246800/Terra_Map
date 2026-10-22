@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
 import { shouldShowOnboarding } from "./components/OnboardingModal";
+import { loadModels } from "./scene/models";
 import { createViewport } from "./scene/viewport";
 import { store } from "./state/store";
 import { createGlbActions, initGlbShortcuts } from "./tools/glb-io";
@@ -16,7 +17,10 @@ import "./style.css";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
-if (app) {
+// Fase 16: the Blender models load before anything can spawn an entity.
+if (app) void loadModels().then(() => start(app));
+
+function start(app: HTMLDivElement): void {
   // The three.js scene is built once, outside React (ARCHITECTURE.md);
   // components talk to it through the store and these handles.
   const viewport = createViewport();

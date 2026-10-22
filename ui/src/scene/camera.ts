@@ -9,6 +9,9 @@
  *    the canvas host is focusable (`Tab`) and shows a crosshair — arrows pan,
  *    `Shift`+arrows orbit, `+`/`−` zoom and `Space` "clicks" the crosshair,
  *    so every tool works from the keyboard.
+ *  - Fase 16 (UX.md §4, Q_LIST.md Q38): `H` switches the left mouse button
+ *    between rotating and moving (pan) the camera — `cameraMouseButtons`;
+ *    the remap itself is applied by `tools/brush.ts`, which owns the buttons.
  *
  * All transitions use animation A21 (GSAP, 400ms, power2.inOut), tweening the
  * camera position and the OrbitControls target. With reduced motion the
@@ -19,7 +22,7 @@ import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js
 
 import { a21CameraTo, a21Stop } from "../anim/scene";
 import { t } from "../state/i18n";
-import { store } from "../state/store";
+import { store, type CameraMode } from "../state/store";
 import { shouldIgnoreShortcut } from "./shortcuts";
 
 const D = 80;
@@ -35,6 +38,16 @@ const VIEWS = {
   front: new THREE.Vector3(0, 6, D * 1.4), // 0° elevation
   iso: new THREE.Vector3(D, D, D), // 45° azimuth / 35.26° elevation
 } as const;
+
+/** OrbitControls buttons per camera mode: the left one rotates or pans, the right does the other. */
+export function cameraMouseButtons(mode: CameraMode): OrbitControls["mouseButtons"] {
+  const pan = mode === "pan";
+  return {
+    LEFT: pan ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: pan ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN,
+  };
+}
 
 export interface CameraControllerDeps {
   camera: THREE.PerspectiveCamera;
@@ -106,6 +119,10 @@ export function initCameraShortcuts(deps: CameraControllerDeps): () => void {
       case "n":
       case "N":
         step(e.shiftKey ? -1 : 1);
+        break;
+      case "h":
+      case "H":
+        store.setCameraMode(store.cameraMode === "pan" ? "orbit" : "pan");
         break;
       case "Home":
         flyTo(VIEWS.iso.clone());

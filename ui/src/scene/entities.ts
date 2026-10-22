@@ -6,7 +6,7 @@
  * and keeps them in sync with the entity data in the store:
  *
  *  - `spawn` creates the object hierarchy `root (transform + userData.entityId)
- *    → content (procedural meshes per phase)` and registers the entity data;
+ *    → content (model parts per phase)` and registers the entity data;
  *    it is the single creation entry point, so Fase 10 can wrap it in an
  *    `AddEntity` command without touching the callers (drop, duplicate,
  *    project load).
@@ -36,7 +36,7 @@ import {
   DEFAULT_NETWORK_PROPS,
 } from "../state/store";
 import { t } from "../state/i18n";
-import { buildContent } from "./buildings";
+import { buildContent, DEFAULT_FLOORS } from "./buildings";
 import { mergeContent } from "./merge-content";
 import { buildMarkerContent, buildNetworkContent } from "./network-models";
 import type { Terrain } from "./terrain";
@@ -107,7 +107,7 @@ export class EntityRegistry {
    * registers its data in the store. Single creation entry point — the
    * future `AddEntity` undo command (Fase 10) wraps this.
    *
-   * Builders by kind: procedural buildings (`buildings.ts`), network
+   * Builders by kind: Blender models — buildings (`buildings.ts`), network
    * elements and markers (`network-models.ts`, Fase 6). Network elements get
    * their default dynamic props (DESIGN.md §4.2).
    */
@@ -121,7 +121,7 @@ export class EntityRegistry {
       dynamicProps: isNetworkKind(kind) ? { ...DEFAULT_NETWORK_PROPS[kind] } : {},
       colliding: false,
     };
-    if (kind === "building") info.params.floors = 4; // DEFAULT_FLOORS
+    if (kind === "building") info.params.floors = DEFAULT_FLOORS;
 
     const content = new THREE.Group();
     this.buildContentFor(info, content);
@@ -181,7 +181,7 @@ export class EntityRegistry {
     for (const id of [...this.objects.keys()]) this.remove(id);
   }
 
-  /** Picks the procedural builder for an entity kind (phase rebuilds too). */
+  /** Picks the model builder for an entity kind (phase rebuilds too). */
   private buildContentFor(info: EntityInfo, content: THREE.Group): void {
     if (info.kind === MARKER_KIND) {
       buildMarkerContent(content, info.label ?? info.id);
@@ -303,7 +303,7 @@ export class EntityRegistry {
     this.onEntityChanged?.(id); // Fase 6: connected cables re-path
   }
 
-  /** Rebuilds the procedural content for the stored phase/params. */
+  /** Rebuilds the model content for the stored phase/params. */
   applyPhase(id: string): void {
     const info = store.getEntityInfo(id);
     const content = this.contents.get(id);

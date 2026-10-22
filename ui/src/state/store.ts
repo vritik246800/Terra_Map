@@ -181,6 +181,9 @@ export function cloneCableInfo(info: CableInfo): CableInfo {
 export type ToolId =
   "select" | "brush" | "paint" | "vegetation" | "road" | "cable" | "marker" | "ruler" | "dragging";
 
+/** Camera drag with the left button (Fase 16): rotate around the target or pan. */
+export type CameraMode = "orbit" | "pan";
+
 /** Ruler measurement (Fase 12): temporary — never saved nor undone (Q_LIST.md Q22). */
 export interface RulerState {
   from: Vec3Data | null;
@@ -290,6 +293,8 @@ const layers: Record<LayerId, LayerState> = {
 };
 const snap: { grid: SnapGrid; objects: boolean } = { grid: 0, objects: false };
 let layersPanelOpen = false;
+/** Fase 16 (Q_LIST.md Q38): what the left mouse button does to the camera. */
+let cameraMode: CameraMode = "orbit";
 let terrainRevision = 0;
 // Fase 11
 const environment: EnvironmentState = {
@@ -762,6 +767,15 @@ export const store = {
 
   toggleLayersPanel(): void {
     layersPanelOpen = !layersPanelOpen;
+    notify();
+  },
+
+  get cameraMode(): CameraMode {
+    return cameraMode;
+  },
+
+  setCameraMode(mode: CameraMode): void {
+    cameraMode = mode;
     notify();
   },
 

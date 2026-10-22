@@ -25,6 +25,7 @@ import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js
 import { layerBlockReason } from "../state/labels";
 import { store, type Plant, type ToolId } from "../state/store";
 import { showToast } from "../state/toasts";
+import { cameraMouseButtons } from "../scene/camera";
 import { shouldIgnoreShortcut } from "../scene/shortcuts";
 import type { Terrain } from "../scene/terrain";
 import type { VegetationLayer } from "../scene/vegetation";
@@ -78,7 +79,6 @@ export function initBrush(deps: BrushDeps): () => void {
   ring.visible = false;
   scene.add(ring);
 
-  const savedMouseButtons = { ...controls.mouseButtons };
   let stroking = false;
   let lastDab: { x: number; z: number } | null = null;
   /** Vegetation being edited by the current gesture (copy of the store list). */
@@ -198,7 +198,10 @@ export function initBrush(deps: BrushDeps): () => void {
     }
   }
 
-  /** Applies/removes the OrbitControls remap while the brush is active. */
+  /**
+   * Applies/removes the OrbitControls remap while the brush is active; off
+   * the brush, the buttons follow the camera mode (Fase 16, `H`).
+   */
   function syncControls(): void {
     if (isBrushTool(store.tool)) {
       controls.mouseButtons = {
@@ -207,7 +210,7 @@ export function initBrush(deps: BrushDeps): () => void {
         RIGHT: THREE.MOUSE.ROTATE,
       };
     } else {
-      controls.mouseButtons = { ...savedMouseButtons };
+      controls.mouseButtons = cameraMouseButtons(store.cameraMode);
     }
     syncCursor();
   }
@@ -224,7 +227,7 @@ export function initBrush(deps: BrushDeps): () => void {
 
   return () => {
     unsubscribe();
-    controls.mouseButtons = { ...savedMouseButtons };
+    controls.mouseButtons = cameraMouseButtons(store.cameraMode);
     scene.remove(ring);
     ring.geometry.dispose();
     (ring.material as THREE.Material).dispose();

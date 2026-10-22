@@ -1019,7 +1019,8 @@ export function RightPanel({
 
   return (
     <aside
-      className={`panel-right glass${open ? " open" : ""}`}
+      // Fase 16 (Q_LIST.md Q37): wide screens hide the panel while it has nothing to show.
+      className={`panel-right glass${open ? " open" : ""}${signature === "empty" ? " is-empty" : ""}`}
       role="complementary"
       aria-label={t("panel.label")}
     >

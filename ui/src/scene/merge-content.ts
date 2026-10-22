@@ -1,13 +1,13 @@
 /**
- * Draw-call reduction for procedural models (Fase 9, DECISAO_TECNOLOGICA.md).
+ * Draw-call reduction for entity models (Fase 9, DECISAO_TECNOLOGICA.md).
  *
- * A house is ~9 meshes and a building one per floor and band (up to ~100),
+ * A Blender house is ~30 meshes and a building ~40 per floor (Fase 16),
  * each a draw call — twice with shadows. `mergeContent` fuses every mesh of
  * an entity into ONE mesh: positions/normals in content space, the source
  * material color baked as vertex colors, one MeshStandardMaterial. Same
  * look, one draw call per entity; selection, bounding boxes and the phase
- * opacity (uniform per entity) keep working. Non-mesh children (lot edge
- * lines, marker sprites) are left as they are.
+ * opacity (uniform per entity) keep working. Non-mesh children (marker
+ * label sprites) are left as they are.
  *
  * ponytail: per-entity merge, not cross-entity instancing — entities stay
  * individually editable; InstancedMesh is for many identical, non-editable
@@ -26,14 +26,24 @@ function matrixRelativeTo(object: THREE.Object3D, root: THREE.Object3D): THREE.M
   return matrix;
 }
 
-export function mergeContent(content: THREE.Group): void {
+/** Every single-material mesh under `content`. */
+function meshesOf(content: THREE.Object3D): THREE.Mesh[] {
   const meshes: THREE.Mesh[] = [];
   content.traverse((obj) => {
     if (obj instanceof THREE.Mesh && !Array.isArray(obj.material)) meshes.push(obj);
   });
-  if (meshes.length < 2) return;
+  return meshes;
+}
 
-  const template = meshes[0].material as THREE.MeshStandardMaterial;
+/**
+ * One geometry for every mesh under `content` (content space, position +
+ * normal, material colors baked as vertex colors). `null` when there is no
+ * mesh or the attributes don't fit. Also feeds the instanced vegetation
+ * (Fase 16, `scene/vegetation.ts`).
+ */
+export function mergedGeometry(content: THREE.Object3D): THREE.BufferGeometry | null {
+  const meshes = meshesOf(content);
+  if (meshes.length === 0) return null;
   const parts = meshes.map((mesh) => {
     const source = mesh.geometry;
     const geometry = source.index ? source.toNonIndexed() : source.clone();
@@ -51,6 +61,15 @@ export function mergeContent(content: THREE.Group): void {
   });
   const merged = mergeGeometries(parts);
   for (const part of parts) part.dispose();
+  return merged;
+}
+
+export function mergeContent(content: THREE.Group): void {
+  const meshes = meshesOf(content);
+  if (meshes.length < 2) return;
+
+  const template = meshes[0].material as THREE.MeshStandardMaterial;
+  const merged = mergedGeometry(content);
   if (!merged) return; // incompatible attributes — keep the separate meshes
 
   const mesh = new THREE.Mesh(

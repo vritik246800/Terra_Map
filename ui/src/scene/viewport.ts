@@ -106,6 +106,7 @@ export function createViewport(): ViewportHandles {
   controls.minDistance = 5;
   controls.maxDistance = 800;
   controls.maxPolarAngle = Math.PI / 2 - 0.05; // never below the terrain
+  controls.screenSpacePanning = false; // Fase 16: pan slides along the ground, like a map
 
   // ---- Scene contents ----
   const { grid, axes } = addHelpers(scene);

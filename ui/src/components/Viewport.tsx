@@ -1,6 +1,7 @@
 /**
  * Viewport shell (DESIGN.md §5, §14): `<main>` + the Fase 7 simulator card +
- * the Fase 9 minimap + the Fase 10 layers/history card (`L`). The three.js scene lives outside React —
+ * the Fase 9 minimap + the Fase 10 layers/history card (`L`) + the Fase 16
+ * Rotate/Move camera switch (`H`). The three.js scene lives outside React —
  * `scene/viewport.ts` builds it once in `main.tsx`; this component only
  * attaches its canvas host and the minimap's canvas, and plays A20 when the
  * minimap expands/collapses.
@@ -11,7 +12,8 @@ import { a20Resize } from "../anim/ui";
 import type { Minimap } from "../scene/minimap";
 import { shouldIgnoreShortcut } from "../scene/shortcuts";
 import { t } from "../state/i18n";
-import { store } from "../state/store";
+import { store, type CameraMode } from "../state/store";
+import { useStore } from "../state/use-store";
 import type { HistoryActions } from "../tools/history";
 import type { SimulationActions } from "../tools/simulation";
 import { LayersPanel } from "./LayersPanel";
@@ -20,6 +22,46 @@ import { SimulationPanel } from "./SimulationPanel";
 /** Minimap sizes in px (UX.md §5). */
 const MINIMAP_SIZE = 180;
 const MINIMAP_EXPANDED = 320;
+
+const CAMERA_ICONS: Record<CameraMode, string> = {
+  orbit: "M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6",
+  pan: "M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3",
+};
+
+/** Fase 16 (Q_LIST.md Q38): what a left-button drag does — rotate or move the camera. */
+function CameraModeSwitch() {
+  const { cameraMode } = useStore();
+  return (
+    <div className="camera-mode glass" role="group" aria-label={t("viewport.cameraMode")}>
+      {(Object.keys(CAMERA_ICONS) as CameraMode[]).map((mode) => (
+        <button
+          key={mode}
+          type="button"
+          className={`camera-mode__button${mode === cameraMode ? " is-active" : ""}`}
+          aria-pressed={mode === cameraMode}
+          aria-label={t(`viewport.${mode}`)}
+          title={t(`viewport.${mode}`)}
+          onClick={() => store.setCameraMode(mode)}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d={CAMERA_ICONS[mode]} />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function Viewport({
   canvasHost,
@@ -65,6 +107,7 @@ export function Viewport({
     <main ref={ref} className="viewport" aria-label={t("viewport.label")}>
       <SimulationPanel simulation={simulation} />
       <LayersPanel history={history} />
+      <CameraModeSwitch />
       <div ref={mapRef} className="minimap glass" aria-label={t("viewport.minimap")}>
         <button
           type="button"

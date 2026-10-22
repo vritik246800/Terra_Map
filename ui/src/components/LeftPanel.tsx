@@ -6,11 +6,14 @@
  * tool (§12), "Guardar preset" saves, "Presets" lists/loads saved presets.
  * Infraestruturas / Redes: drag into the viewport (A4/A5 in tools/drag-drop.ts);
  * "Modelo personalizado" only after a `.glb` import; Cabo/Marcador toggle tools.
+ * Fase 16 (Q_LIST.md Q36): those two groups are a 2-column grid of cards with
+ * the Blender thumbnail of the model and its name.
  */
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { a15Init, a15Toggle } from "../anim/ui";
 import type { PresetSummary } from "../net/bridge";
+import { modelUrl } from "../scene/models";
 import { t, type MessageKey } from "../state/i18n";
 import { kindLabel } from "../state/labels";
 import { CUSTOM_GLB_KIND, isNetworkKind, type TerrainPresetId, type ToolId } from "../state/store";
@@ -29,6 +32,8 @@ interface CatalogGroupDef {
   id: "terrain" | "infra" | "network" | "environment";
   /** Entity kinds use their `kind.*` label; the rest `catalog.items.<kind>`. */
   kinds: string[];
+  /** Fase 16: model cards in a 2-column grid. */
+  grid?: boolean;
 }
 
 /** Catalog contents per DESIGN.md §5.2 (kinds are stable ids; labels follow the language). */
@@ -46,9 +51,10 @@ const CATALOG: CatalogGroupDef[] = [
       "importHeightmap",
     ],
   },
-  { id: "infra", kinds: ["house", "building", "lot", CUSTOM_GLB_KIND] },
+  { id: "infra", kinds: ["house", "building", "lot", CUSTOM_GLB_KIND], grid: true },
   {
     id: "network",
+    grid: true,
     kinds: [
       "antenna",
       "router",
@@ -73,6 +79,37 @@ function itemLabel(kind: string): string {
   return ENTITY_ITEMS.has(kind) || isNetworkKind(kind)
     ? kindLabel(kind)
     : t(`catalog.items.${kind}` as MessageKey);
+}
+
+/** Fase 16: items with a model thumbnail (`public/models/<kind>.png`, from Blender). */
+const THUMB_KINDS = new Set([
+  "house",
+  "building",
+  "lot",
+  "antenna",
+  "router",
+  "switch",
+  "olt",
+  "onu",
+  "splitter",
+  "pole",
+  "box",
+  "cable",
+  "marker",
+]);
+
+/** Button class + contents: a model card (thumbnail + name) or the plain label. */
+function face(kind: string, label: string): { card: string; children: ReactNode } {
+  if (!THUMB_KINDS.has(kind)) return { card: "", children: label };
+  return {
+    card: " catalog-card",
+    children: (
+      <>
+        <img className="catalog-thumb" src={modelUrl(`${kind}.png`)} alt="" draggable={false} />
+        <span className="catalog-name">{label}</span>
+      </>
+    ),
+  };
 }
 
 const TERRAIN_PRESET_KINDS = new Set(["flat", "mountains", "valley", "custom"]);
@@ -142,7 +179,7 @@ function CatalogGroup({
         </span>
       </button>
       <div ref={itemsRef} className="catalog-group-items" id={itemsId}>
-        <ul className="catalog-list">{children}</ul>
+        <ul className={`catalog-list${def.grid ? " is-grid" : ""}`}>{children}</ul>
       </div>
     </section>
   );
@@ -238,15 +275,16 @@ export function LeftPanel({
     if (TOOL_KINDS.has(kind)) {
       const tool = kind as ToolId;
       const active = store.tool === tool;
+      const { card, children } = face(kind, label);
       return (
         <li key={kind}>
           <button
             type="button"
-            className={`catalog-item${active ? " is-active" : ""}`}
+            className={`catalog-item${card}${active ? " is-active" : ""}`}
             aria-pressed={active}
             onClick={() => store.setTool(active ? "select" : tool)}
           >
-            {label}
+            {children}
           </button>
         </li>
       );
@@ -307,11 +345,12 @@ export function LeftPanel({
     }
 
     // Casa/Prédio/Lote (Fase 4) and network elements (Fase 6) drag & drop.
+    const { card, children } = face(kind, label);
     return (
       <li key={kind}>
         <button
           type="button"
-          className="catalog-item"
+          className={`catalog-item${card}`}
           draggable
           data-kind={kind}
           title={t("catalog.place")}
@@ -324,7 +363,7 @@ export function LeftPanel({
             if (isBuildingKind(kind) || isNetworkKind(kind)) placeEntityAtCenter(kind);
           }}
         >
-          {label}
+          {children}
         </button>
       </li>
     );

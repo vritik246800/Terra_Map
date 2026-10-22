@@ -28,6 +28,7 @@ const SHORTCUTS: ReadonlyArray<[keys: string, action: MessageKey]> = [
   ["F", "shortcuts.actions.focus"],
   ["1 / 2 / 3", "shortcuts.actions.views"],
   ["Home", "shortcuts.actions.home"],
+  ["H", "shortcuts.actions.cameraMode"],
   ["N / Shift + N", "shortcuts.actions.next"],
   ["Tab / Shift + Tab", "shortcuts.actions.tab"],
   ["shortcuts.keys.space", "shortcuts.actions.space"],

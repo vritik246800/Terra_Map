@@ -32,6 +32,9 @@ export function playStartupAnimation(root: ParentNode = document): void {
       duration: 0.4,
       ease: "power3.out",
       stagger: 0.06,
+      // Fase 16 (ERRORS.md E52): hand opacity back to the CSS — the right
+      // panel starts hidden (`is-empty`), so a kept inline 0 would hide it for good.
+      clearProps: "transform,opacity",
     });
   }
 }

@@ -3,34 +3,21 @@
  * a whole forest is two draw calls. Instances follow `store.vegetation` (and
  * the relief, after every terrain change); while the brush scatters, the
  * gesture's working list is shown through `preview` before it reaches the
- * store. Geometries carry vertex colors (trunk/crown) like the merged
- * procedural models (`merge-content.ts`).
+ * store. Geometries are the Blender tree/bush models merged into one
+ * vertex-colored geometry (`merge-content.ts`, Fase 16).
  */
 import * as THREE from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import { store, type Plant, type PlantKind } from "../state/store";
+import { mergedGeometry } from "./merge-content";
+import { cloneModel } from "./models";
 import type { Terrain } from "./terrain";
 
 const INITIAL_CAPACITY = 256;
 
-/** Paints a geometry with one color (vertex colors) and drops its uv. */
-function colored(geometry: THREE.BufferGeometry, hex: string, y: number): THREE.BufferGeometry {
-  const g = geometry.index ? geometry.toNonIndexed() : geometry;
-  g.deleteAttribute("uv");
-  g.translate(0, y, 0);
-  const c = new THREE.Color(hex);
-  const colors = new Float32Array(g.getAttribute("position").count * 3);
-  for (let i = 0; i < colors.length; i += 3) colors.set([c.r, c.g, c.b], i);
-  g.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  return g;
-}
-
+/** The Blender model of a species as one vertex-colored geometry (Fase 16). */
 function speciesGeometry(kind: PlantKind): THREE.BufferGeometry {
-  if (kind === "bush") return colored(new THREE.IcosahedronGeometry(0.9, 1), "#4f8f45", 0.7);
-  const trunk = colored(new THREE.CylinderGeometry(0.18, 0.25, 2, 8), "#6b4a2f", 1);
-  const crown = colored(new THREE.ConeGeometry(1.5, 4, 10), "#3f7d3a", 3.8);
-  return mergeGeometries([trunk, crown]) ?? trunk;
+  return mergedGeometry(cloneModel(kind)) ?? new THREE.BufferGeometry();
 }
 
 export class VegetationLayer {
