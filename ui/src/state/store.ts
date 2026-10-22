@@ -202,12 +202,28 @@ export interface EnvironmentState {
   water: { enabled: boolean; level: number };
 }
 
+/** Point of a road; Fase 18: `elevation` = its lift above the terrain (bridge / viaduct, 0–30 m). */
+export interface RoadPoint {
+  x: number;
+  z: number;
+  elevation: number;
+}
+
 /** Road drawn by points over the relief (Fase 11, MODELO_DADOS.md §1.1). */
 export interface RoadInfo {
   id: string;
-  points: Array<{ x: number; z: number }>;
+  points: RoadPoint[];
   width: number;
 }
+
+/** Fase 18: point, or side (stretch `index` → `index + 1`), of the selected road being raised/lowered. */
+export interface RoadPart {
+  kind: "point" | "side";
+  index: number;
+}
+
+/** Highest «Bridge height» of a road (mirrors the core's MAX_ROAD_ELEVATION). */
+export const MAX_ROAD_ELEVATION = 30;
 
 export type PlantKind = "tree" | "bush";
 
@@ -279,12 +295,22 @@ export type SnapGrid = 0 | 0.25 | 0.5 | 1;
 
 /** Modals of the app (Fase 8, UX.md §1.1). */
 export type ModalId =
-  "shortcuts" | "guide" | "recovery" | "unsaved" | "report" | "profile" | "onboarding" | "update";
+  | "shortcuts"
+  | "guide"
+  | "recovery"
+  | "unsaved"
+  | "report"
+  | "profile"
+  | "onboarding"
+  | "update"
+  | "reset"; // Fase 17
 
 type Listener = () => void;
 
 /** Selected ids in selection order; the last one is the primary (`selected`). */
 let selectedIds: string[] = [];
+/** Fase 18: chosen part of the selected road (null = the whole road); dropped when the selection changes. */
+let roadPart: RoadPart | null = null;
 const layers: Record<LayerId, LayerState> = {
   terrain: { visible: true, locked: false },
   infra: { visible: true, locked: false },
@@ -293,6 +319,8 @@ const layers: Record<LayerId, LayerState> = {
 };
 const snap: { grid: SnapGrid; objects: boolean } = { grid: 0, objects: false };
 let layersPanelOpen = false;
+/** Fase 17: editing grid on the terrain + axes (`G`, View menu, Layers). */
+let gridVisible = true;
 /** Fase 16 (Q_LIST.md Q38): what the left mouse button does to the camera. */
 let cameraMode: CameraMode = "orbit";
 let terrainRevision = 0;
@@ -302,9 +330,11 @@ const environment: EnvironmentState = {
   water: { ...DEFAULT_ENVIRONMENT.water },
 };
 let environmentPanelOpen = false;
-const paintTool: { material: MaterialId } = { material: 1 };
+/** Fase 17: `eraser` turns the material brush into the eraser (Q_LIST.md Q44). */
+const paintTool: { material: MaterialId; eraser: boolean } = { material: 1, eraser: false };
 const vegetationTool: { kind: PlantKind; density: number } = { kind: "tree", density: 0.05 };
-const roadTool = { width: 4 };
+/** Fase 17: `elevation` = Bridge height of the next road's free points (Fase 18). */
+const roadTool = { width: 7, elevation: 0 };
 const roads = new Map<string, RoadInfo>();
 let vegetation: Plant[] = [];
 // Fase 12
@@ -364,6 +394,7 @@ function layerOfId(id: string): LayerId {
 }
 
 function notifySelection(): void {
+  roadPart = null;
   selectionListeners.forEach((l) => l());
   notify();
 }
@@ -416,6 +447,21 @@ export const store = {
 
   isSelected(id: string): boolean {
     return selectedIds.includes(id);
+  },
+
+  /** Fase 18: chosen point/side of the (only) selected road, still in range; null = the whole road. */
+  get roadPart(): RoadPart | null {
+    const road = selectedIds.length === 1 ? roads.get(selectedIds[0]) : undefined;
+    if (!road || !roadPart) return null;
+    const count = road.points.length - (roadPart.kind === "side" ? 1 : 0);
+    return roadPart.index < count ? roadPart : null;
+  },
+
+  /** Not saved nor undone, like the selection itself. */
+  setRoadPart(part: RoadPart | null): void {
+    roadPart = part;
+    selectionListeners.forEach((l) => l());
+    notify();
   },
 
   /** Registers the data of an entity present in the scene (Fase 4). */
@@ -770,6 +816,15 @@ export const store = {
     notify();
   },
 
+  get gridVisible(): boolean {
+    return gridVisible;
+  },
+
+  toggleGrid(): void {
+    gridVisible = !gridVisible;
+    notify();
+  },
+
   get cameraMode(): CameraMode {
     return cameraMode;
   },
@@ -801,12 +856,18 @@ export const store = {
     notify();
   },
 
-  get paintTool(): Readonly<{ material: MaterialId }> {
+  get paintTool(): Readonly<{ material: MaterialId; eraser: boolean }> {
     return paintTool;
+  },
+
+  setPaintEraser(on: boolean): void {
+    paintTool.eraser = on;
+    notify();
   },
 
   setPaintMaterial(material: MaterialId): void {
     paintTool.material = material;
+    paintTool.eraser = false;
     notify();
   },
 
@@ -819,12 +880,17 @@ export const store = {
     notify();
   },
 
-  get roadTool(): Readonly<{ width: number }> {
+  get roadTool(): Readonly<{ width: number; elevation: number }> {
     return roadTool;
   },
 
   setRoadWidth(width: number): void {
     roadTool.width = width;
+    notify();
+  },
+
+  setRoadElevation(elevation: number): void {
+    roadTool.elevation = elevation;
     notify();
   },
 

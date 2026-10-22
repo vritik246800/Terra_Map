@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { playStartupAnimation } from "./anim/startup";
-import { FabMenu } from "./components/FabMenu";
 import { LeftPanel } from "./components/LeftPanel";
 import { ModalHost } from "./components/ModalHost";
 import { RightPanel } from "./components/RightPanel";
@@ -28,7 +27,10 @@ export interface AppProps {
   report: ReportActions;
 }
 
-/** App layout (DESIGN.md §5): top bar, catalog, viewport, properties, FAB, modals, toasts. */
+/**
+ * App layout (DESIGN.md §5): the viewport fills the window and the top bar,
+ * catalog and properties float over it (Fase 17); modals, toasts.
+ */
 export function App({
   viewport,
   terrainActions,
@@ -53,9 +55,11 @@ export function App({
       <div ref={layoutRef} className="app">
         <TopBar
           onSave={() => void projectActions.save()}
+          onSaveAs={() => void projectActions.save(true)}
           onOpen={() => void projectActions.open()}
           onImport={() => void glbActions.importGlb()}
           onExport={() => void glbActions.exportGlb()}
+          onPresent={presentation.start}
           onTogglePanel={(side) => setOpenPanels((p) => ({ ...p, [side]: !p[side] }))}
         />
         <LeftPanel actions={terrainActions} open={openPanels.left} onPresent={presentation.start} />
@@ -74,7 +78,6 @@ export function App({
           open={openPanels.right}
         />
       </div>
-      <FabMenu />
       <ModalHost project={projectActions} report={report} />
       <Toasts />
     </>

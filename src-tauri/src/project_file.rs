@@ -40,6 +40,8 @@ const LAYER_IDS: [&str; 4] = ["terrain", "infra", "net", "markers"];
 const PLANT_KINDS: [&str; 2] = ["tree", "bush"];
 const MAX_PLANTS: usize = 50_000;
 const MAX_ROAD_WIDTH: f64 = 100.0;
+/// Highest bridge/viaduct lift of a road above its end points (Fase 17).
+const MAX_ROAD_ELEVATION: f64 = 30.0;
 const MAX_PLANT_SCALE: f64 = 20.0;
 const MAX_RESOLUTION: u32 = 1024;
 const MAX_SIZE: u32 = 10_000;
@@ -110,6 +112,10 @@ impl Default for Environment {
 pub struct RoadPoint {
     pub x: f64,
     pub z: f64,
+    /// Fase 18: lift of this point above the terrain, in meters (0–30).
+    /// Absent (Fase 11–17 files) = the road's `elevation`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub elevation: Option<f64>,
 }
 
 /// Road drawn by points over the relief (Fase 11).
@@ -118,6 +124,11 @@ pub struct Road {
     pub id: String,
     pub points: Vec<RoadPoint>,
     pub width: f64,
+    /// Fase 17: lift of the end points above the terrain, in meters (bridge /
+    /// viaduct height). Files without it (Fase 11–16) read as 0. Since Fase 18
+    /// the lift is per point; this stays as the lowest one, for older readers.
+    #[serde(default)]
+    pub elevation: f64,
 }
 
 /// One tree or bush of the vegetation brush (Fase 11).
@@ -332,8 +343,13 @@ impl ProjectFile {
                 return invalid(format!("invalid scenario: “{}”", sc.name));
             }
         }
+        let lift_ok = |e: f64| (0.0..=MAX_ROAD_ELEVATION).contains(&e);
         for r in &self.roads {
-            if r.points.len() < 2 || !(r.width > 0.0 && r.width <= MAX_ROAD_WIDTH) {
+            if r.points.len() < 2
+                || !(r.width > 0.0 && r.width <= MAX_ROAD_WIDTH)
+                || !lift_ok(r.elevation)
+                || !r.points.iter().all(|p| p.elevation.is_none_or(lift_ok))
+            {
                 return invalid(format!("invalid road: {}", r.id));
             }
         }
@@ -730,8 +746,20 @@ mod tests {
             },
             roads: vec![Road {
                 id: "road_1".into(),
-                points: vec![RoadPoint { x: 0.0, z: 0.0 }, RoadPoint { x: 10.0, z: 5.0 }],
+                points: vec![
+                    RoadPoint {
+                        x: 0.0,
+                        z: 0.0,
+                        elevation: None,
+                    },
+                    RoadPoint {
+                        x: 10.0,
+                        z: 5.0,
+                        elevation: Some(12.5),
+                    },
+                ],
                 width: 4.0,
+                elevation: 6.5,
             }],
             vegetation: vec![Plant {
                 kind: "tree".into(),
@@ -795,6 +823,42 @@ mod tests {
     }
 
     #[test]
+    fn roads_without_elevation_read_as_ground_level() {
+        // Fase 11–16 files have no `elevation`: the road stays on the terrain.
+        let mut value = serde_json::to_value(sample()).unwrap();
+        value["roads"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("elevation");
+        let project = migrate(value).unwrap();
+        assert_eq!(project.roads[0].elevation, 0.0);
+        assert_eq!(project.roads[0].width, 4.0);
+        // And the field survives a round trip.
+        let back = migrate(serde_json::to_value(sample()).unwrap()).unwrap();
+        assert_eq!(back.roads[0].elevation, 6.5);
+    }
+
+    #[test]
+    fn road_points_keep_their_own_elevation() {
+        // Fase 18: the lift is per point; Fase 11–17 points have none (the
+        // frontend falls back to the road's `elevation`).
+        let value = serde_json::to_value(sample()).unwrap();
+        assert!(value["roads"][0]["points"][0].get("elevation").is_none());
+        assert_eq!(value["roads"][0]["points"][1]["elevation"], 12.5);
+        let back = migrate(value).unwrap();
+        assert_eq!(back.roads[0].points[0].elevation, None);
+        assert_eq!(back.roads[0].points[1].elevation, Some(12.5));
+        assert_invalid(|p| p.roads[0].points[1].elevation = Some(-0.5));
+        assert_invalid(|p| p.roads[0].points[1].elevation = Some(30.5));
+        assert_invalid(|p| p.roads[0].points[0].elevation = Some(f64::NAN));
+        // 0 and 30 are the limits, both allowed.
+        let mut edge = sample();
+        edge.roads[0].points[0].elevation = Some(0.0);
+        edge.roads[0].points[1].elevation = Some(30.0);
+        edge.validate().unwrap();
+    }
+
+    #[test]
     fn unknown_fields_are_ignored() {
         let mut value = serde_json::to_value(sample()).unwrap();
         value["futureThing"] = json!({ "x": 1 });
@@ -849,6 +913,9 @@ mod tests {
         assert_invalid(|p| p.environment.fog = -0.1);
         assert_invalid(|p| p.roads[0].points.truncate(1));
         assert_invalid(|p| p.roads[0].width = 0.0);
+        assert_invalid(|p| p.roads[0].elevation = -1.0);
+        assert_invalid(|p| p.roads[0].elevation = 30.5);
+        assert_invalid(|p| p.roads[0].elevation = f64::NAN);
         assert_invalid(|p| p.roads[0].id = "bld_1".into()); // ids are global
         assert_invalid(|p| p.vegetation[0].kind = "cactus".into());
         assert_invalid(|p| p.vegetation[0].scale = 0.0);

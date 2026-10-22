@@ -8,7 +8,7 @@
 :root {
   /* Colors (§7.1) */
   --bg: #f5f5f7;
-  --surface: rgba(255, 255, 255, 0.72);
+  --surface: rgba(255, 255, 255, 0.6); /* Fase 17: panels float over the map */
   --surface-strong: #ffffff;
   --text: #1d1d1f;
   --text-muted: #6e6e73;
@@ -17,6 +17,8 @@
   --accent-text: #0066cc; /* Fase 13: blue text, 5.1:1 on --bg */
   --accent-soft: rgba(0, 113, 227, 0.18); /* A8 flash (Fase 9) */
   --on-accent: #ffffff; /* text on --accent / --danger */
+  --chip: rgba(20, 22, 26, 0.86); /* Fase 17: measurement chips over the map (both themes) */
+  --on-chip: #ffffff;
   --danger: #d70015; /* Fase 13: AA with white text (5.4:1) */
   --danger-text: #d70015; /* Fase 13: error text, 4.9:1 on --bg */
   --danger-soft: rgba(215, 0, 21, 0.08); /* warning backgrounds */
@@ -32,7 +34,7 @@
   --radius-full: 999px;
   --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --blur: blur(20px) saturate(180%);
+  --blur: blur(28px) saturate(180%); /* Fase 17: stronger, the map is behind */
 
   /* Typography (§7.4) */
   --font-base: -apple-system, "SF Pro Text", Inter, system-ui, sans-serif;
@@ -44,7 +46,7 @@
 /* ---- Dark theme overrides (DESIGN.md §3; Fase 13: AA contrast) ---- */
 [data-theme="dark"] {
   --bg: #1c1c1e;
-  --surface: rgba(44, 44, 46, 0.72);
+  --surface: rgba(30, 30, 34, 0.58); /* Fase 17 */
   --surface-strong: #2c2c2e;
   --text: #f5f5f7;
   --text-muted: #98989d;
@@ -109,45 +111,61 @@ body {
   box-shadow: var(--shadow-1);
 }
 
-/* ---- App layout grid (PLAN Fase 1 / DESIGN §5) ---- */
+/* ---- App layout (Fase 17, DESIGN §5, UX.md §1.1): the map fills the window;
+   the top bar and both panels float over it (glass + blur). The right panel
+   slides in/out over the map, so the canvas never resizes (no flicker).
+   Viewport overlays keep clear of the panels through the --inset-* vars. ---- */
 .app {
-  display: grid;
-  grid-template: "top top top" 52px "left view right" 1fr / 260px 1fr 300px;
-  background: var(--bg);
+  --gap: 10px;
+  --top-h: 52px;
+  --inset-top: calc(var(--gap) * 2 + var(--top-h));
+  --inset-left: calc(var(--gap) * 2 + 260px);
+  --inset-right: var(--gap);
+  position: relative;
   height: 100vh;
+  background: var(--bg);
 }
 
 .navbar-top {
-  grid-area: top;
+  position: absolute;
+  top: var(--gap);
+  left: var(--gap);
+  right: var(--gap);
+  z-index: 30;
+  height: var(--top-h);
   display: flex;
   align-items: center;
 }
 
-.panel-left {
-  grid-area: left;
-  margin: 8px;
+.viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.panel-left,
+.panel-right {
+  position: absolute;
+  top: var(--inset-top);
+  bottom: var(--gap);
+  z-index: 20;
   overflow-y: auto;
 }
 
-.viewport {
-  grid-area: view;
-  position: relative;
-  overflow: hidden;
-  min-width: 0;
+.navbar-top.glass,
+.panel-left.glass,
+.panel-right.glass {
+  box-shadow: var(--shadow-2);
+}
+
+.panel-left {
+  left: var(--gap);
+  width: 260px;
 }
 
 .panel-right {
-  grid-area: right;
-  margin: 8px;
-  overflow-y: auto;
-}
-
-/* ---- Circular button: position only; appearance lives in its module ---- */
-.fab {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  z-index: 40;
+  right: var(--gap);
+  width: 300px;
 }
 
 /* ---- Panel toggle buttons (top bar): only visible on small screens ---- */
@@ -155,10 +173,35 @@ body {
   display: none;
 }
 
+/* ---- A24 (Fase 16 → 17, Q_LIST.md Q37): the right panel only shows with
+   content — it slides in from the right edge over the map ---- */
+@media (min-width: 1101px) {
+  .app:has(> .panel-right:not(.is-empty)) {
+    --inset-right: calc(var(--gap) * 2 + 300px);
+  }
+
+  .panel-right {
+    transition:
+      transform 250ms cubic-bezier(0.45, 0, 0.55, 1),
+      opacity 250ms ease;
+  }
+
+  .panel-right.is-empty {
+    transform: translateX(calc(100% + var(--gap) * 2));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      transform 250ms cubic-bezier(0.45, 0, 0.55, 1),
+      opacity 250ms ease,
+      visibility 0s linear 250ms;
+  }
+}
+
 /* ---- Responsive collapse (PLAN Fase 1): panels become off-canvas overlays ---- */
 @media (max-width: 1100px) {
   .app {
-    grid-template: "top" 52px "view" 1fr / 1fr;
+    --inset-left: var(--gap);
   }
 
   .panel-toggle {
@@ -167,11 +210,7 @@ body {
 
   .panel-left,
   .panel-right {
-    position: fixed;
-    top: 60px;
-    bottom: 8px;
-    margin: 0;
-    z-index: 30;
+    z-index: 35;
     opacity: 0;
     pointer-events: none;
     transition:
@@ -180,15 +219,11 @@ body {
   }
 
   .panel-left {
-    left: 8px;
-    width: 260px;
-    transform: translateX(calc(-100% - 8px));
+    transform: translateX(calc(-100% - var(--gap) * 2));
   }
 
   .panel-right {
-    right: 8px;
-    width: 300px;
-    transform: translateX(calc(100% + 8px));
+    transform: translateX(calc(100% + var(--gap) * 2));
   }
 
   .panel-left.open,
@@ -199,46 +234,22 @@ body {
   }
 }
 
-/* ---- Fase 16 (A24, Q_LIST.md Q37): the right panel only shows with content;
-   empty, its column closes and the viewport takes the space ---- */
-@media (min-width: 1101px) {
-  .app {
-    transition: grid-template-columns 250ms cubic-bezier(0.45, 0, 0.55, 1);
-  }
-
-  .app:has(> .panel-right.is-empty) {
-    grid-template-columns: 260px 1fr 0px;
-  }
-
-  .panel-right.is-empty {
-    margin-inline: 0;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition:
-      opacity 250ms ease,
-      visibility 0s linear 250ms;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .app {
+  .panel-left,
+  .panel-right,
+  .panel-right.is-empty {
     transition: none;
   }
 }
 
 /* ---- Presentation mode (Fase 11, A22): full-window viewport, panels fade ---- */
-.navbar-top,
-.panel-left,
-.panel-right,
-.fab {
+.navbar-top {
   transition: opacity 300ms ease;
 }
 
 .is-presenting .navbar-top,
 .is-presenting .panel-left,
 .is-presenting .panel-right,
-.is-presenting .fab,
 .is-presenting .sim-panel,
 .is-presenting .layers-panel,
 .is-presenting .camera-mode,

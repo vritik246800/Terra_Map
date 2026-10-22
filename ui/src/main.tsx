@@ -24,6 +24,8 @@ function start(app: HTMLDivElement): void {
   // The three.js scene is built once, outside React (ARCHITECTURE.md);
   // components talk to it through the store and these handles.
   const viewport = createViewport();
+  // Smoke tests read the scene through this handle — dev server only, never in a build.
+  if (import.meta.env.DEV) Object.assign(window, { __viewport: viewport });
   const terrainActions = createTerrainActions(viewport.terrain);
   // Fase 5: .glb import/export (topbar buttons + Ctrl/Cmd+E / Ctrl/Cmd+I).
   const glbActions = createGlbActions({
@@ -33,6 +35,7 @@ function start(app: HTMLDivElement): void {
     extras: () => [
       ...viewport.roads.pickables,
       ...viewport.vegetation.objects,
+      ...viewport.details.objects, // Fase 17
       ...(viewport.environment.water.visible ? [viewport.environment.water] : []),
     ],
   });

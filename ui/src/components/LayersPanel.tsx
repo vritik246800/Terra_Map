@@ -102,6 +102,21 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
             </li>
           );
         })}
+        {/* Fase 17: the editing grid drawn on the relief (also `G`, View › Grid). */}
+        <li className={`layers-list__item${store.gridVisible ? "" : " is-hidden"}`}>
+          <span className="layers-list__name">{t("layersPanel.grid")}</span>
+          <button
+            type="button"
+            className="layers-list__toggle"
+            aria-pressed={store.gridVisible}
+            aria-label={t(store.gridVisible ? "layersPanel.hide" : "layersPanel.show", {
+              name: t("layersPanel.grid"),
+            })}
+            onClick={() => store.toggleGrid()}
+          >
+            {store.gridVisible ? EYE : EYE_OFF}
+          </button>
+        </li>
       </ul>
 
       <h2 className="layers-panel__title layers-panel__title--section">
@@ -123,6 +138,14 @@ export function LayersPanel({ history }: { history: HistoryActions }) {
           onClick={history.redo}
         >
           {t("layersPanel.redo")}
+        </button>
+        {/* Fase 17 (Q_LIST.md Q45): wipe the map — asks first, undoable. */}
+        <button
+          type="button"
+          className="history-actions__button history-actions__button--danger"
+          onClick={() => store.openModal("reset")}
+        >
+          {t("layersPanel.reset")}
         </button>
       </div>
       <ol className="history-list" aria-label={t("layersPanel.historyList")}>

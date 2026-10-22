@@ -1,6 +1,6 @@
 /**
  * Layers in the scene (Fase 10, UX.md §1.1): applies the visibility of the
- * fixed layers — terrain (+ vegetation), infrastructures (+ roads), network
+ * fixed layers — terrain (+ vegetation, Fase 17 details), infrastructures (+ roads), network
  * (elements + cables), markers — after every store change, and plays A17 when a layer comes back.
  * Picking rules for hidden/locked layers live in `store.isPickable`.
  */
@@ -12,6 +12,7 @@ import type { CableRegistry } from "./cables";
 import type { EntityRegistry } from "./entities";
 import type { RoadRegistry } from "./roads";
 import type { Terrain } from "./terrain";
+import type { TerrainDetails } from "./terrain-details";
 import type { VegetationLayer } from "./vegetation";
 
 export function initLayers(deps: {
@@ -20,8 +21,9 @@ export function initLayers(deps: {
   terrain: Terrain;
   roads: RoadRegistry;
   vegetation: VegetationLayer;
+  details: TerrainDetails;
 }): void {
-  const { registry, cables, terrain, roads, vegetation } = deps;
+  const { registry, cables, terrain, roads, vegetation, details } = deps;
   const wasVisible = Object.fromEntries(LAYER_IDS.map((id) => [id, true])) as Record<
     LayerId,
     boolean
@@ -31,7 +33,7 @@ export function initLayers(deps: {
     // Fase 11: vegetation on the terrain layer, roads on infrastructures (Q_LIST.md Q18);
     // the water plane's visibility lives in scene/environment.ts.
     const objects: Record<LayerId, THREE.Object3D[]> = {
-      terrain: [terrain.mesh, ...vegetation.objects],
+      terrain: [terrain.mesh, ...vegetation.objects, ...details.objects], // + Fase 17 details
       infra: store.allRoads().flatMap((r) => roads.getObject(r.id) ?? []),
       net: [],
       markers: [],

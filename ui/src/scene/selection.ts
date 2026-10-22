@@ -13,7 +13,10 @@
  *  - Fase 10: `Shift`+click toggles an object in the selection; `Shift`+drag
  *    on empty space draws a marquee and adds every entity whose center falls
  *    inside (the orbit controls are off during the gesture); objects of
- *    hidden or locked layers are never picked (`store.isPickable`).
+ *    hidden or locked layers are never picked (`store.isPickable`);
+ *  - Fase 18: with a road alone selected, a click on one of its point
+ *    handles or on the road itself chooses that point / side
+ *    (`pickRoadPart`); `Esc` first goes back to the whole road.
  */
 import * as THREE from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -40,6 +43,8 @@ export interface SelectionDeps {
   isGizmoBusy?: () => boolean;
   /** Disabled while a marquee is drawn (Fase 10). */
   controls: OrbitControls;
+  /** Fase 18: a click on the selected road picks its point/side (true = handled). */
+  pickRoadPart?: (raycaster: THREE.Raycaster, hitId: string | null) => boolean;
 }
 
 /** Walks up the hierarchy looking for the entity id of a picked object. */
@@ -227,11 +232,15 @@ export function initSelection(deps: SelectionDeps): () => void {
       if (id) store.toggleSelect(id); // Shift+click on empty space keeps the selection
       return;
     }
+    if (deps.pickRoadPart?.(raycaster, id)) return; // the raycaster is still aimed by pickAt
     store.select(id); // null = empty space
   }
 
   function onKeydown(e: KeyboardEvent): void {
-    if (e.key === "Escape" && !shouldIgnoreShortcut(e)) store.select(null);
+    if (e.key !== "Escape" || shouldIgnoreShortcut(e)) return;
+    if (store.roadPart)
+      store.setRoadPart(null); // Fase 18: back to the whole road
+    else store.select(null);
   }
 
   const unsubscribeSelection = store.subscribeSelection(syncRings);

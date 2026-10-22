@@ -11,16 +11,28 @@
   },
   "topbar": {
     "save": "Save",
-    "open": "Open",
-    "import": "Import",
-    "export": "Export",
-    "layers": "Layers",
-    "report": "Report",
+    "open": "Open…",
+    "import": "Import .glb…",
+    "export": "Export .glb…",
+    "layers": "Layers & history",
+    "report": "Report…",
     "toggleLeft": "Toggle left panel",
     "toggleRight": "Toggle right panel",
     "projectTitle": "Project title",
     "unsaved": "Unsaved changes",
-    "darkTheme": "Dark theme"
+    "darkTheme": "Dark mode",
+    "menus": "Menus",
+    "file": "File",
+    "view": "View",
+    "tools": "Tools",
+    "settings": "Settings",
+    "saveAs": "Save as…",
+    "grid": "Grid",
+    "present": "Presentation mode",
+    "ruler": "Ruler",
+    "snapToRoads": "Snap buildings to roads",
+    "shortcuts": "Shortcuts",
+    "guide": "User guide"
   },
   "catalog": {
     "label": "Element catalog",
@@ -55,7 +67,8 @@
     "customReady": "Imported model: {name}.glb — drag it into the viewport or click to place it at the center.",
     "customHint": "Import a .glb file to enable it (Import or Ctrl+I).",
     "customToast": "Import a .glb model first (Import or Ctrl+I).",
-    "offTerrain": "Point the center of the view at the terrain to place the element."
+    "offTerrain": "Point the center of the view at the terrain to place the element.",
+    "needsRoad": "Houses and buildings go next to a road — draw a road first, or turn off “Snap buildings to roads” in Settings."
   },
   "kind": {
     "house": "House",
@@ -95,7 +108,15 @@
     "undo": "Undo",
     "redo": "Redo",
     "historyList": "Action history",
-    "initial": "Initial state"
+    "initial": "Initial state",
+    "grid": "Grid",
+    "reset": "Reset"
+  },
+  "reset": {
+    "title": "Reset the map?",
+    "text": "Removes every element, cable, road, plant and painted material and puts back a flat terrain. You can undo it with Ctrl/Cmd+Z.",
+    "cancel": "Cancel",
+    "confirm": "Reset"
   },
   "history": {
     "add": "Add {what}",
@@ -179,7 +200,9 @@
       "sand": "Sand",
       "rock": "Rock",
       "snow": "Snow",
-      "hint": "Drag to paint · “Auto” restores the altitude gradient · Esc leaves."
+      "eraser": "Eraser",
+      "hint": "Drag to paint — grass, dirt, sand, rock and snow grow their own details · “Auto” restores the altitude gradient · Esc leaves.",
+      "eraserHint": "Drag to erase everything inside the circle: paint, vegetation, elements, markers and roads (cables go with their elements). One gesture = one undo."
     },
     "veg": {
       "title": "Vegetation",
@@ -192,9 +215,20 @@
     "road": {
       "toolTitle": "Road tool",
       "width": "Width (m)",
-      "toolHint": "Click the terrain for each point · Enter or double click finishes · Backspace removes the last one · Esc cancels.",
+      "toolHint": "Drag on the terrain to lay a stretch. Start or end on another road to join it (a green ring shows where); from its end the road carries on as one. Valleys become bridges; Bridge height lifts the new road. Or click point by point and press Enter. Esc leaves.",
       "points": "Points",
       "widthTitle": "Width",
+      "heightTitle": "Height",
+      "elevation": "Bridge height (m)",
+      "height": "Height (m)",
+      "part": "Part to raise or lower",
+      "wholeRoad": "Whole road",
+      "point": "Point {n} of {of}",
+      "side": "Side {n} of {of}",
+      "prevPart": "Previous part",
+      "nextPart": "Next part",
+      "partHint": "Click a point or a side of the road to raise or lower just it — a side keeps its slope, roads joined at a point move with it. Esc goes back to the whole road.",
+      "clearance": "Max. clearance",
       "deleteHint": "Delete removes the selected road."
     },
     "cableTool": {
@@ -303,11 +337,6 @@
     "orbit": "Rotate camera (H)",
     "pan": "Move camera (H)"
   },
-  "fab": {
-    "label": "Help and shortcuts",
-    "shortcuts": "Shortcuts",
-    "guide": "User guide"
-  },
   "recovery": {
     "title": "Recover unsaved work?",
     "text": "The app closed without saving. There is an automatic copy of the latest work.",
@@ -353,7 +382,7 @@
       "grid": "Show/hide grid",
       "gizmo": "Gizmo: move / rotate / scale",
       "layers": "Layers panel",
-      "escape": "Cancel tool/selection",
+      "escape": "Cancel tool/selection (a road point/side first goes back to the whole road)",
       "spinner": "Adjust the focused spinner",
       "step10": "Step ×10",
       "step01": "Step ÷10",
@@ -380,7 +409,7 @@
       },
       "infra": {
         "title": "Infrastructure",
-        "text": "Drag houses, buildings and lots onto the terrain (or click them to place them at the center). Edit phase, position, rotation and scale in the right panel; W/E/T switch the gizmo."
+        "text": "Draw roads first: Environment › Road, then drag on the terrain — valleys become bridges, Bridge height makes a viaduct; start or end on another road to join it. Select a road and click one of its points or sides to raise or lower just that part. Drag houses and buildings next to a road (zones show along it; they turn to face it), lots anywhere. Edit phase, position, rotation and scale in the right panel; W/E/T switch the gizmo."
       },
       "network": {
         "title": "Network",
@@ -396,11 +425,11 @@
       },
       "productivity": {
         "title": "Undo and layers",
-        "text": "Ctrl/Cmd+Z undoes (up to 100 actions). Shift+click adds to the selection; Ctrl/Cmd+C/V copies and pastes. L opens Layers and History."
+        "text": "Ctrl/Cmd+Z undoes (up to 100 actions). Shift+click adds to the selection; Ctrl/Cmd+C/V copies and pastes. L opens Layers and History — Grid shows or hides the grid, Reset clears the whole map (undoable)."
       },
       "environment": {
         "title": "Environment",
-        "text": "In the Environment group: time of day, fog and water, material brush, vegetation, roads and the presentation mode."
+        "text": "In the Environment group: time of day, fog and water, the material brush (grass, dirt, sand, rock and snow grow their own details; the Eraser removes anything under it), vegetation, roads and the presentation mode."
       },
       "report": {
         "title": "Measure and report",
@@ -408,7 +437,7 @@
       },
       "keyboard": {
         "title": "Keyboard and theme",
-        "text": "Tab reaches the viewport: arrows move the camera, Space clicks the crosshair, N jumps to the next element. The sun/moon button in the top bar switches the theme."
+        "text": "Tab reaches the viewport: arrows move the camera, Space clicks the crosshair, N jumps to the next element. H switches the mouse between rotating and moving the camera. Settings (the gear, top right) has Dark mode, Snap buildings to roads, Shortcuts and this guide."
       },
       "save": {
         "title": "Save",
@@ -501,6 +530,7 @@
     "distance": "Distance"
   },
   "toast": {
+    "mapReset": "Map reset — Ctrl/Cmd+Z brings it back.",
     "saved": "Project saved: {file}",
     "saveFailed": "Could not save: {error}",
     "openFailed": "Could not open: {error}",

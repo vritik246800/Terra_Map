@@ -27,12 +27,17 @@ Sizes in meters, real scale against the 7 m pole (Q_LIST.md Q39).
 
 import math
 import os
+import random
+import shutil
 
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
 OUT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "public", "models"))
+# Fase 17: the landing page shows the same models (hero + showcase).
+LANDING = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "landing", "public", "models"))
+LANDING_KINDS = ("house", "building", "tree", "bush", "antenna", "pole", "olt", "box", "splitter", "onu", "router")
 THUMB_SIZE = 256
 FLOOR_HEIGHT = 2.8  # building storey (floor-to-floor)
 
@@ -62,6 +67,25 @@ COLORS = {
     "crownDark": "#356b31",
     "bush": "#4f8f45",
     "fiber": "#f5c518",
+    # Fase 17: realistic vegetation, terrain details, bridges.
+    "bark": "#5b4330",
+    "leaf0": "#3d6e34",
+    "leaf1": "#4c8540",
+    "leaf2": "#5f9a4a",
+    "leafDry": "#7a8f3e",
+    "grass0": "#5c8f3e",
+    "grass1": "#78a84e",
+    "snow": "#f2f5f9",
+    "snowShade": "#d9e2ec",
+    "rock0": "#7c7c82",
+    "rock1": "#9b9aa0",
+    "dirt0": "#6e5238",
+    "dirt1": "#8a6a48",
+    "sand0": "#cdb67c",
+    "sand1": "#e2d3a4",
+    "shell": "#f3e6d8",
+    "concrete": "#b4b2ac",
+    "concreteDark": "#8f8d88",
 }
 
 _materials = {}
@@ -100,8 +124,10 @@ def empty(name):
     return ob
 
 
-def finish(parent, name, bm, color):
+def finish(parent, name, bm, color, smooth=False):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    for f in bm.faces:
+        f.smooth = smooth
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
     bm.free()
@@ -361,20 +387,164 @@ def build_marker():
     ico(p, "head", "accent", 0.32, z=1.35, subdiv=2)
 
 
+def lumpy(parent, name, color, r, x, y, z, sz=1.0, subdiv=2, amount=0.18, seed=0, smooth=True):
+    """Icosphere with its vertices pushed in/out — organic foliage / rock / snow."""
+    rnd = random.Random(seed)
+    bm = bmesh.new()
+    bmesh.ops.create_icosphere(bm, subdivisions=subdiv, radius=r)
+    for v in bm.verts:
+        n = v.co.normalized()
+        v.co += n * r * rnd.uniform(-amount, amount)
+    bmesh.ops.scale(bm, vec=(1, 1, sz), verts=bm.verts)
+    bmesh.ops.translate(bm, vec=(x, y, z), verts=bm.verts)
+    return finish(parent, name, bm, color, smooth)
+
+
+def branch(parent, name, base, tip, r0, r1, color="bark"):
+    """Tapered limb from `base` to `tip` (world vectors)."""
+    d = Vector(tip) - Vector(base)
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=7, radius1=r0, radius2=r1, depth=d.length)
+    bmesh.ops.translate(bm, vec=(0, 0, d.length / 2), verts=bm.verts)
+    rot = d.normalized().to_track_quat("Z", "Y").to_matrix()
+    bmesh.ops.rotate(bm, cent=(0, 0, 0), matrix=rot, verts=bm.verts)
+    bmesh.ops.translate(bm, vec=base, verts=bm.verts)
+    return finish(parent, name, bm, color)
+
+
 def build_tree():
-    """Tree: trunk + three stacked crowns (~5.8 m), instanced by the app."""
+    """Broadleaf tree (~6.8 m): tapered trunk, four limbs and a crown of
+    irregular leaf clusters in three greens. Instanced by the app."""
     p = empty("p0_tree")
-    cyl(p, "trunk", "trunk", 0.25, 0.18, 2.0, segs=8)
-    cyl(p, "crown_0", "crownDark", 1.6, 0.6, 1.8, z=1.6, segs=9)
-    cyl(p, "crown_1", "crown", 1.25, 0.4, 1.6, z=2.8, segs=9)
-    cyl(p, "crown_2", "crown", 0.85, 0.0, 1.9, z=3.9, segs=9)
+    rnd = random.Random(7)
+    branch(p, "trunk", (0, 0, 0), (0.1, 0.05, 3.4), 0.3, 0.16)
+    cyl(p, "flare", "bark", 0.42, 0.3, 0.35, segs=7)
+    limbs = []
+    for i in range(4):
+        a = i / 4 * math.tau + 0.4
+        base = (0.05 * math.cos(a), 0.05 * math.sin(a), 2.2 + i * 0.35)
+        tip = (1.7 * math.cos(a), 1.7 * math.sin(a), 4.2 + i * 0.25)
+        branch(p, f"limb_{i}", base, tip, 0.13, 0.05)
+        limbs.append(tip)
+    clusters = [(0.1, 0.0, 5.3, 1.75)] + [(x, y, z + 0.3, 1.25) for x, y, z in limbs]
+    for i in range(6):
+        a = i / 6 * math.tau
+        clusters.append((1.15 * math.cos(a), 1.15 * math.sin(a), 4.4 + rnd.uniform(-0.3, 0.6), 1.05))
+    for i, (x, y, z, r) in enumerate(clusters):
+        color = ("leaf0", "leaf1", "leaf2")[i % 3]
+        lumpy(p, f"leaves_{i}", color, r, x, y, z, sz=0.82, amount=0.22, seed=i + 1)
 
 
 def build_bush():
+    """Shrub (~1.3 m): a mound of leaf clusters with a few dry tips."""
     p = empty("p0_bush")
-    ico(p, "bush_0", "bush", 0.8, 0, 0, 0.6, sz=0.8)
-    ico(p, "bush_1", "crown", 0.55, 0.55, 0.2, 0.45, sz=0.8)
-    ico(p, "bush_2", "crownDark", 0.5, -0.45, -0.3, 0.4, sz=0.8)
+    rnd = random.Random(3)
+    lumpy(p, "core", "leaf0", 0.75, 0, 0, 0.6, sz=0.75, amount=0.2, seed=11)
+    for i in range(6):
+        a = i / 6 * math.tau + rnd.uniform(-0.3, 0.3)
+        d = rnd.uniform(0.45, 0.65)
+        color = ("leaf1", "leaf2", "leafDry")[i % 3]
+        lumpy(p, f"cluster_{i}", color, rnd.uniform(0.38, 0.5), d * math.cos(a), d * math.sin(a), 0.42 + rnd.uniform(0, 0.25), sz=0.8, amount=0.22, seed=20 + i)
+
+
+# ---------------------------------------------------------------- Fase 17: terrain details
+
+
+def build_detail_grass():
+    """Grass tuft (~0.45 m): a fan of thin tapered blades in two greens."""
+    p = empty("p0_detail_grass")
+    rnd = random.Random(5)
+    bm = bmesh.new()
+    for i in range(14):
+        a = rnd.uniform(0, math.tau)
+        lean = rnd.uniform(0.05, 0.25)
+        h = rnd.uniform(0.25, 0.45)
+        w = 0.03
+        ox, oy = rnd.uniform(-0.12, 0.12), rnd.uniform(-0.12, 0.12)
+        dx, dy = math.cos(a), math.sin(a)
+        px, py = -dy * w, dx * w
+        v0 = bm.verts.new((ox - px, oy - py, 0))
+        v1 = bm.verts.new((ox + px, oy + py, 0))
+        v2 = bm.verts.new((ox + dx * lean, oy + dy * lean, h))
+        bm.faces.new((v0, v1, v2))
+    finish(p, "blades", bm, "grass0")
+    bm = bmesh.new()
+    for i in range(8):
+        a = rnd.uniform(0, math.tau)
+        h = rnd.uniform(0.2, 0.35)
+        ox, oy = rnd.uniform(-0.1, 0.1), rnd.uniform(-0.1, 0.1)
+        dx, dy = math.cos(a), math.sin(a)
+        v0 = bm.verts.new((ox + dy * 0.025, oy - dx * 0.025, 0))
+        v1 = bm.verts.new((ox - dy * 0.025, oy + dx * 0.025, 0))
+        v2 = bm.verts.new((ox + dx * 0.15, oy + dy * 0.15, h))
+        bm.faces.new((v0, v1, v2))
+    finish(p, "blades_light", bm, "grass1")
+
+
+def build_detail_snow():
+    """Snow drift (~1 m): a flattened mound with a smaller one beside it."""
+    p = empty("p0_detail_snow")
+    lumpy(p, "drift", "snow", 0.55, 0, 0, 0.02, sz=0.38, amount=0.12, seed=31)
+    lumpy(p, "drift_small", "snowShade", 0.3, 0.45, 0.25, 0.0, sz=0.4, amount=0.15, seed=32)
+
+
+def build_detail_rock():
+    """Boulder group (~0.9 m) in two greys."""
+    p = empty("p0_detail_rock")
+    lumpy(p, "boulder", "rock0", 0.45, 0, 0, 0.25, sz=0.7, subdiv=1, amount=0.3, seed=41, smooth=False)
+    lumpy(p, "stone", "rock1", 0.22, 0.45, -0.2, 0.1, sz=0.75, subdiv=1, amount=0.3, seed=42, smooth=False)
+
+
+def build_detail_dirt():
+    """Clods and pebbles (~0.5 m)."""
+    p = empty("p0_detail_dirt")
+    rnd = random.Random(51)
+    for i in range(5):
+        lumpy(p, f"clod_{i}", ("dirt0", "dirt1", "rock0")[i % 3], rnd.uniform(0.07, 0.14), rnd.uniform(-0.22, 0.22), rnd.uniform(-0.22, 0.22), 0.03, sz=0.6, subdiv=1, amount=0.3, seed=60 + i, smooth=False)
+
+
+def build_detail_sand():
+    """Wind ripples and a shell (~1 m)."""
+    p = empty("p0_detail_sand")
+    for i in range(3):
+        bm = bmesh.new()
+        bmesh.ops.create_icosphere(bm, subdivisions=1, radius=1)
+        bmesh.ops.scale(bm, vec=(0.55, 0.07, 0.035), verts=bm.verts)
+        bmesh.ops.translate(bm, vec=(0, -0.25 + i * 0.25, 0.0), verts=bm.verts)
+        finish(p, f"ripple_{i}", bm, "sand1")
+    lumpy(p, "shell", "shell", 0.06, 0.3, 0.12, 0.02, sz=0.5, subdiv=1, amount=0.15, seed=71)
+
+
+# ---------------------------------------------------------------- Fase 17: bridge parts
+
+
+def build_bridge_pier():
+    """Pier column, 1 m tall (the app stretches it to the gap), 0.9 m square."""
+    p = empty("p0_bridge_pier")
+    box(p, "column", "concrete", 0.9, 0.9, 1.0)
+    box(p, "footing", "concreteDark", 1.4, 1.4, 0.04)
+
+
+def build_bridge_cap():
+    """Pier cap beam under the deck: 1 m wide (stretched to the road width)."""
+    p = empty("p0_bridge_cap")
+    box(p, "beam", "concreteDark", 1.0, 1.3, 0.7)
+
+
+def build_guardrail():
+    """Concrete safety barrier, 2 m long along X, 0.8 m tall (New Jersey profile)."""
+    p = empty("p0_guardrail")
+    bm = bmesh.new()
+    profile = [(-0.3, 0.0), (0.3, 0.0), (0.3, 0.08), (0.12, 0.3), (0.08, 0.8), (-0.08, 0.8), (-0.12, 0.3), (-0.3, 0.08)]
+    front = [bm.verts.new((-1.0, y, z)) for y, z in profile]
+    back = [bm.verts.new((1.0, y, z)) for y, z in profile]
+    bm.faces.new(front[::-1])
+    bm.faces.new(back)
+    n = len(profile)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new((front[i], front[j], back[j], back[i]))
+    finish(p, "barrier", bm, "concrete")
 
 
 def build_cable():
@@ -403,8 +573,18 @@ MODELS = {
     "tree": build_tree,
     "bush": build_bush,
     "cable": build_cable,
+    "detail_grass": build_detail_grass,
+    "detail_snow": build_detail_snow,
+    "detail_rock": build_detail_rock,
+    "detail_dirt": build_detail_dirt,
+    "detail_sand": build_detail_sand,
+    "bridge_pier": build_bridge_pier,
+    "bridge_cap": build_bridge_cap,
+    "guardrail": build_guardrail,
 }
 THUMB_ONLY = {"cable"}
+# Fase 17: scene parts with no catalog card — exported without a thumbnail.
+NO_THUMB = {"detail_grass", "detail_snow", "detail_rock", "detail_dirt", "detail_sand", "bridge_pier", "bridge_cap", "guardrail"}
 
 # ---------------------------------------------------------------- export + thumbnail
 
@@ -517,8 +697,13 @@ def main():
             export_glb(kind)
         if kind == "building":
             stack_floors(4)
-        render_thumb(kind)
+        if kind not in NO_THUMB:
+            render_thumb(kind)
         print(f"[terra-map] {kind}: ok")
+    os.makedirs(LANDING, exist_ok=True)
+    for kind in LANDING_KINDS:
+        shutil.copy(os.path.join(OUT, f"{kind}.glb"), os.path.join(LANDING, f"{kind}.glb"))
+    print(f"[terra-map] landing: {len(LANDING_KINDS)} models copied")
 
 
 main()

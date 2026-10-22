@@ -14,6 +14,7 @@ import { OnboardingModal } from "./OnboardingModal";
 import { ProfileModal } from "./ProfileModal";
 import { RecoveryModal } from "./RecoveryModal";
 import { ReportModal } from "./ReportModal";
+import { ResetModal } from "./ResetModal";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { UnsavedModal } from "./UnsavedModal";
 import { UpdateModal } from "./UpdateModal";
@@ -49,6 +50,7 @@ export function ModalHost({ project, report }: { project: ProjectActions; report
       {shown === "profile" && <ProfileModal report={report} onClose={close} />}
       {shown === "onboarding" && <OnboardingModal onClose={close} />}
       {shown === "update" && <UpdateModal onClose={close} />}
+      {shown === "reset" && <ResetModal project={project} onClose={close} />}
     </div>
   );
 }

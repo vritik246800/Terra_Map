@@ -53,6 +53,14 @@ export interface BrushDeps {
    * cables re-follow the relief; Fase 10: one undo entry).
    */
   onStrokeEnd?: (tool: ToolId) => void;
+  /**
+   * Fase 17 eraser (Q_LIST.md Q44): ids of the elements and roads inside a
+   * circle (pickable layers only), hidden during the gesture and removed in
+   * one go at its end — one undo entry.
+   */
+  eraseTargets(x: number, z: number, radius: number): string[];
+  setErasePreview(id: string, hidden: boolean): void;
+  commitErase(ids: string[]): void;
 }
 
 /**
@@ -83,6 +91,8 @@ export function initBrush(deps: BrushDeps): () => void {
   let lastDab: { x: number; z: number } | null = null;
   /** Vegetation being edited by the current gesture (copy of the store list). */
   let plants: Plant[] = [];
+  /** Fase 17: elements/roads the eraser gesture has swept so far. */
+  const erasing = new Set<string>();
 
   /** Raycasts the pointer to a terrain point; `null` when off-terrain. */
   function pickTerrain(e: PointerEvent): THREE.Vector3 | null {
@@ -131,7 +141,16 @@ export function initBrush(deps: BrushDeps): () => void {
   }
 
   function applyDab(point: THREE.Vector3, dir: 1 | -1): void {
-    if (store.tool === "paint") {
+    if (store.tool === "paint" && store.paintTool.eraser) {
+      // Fase 17: everything inside the circle goes — paint, plants, elements, roads.
+      terrain.paint(point.x, point.z, store.brush.radius, 0);
+      scatter(point.x, point.z, true);
+      for (const id of deps.eraseTargets(point.x, point.z, store.brush.radius)) {
+        if (erasing.has(id)) continue;
+        erasing.add(id);
+        deps.setErasePreview(id, true);
+      }
+    } else if (store.tool === "paint") {
       terrain.paint(point.x, point.z, store.brush.radius, store.paintTool.material);
     } else if (store.tool === "vegetation") {
       scatter(point.x, point.z, dir < 0);
@@ -180,9 +199,15 @@ export function initBrush(deps: BrushDeps): () => void {
     stroking = false; // gesture end
     lastDab = null;
     if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-    if (store.tool === "vegetation")
+    if (store.tool === "vegetation") {
       store.setVegetation(plants); // one undo entry
-    else deps.onStrokeEnd?.(store.tool); // relief/material changed
+    } else if (store.tool === "paint" && store.paintTool.eraser) {
+      // Fase 17: one tick = one undo entry for plants, elements, roads and paint.
+      if (plants.length !== store.vegetation.length) store.setVegetation(plants);
+      deps.commitErase([...erasing]);
+      erasing.clear();
+      deps.onStrokeEnd?.(store.tool);
+    } else deps.onStrokeEnd?.(store.tool); // relief/material changed
   }
 
   function onPointerLeave(): void {
@@ -203,9 +228,10 @@ export function initBrush(deps: BrushDeps): () => void {
    * the brush, the buttons follow the camera mode (Fase 16, `H`).
    */
   function syncControls(): void {
-    if (isBrushTool(store.tool)) {
+    // Fase 17: the road tool drags stretches with the left button too.
+    if (isBrushTool(store.tool) || store.tool === "road") {
       controls.mouseButtons = {
-        LEFT: null, // left button belongs to the brush
+        LEFT: null, // left button belongs to the brush / road tool
         MIDDLE: THREE.MOUSE.DOLLY,
         RIGHT: THREE.MOUSE.ROTATE,
       };

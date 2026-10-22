@@ -34,8 +34,10 @@ import {
   type CableType,
   type MaterialId,
   type PlantKind,
+  type RoadPart,
   type SnapGrid,
   type TransformData,
+  MAX_ROAD_ELEVATION,
 } from "../state/store";
 import { fmt, t, type MessageKey } from "../state/i18n";
 import { kindLabel } from "../state/labels";
@@ -437,9 +439,13 @@ function PaintToolSection() {
     <Section title={t("panel.paint.title")}>
       <SegmentedPicker
         label={t("panel.paint.material")}
-        options={materialLabels()}
-        value={String(store.paintTool.material)}
-        onChange={(v) => store.setPaintMaterial(Number(v) as MaterialId)}
+        options={{ ...materialLabels(), eraser: t("panel.paint.eraser") }}
+        value={store.paintTool.eraser ? "eraser" : String(store.paintTool.material)}
+        onChange={(v) =>
+          v === "eraser"
+            ? store.setPaintEraser(true)
+            : store.setPaintMaterial(Number(v) as MaterialId)
+        }
       />
       <Spinner
         label={t("panel.brush.radius")}
@@ -449,7 +455,9 @@ function PaintToolSection() {
         step={1}
         onChange={store.setBrushRadius}
       />
-      <p className="properties-section__hint">{t("panel.paint.hint")}</p>
+      <p className="properties-section__hint">
+        {t(store.paintTool.eraser ? "panel.paint.eraserHint" : "panel.paint.hint")}
+      </p>
     </Section>
   );
 }
@@ -499,16 +507,57 @@ function RoadToolSection() {
         step={0.5}
         onChange={store.setRoadWidth}
       />
+      <Spinner
+        label={t("panel.road.elevation")}
+        value={store.roadTool.elevation}
+        min={0}
+        max={MAX_ROAD_ELEVATION}
+        step={0.5}
+        onChange={store.setRoadElevation}
+      />
       <p className="properties-section__hint">{t("panel.road.toolHint")}</p>
     </Section>
   );
 }
 
-/** Selected road (Fase 11): points, length and width. */
+/**
+ * Selected road (Fase 11): points, length and width. Fase 18 (Q_LIST.md Q49):
+ * «Height» raises/lowers the whole road, the chosen point or the chosen side
+ * (picked in the viewport, or with ‹ › here); the spinner shows the lowest of
+ * them and moves them all by the same amount, so a side keeps its slope.
+ */
 function RoadEditor({ roads, id }: { roads: RoadRegistry; id: string }) {
   const store = useStore();
   const info = store.getRoadInfo(id);
   if (!info) return null;
+  const n = info.points.length;
+  const part = store.roadPart;
+  // ‹ › order: whole road, point 1, side 1, point 2, … point n.
+  const parts: Array<RoadPart | null> = [
+    null,
+    ...info.points.flatMap((_, index): RoadPart[] =>
+      index < n - 1
+        ? [
+            { kind: "point", index },
+            { kind: "side", index },
+          ]
+        : [{ kind: "point", index }],
+    ),
+  ];
+  const at = parts.findIndex((p) => p?.kind === part?.kind && p?.index === part?.index);
+  const step = (by: number) => store.setRoadPart(parts[(at + by + parts.length) % parts.length]);
+  const indices = !part
+    ? info.points.map((_, i) => i)
+    : part.kind === "point"
+      ? [part.index]
+      : [part.index, part.index + 1];
+  const lifts = indices.map((i) => info.points[i].elevation);
+  const low = Math.min(...lifts);
+  const partLabel = !part
+    ? t("panel.road.wholeRoad")
+    : part.kind === "point"
+      ? t("panel.road.point", { n: part.index + 1, of: n })
+      : t("panel.road.side", { n: part.index + 1, of: n - 1 });
   return (
     <div className="properties-info">
       <dl className="properties-list">
@@ -517,6 +566,7 @@ function RoadEditor({ roads, id }: { roads: RoadRegistry; id: string }) {
           [t("common.type"), t("kind.road")],
           [t("panel.road.points"), String(info.points.length)],
           [t("common.length"), meters(roads.getLength(id))],
+          [t("panel.road.clearance"), meters(roads.getMaxClearance(id))],
         ].map(([label, value]) => (
           <div key={label} className="properties-row">
             <dt className="properties-row__label">{label}</dt>
@@ -536,6 +586,39 @@ function RoadEditor({ roads, id }: { roads: RoadRegistry; id: string }) {
             roads.rebuild(id);
           }}
         />
+      </Section>
+      {/* Fase 17 (Q_LIST.md Q42) bridge / viaduct; Fase 18: per point or side. */}
+      <Section title={t("panel.road.heightTitle")}>
+        <div className="phase-stepper road-part" role="group" aria-label={t("panel.road.part")}>
+          <button
+            type="button"
+            className="phase-stepper__button"
+            aria-label={t("panel.road.prevPart")}
+            onClick={() => step(-1)}
+          >
+            ‹
+          </button>
+          <span className="road-part__label" aria-live="polite">
+            {partLabel}
+          </span>
+          <button
+            type="button"
+            className="phase-stepper__button"
+            aria-label={t("panel.road.nextPart")}
+            onClick={() => step(1)}
+          >
+            ›
+          </button>
+        </div>
+        <Spinner
+          label={t(part ? "panel.road.height" : "panel.road.elevation")}
+          value={low}
+          min={0}
+          max={MAX_ROAD_ELEVATION - (Math.max(...lifts) - low)}
+          step={0.5}
+          onChange={(height) => roads.lift(id, indices, height)}
+        />
+        <p className="properties-section__hint">{t("panel.road.partHint")}</p>
       </Section>
       <p className="properties-section__hint">{t("panel.road.deleteHint")}</p>
     </div>

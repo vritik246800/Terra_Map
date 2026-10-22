@@ -1,7 +1,11 @@
 // Hero scene (Fase 15): a low-poly terrain with a village, an FTTH network and
 // an antenna on the ridge. Every cable carries light pulses; the optimal route
 // (antenna → OLT → splitter → home) glows green, like the simulator's path.
+// Fase 17 (Q_LIST.md Q47): the village, trees, poles and the antenna are the
+// app's Blender models (public/models/*.glb), loaded after the first frame.
 import * as THREE from "three";
+
+import { cloneModel, loadModel } from "./models";
 
 const SIZE = 240;
 const SEG = 120;
@@ -155,22 +159,42 @@ export function initHero(canvas: HTMLCanvasElement | null): Hero | null {
   water.position.y = -0.6;
   scene.add(water);
 
-  // village: instanced walls + hip roofs
+  // village: the app's Blender houses/buildings, trees around it (Fase 17)
   const HOMES: [number, number][] = [
     [-14, 26], [-2, 36], [12, 28], [24, 38], [-24, 40], [30, 22], [6, 46], [-10, 50], [20, 52],
   ];
-  const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(3, 2.2, 3), new THREE.MeshStandardMaterial({ color: 0xf1ede6, roughness: 0.8 }), HOMES.length);
-  const roofs = new THREE.InstancedMesh(new THREE.ConeGeometry(2.6, 1.6, 4), new THREE.MeshStandardMaterial({ color: 0xe2702a, roughness: 0.7, flatShading: true }), HOMES.length);
-  const m = new THREE.Matrix4();
-  const q = new THREE.Quaternion();
-  HOMES.forEach(([x, z], i) => {
-    const y = height(x, z);
-    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), (i * 0.7) % Math.PI);
-    walls.setMatrixAt(i, m.compose(new THREE.Vector3(x, y + 1.1, z), q, new THREE.Vector3(1, 1, 1)));
-    const qr = q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4));
-    roofs.setMatrixAt(i, m.compose(new THREE.Vector3(x, y + 3, z), qr, new THREE.Vector3(1, 1, 1)));
-  });
-  scene.add(walls, roofs);
+  const TOWERS: [number, number][] = [[-30, 12], [36, 40]];
+  const rnd = (() => {
+    let seed = 7;
+    return () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  })();
+  const placeModels = async () => {
+    const [house, building, tree, bush, pole] = await Promise.all(
+      ["house", "building", "tree", "bush", "pole"].map(loadModel),
+    );
+    const put = (src: THREE.Object3D, x: number, z: number, scale: number, yaw: number) => {
+      const o = cloneModel(src);
+      o.position.set(x, height(x, z) - 0.15, z);
+      o.scale.setScalar(scale);
+      o.rotation.y = yaw;
+      scene.add(o);
+    };
+    HOMES.forEach(([x, z], i) => put(house, x, z, 0.7, Math.atan2(4 - x, 18 - z) + (i % 2) * 0.2));
+    TOWERS.forEach(([x, z]) => put(building, x, z, 0.6, Math.atan2(-x, -z)));
+    for (let i = 0; i < 90; i++) {
+      const a = rnd() * Math.PI * 2;
+      const r = 34 + rnd() * 70;
+      const x = 6 + Math.cos(a) * r;
+      const z = 22 + Math.sin(a) * r;
+      if (height(x, z) < 0.4 || height(x, z) > 24) continue; // no trees in the lake or on the peaks
+      put(i % 4 ? tree : bush, x, z, 0.75 + rnd() * 0.5, rnd() * 6.28);
+    }
+    // poles carry the aerial stretch from the ridge down to the OLT
+    for (let t = 0.2; t < 1; t += 0.2) {
+      const p = mastTop.clone().lerp(olt, t);
+      put(pole, p.x, p.z, 1, Math.atan2(olt.x - mastTop.x, olt.z - mastTop.z));
+    }
+  };
 
   // network: OLT, splitter, ONUs by the homes, antenna mast on the ridge
   const at = (x: number, z: number, lift = 0.7) => new THREE.Vector3(x, height(x, z) + lift, z);
@@ -179,9 +203,15 @@ export function initHero(canvas: HTMLCanvasElement | null): Hero | null {
   const onus = HOMES.slice(0, 6).map(([x, z]) => at(x + (4 - x) * 0.2, z + (18 - z) * 0.2));
   const mastBase = at(-38, -70, 0);
   const mastTop = mastBase.clone().add(new THREE.Vector3(0, 9, 0));
-  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, 9, 6), new THREE.MeshStandardMaterial({ color: 0xe9eef3 }));
-  mast.position.copy(mastBase).add(new THREE.Vector3(0, 4.5, 0));
-  scene.add(mast);
+  // the app's antenna (7.1 m) scaled to the 9 m mast of the route
+  void loadModel("antenna").then((antenna) => {
+    const o = cloneModel(antenna);
+    o.position.copy(mastBase);
+    o.scale.setScalar(9 / 7.1);
+    scene.add(o);
+    if (still) frame();
+  });
+  void placeModels().then(() => still && frame());
 
   const ground = (a: THREE.Vector3, b: THREE.Vector3, n = 24) =>
     Array.from({ length: n + 1 }, (_, i) => {

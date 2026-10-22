@@ -231,7 +231,16 @@ export interface ProjectFile {
   layers: Array<{ id: string; visible: boolean; locked: boolean }>;
   /** Fase 11: hour/fog/water — saved, not undoable. */
   environment: { hour: number; fog: number; water: { enabled: boolean; level: number } };
-  roads: Array<{ id: string; points: Array<{ x: number; z: number }>; width: number }>;
+  /**
+   * Fase 17: `elevation` = bridge/viaduct lift (m); absent in older files (→ 0).
+   * Fase 18: each point has its own lift; the road's is the lowest (older versions).
+   */
+  roads: Array<{
+    id: string;
+    points: Array<{ x: number; z: number; elevation?: number }>;
+    width: number;
+    elevation?: number;
+  }>;
   vegetation: Array<{ kind: string; x: number; z: number; scale: number; rotation: number }>;
   /** Fase 12: metric snapshots for the scenario comparator (Q_LIST.md Q21). */
   scenarios: Scenario[];

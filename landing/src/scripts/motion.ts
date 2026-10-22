@@ -156,3 +156,48 @@ export function initMotion(opts: { onHeroProgress?: (p: number) => void } = {}):
     );
   });
 }
+
+/**
+ * Fase 17: the "Made in Blender" building rises with the scroll (pinned on
+ * wide screens) and the phase list follows it. Reduced motion: the finished
+ * building and every phase highlighted, no pin.
+ */
+export function initBuildScroll(onProgress: (p: number) => void): void {
+  const phases = $$(".phase");
+  const mark = (p: number) => {
+    const active = p < 0.1 ? 0 : p < 0.64 ? 1 : 2;
+    phases.forEach((el, i) => el.classList.toggle("is-active", i === active));
+  };
+  const mm = gsap.matchMedia();
+  mm.add({ motion: "(prefers-reduced-motion: no-preference)", wide: "(min-width: 900px)" }, (ctx) => {
+    const { motion, wide } = ctx.conditions as { motion: boolean; wide: boolean };
+    if (!motion) {
+      phases.forEach((el) => el.classList.add("is-active"));
+      onProgress(1);
+      return;
+    }
+    ScrollTrigger.create({
+      trigger: wide ? ".build" : ".build__stage",
+      start: wide ? "top top" : "top 85%",
+      end: wide ? () => `+=${innerHeight * 1.6}` : "bottom 25%",
+      pin: wide ? ".build__grid" : false,
+      scrub: true,
+      onUpdate: (self) => {
+        onProgress(self.progress);
+        mark(self.progress);
+      },
+    });
+    mark(0);
+    // device cards tilt towards the pointer
+    for (const card of $$(".device")) {
+      card.addEventListener("pointermove", (e) => {
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5;
+        const y = (e.clientY - r.top) / r.height - 0.5;
+        gsap.to(card, { rotateY: x * 10, rotateX: -y * 10, transformPerspective: 700, duration: 0.4, ease: "power2.out" });
+      });
+      card.addEventListener("pointerleave", () => gsap.to(card, { rotateX: 0, rotateY: 0, duration: 0.6, ease: "power3.out" }));
+    }
+  });
+}
+

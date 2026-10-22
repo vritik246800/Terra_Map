@@ -27,6 +27,15 @@ export const MODEL_KINDS = [
   "marker",
   "tree",
   "bush",
+  // Fase 17: terrain details of the material brush and bridge parts.
+  "detail_grass",
+  "detail_snow",
+  "detail_rock",
+  "detail_dirt",
+  "detail_sand",
+  "bridge_pier",
+  "bridge_cap",
+  "guardrail",
 ] as const;
 export type ModelKind = (typeof MODEL_KINDS)[number];
 

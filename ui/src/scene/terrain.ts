@@ -20,11 +20,34 @@
  * Fase 11: a material map (one byte per vertex) overrides the gradient where
  * the material brush painted (DESIGN.md §1.7); 0 = automatic. A new terrain
  * (preset, loaded preset, heightmap image) starts with an empty map.
+ *
+ * Fase 17 (Q_LIST.md Q41): the editing grid is drawn on the terrain itself
+ * (shader lines every 1 m and 10 m in world X/Z), so it follows the relief
+ * and always covers exactly the map — any size. `grid.visible` drives it in
+ * every render (main view, minimap, report snapshot hide it the same way as
+ * the other helpers).
  */
 import * as THREE from "three";
 
 import { generateTerrain, type TerrainPresetFile } from "../net/bridge";
 import type { TerrainPresetId } from "../state/store";
+
+/** Grid lines drawn into the terrain material (Fase 17). */
+const GRID_VERTEX = /* glsl */ `
+#include <project_vertex>
+vGridPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`;
+const GRID_FRAGMENT = /* glsl */ `
+#include <color_fragment>
+if (uGrid > 0.5) {
+  vec2 p = vGridPos.xz;
+  vec2 w1 = fwidth(p);
+  vec2 g1 = abs(fract(p - 0.5) - 0.5) / w1;
+  float minor = (1.0 - min(min(g1.x, g1.y), 1.0)) * (1.0 - smoothstep(0.12, 0.45, max(w1.x, w1.y)));
+  vec2 p10 = p / 10.0;
+  vec2 g10 = abs(fract(p10 - 0.5) - 0.5) / fwidth(p10);
+  float major = 1.0 - min(min(g10.x, g10.y), 1.0);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), max(minor * 0.16, major * 0.34));
+}`;
 
 /** Everything needed to (re)build a terrain from scratch. */
 export interface TerrainConfig {
@@ -116,6 +139,10 @@ export function decodeHeightmap(encoded: string, expectedLength: number): Float3
 
 export class Terrain {
   readonly mesh: THREE.Mesh;
+  /** Fase 17: editing grid drawn on the relief — toggle `grid.visible` (`G`, Layers). */
+  readonly grid = new THREE.Object3D();
+  /** Fase 17: bumps on every height/material change (read by `scene/terrain-details.ts`). */
+  version = 0;
   private heightmap: Float32Array;
   private materials: Uint8Array;
   private config: TerrainConfig;
@@ -133,7 +160,25 @@ export class Terrain {
       roughness: 0.95,
       metalness: 0,
     });
+    const gridUniform = { value: 1 };
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.uGrid = gridUniform;
+      shader.vertexShader = shader.vertexShader
+        .replace("#include <common>", "#include <common>\nvarying vec3 vGridPos;")
+        .replace("#include <project_vertex>", GRID_VERTEX);
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          "#include <common>",
+          "#include <common>\nuniform float uGrid;\nvarying vec3 vGridPos;",
+        )
+        .replace("#include <color_fragment>", GRID_FRAGMENT);
+    };
     this.mesh = new THREE.Mesh(geometry, material);
+    // Every render reads the switch, so helper-free renders (minimap, snapshot) hide it too.
+    this.mesh.onBeforeRender = () => {
+      gridUniform.value = this.grid.visible ? 1 : 0;
+    };
+    this.grid.name = "terrain-grid";
     this.mesh.name = "terrain";
     this.mesh.rotation.x = -Math.PI / 2; // local +Z becomes world +Y (height)
     this.mesh.receiveShadow = true;
@@ -355,6 +400,7 @@ export class Terrain {
    * the planned resolutions (≤ 512²).
    */
   private refreshRange(gx0: number, gz0: number, gx1: number, gz1: number): void {
+    this.version++; // Fase 17: heights or materials changed (terrain details follow it)
     const { resolution: res } = this.config;
     const geometry = this.mesh.geometry;
     const positions = geometry.attributes.position as THREE.BufferAttribute;

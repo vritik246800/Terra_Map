@@ -32,12 +32,14 @@ import { createMinimap, type Minimap } from "./minimap";
 import { initEnvironment, type EnvironmentHandles } from "./environment";
 import { initGizmo } from "./gizmo";
 import { initLayers } from "./layers";
-import { RoadRegistry } from "./roads";
+import { onSegment, RoadRegistry } from "./roads";
 import { VegetationLayer } from "./vegetation";
 import { initSelection } from "./selection";
 import { SimOverlay } from "./sim-overlay";
 import { initEntityShortcuts, shouldIgnoreShortcut } from "./shortcuts";
 import { Terrain } from "./terrain";
+import { TerrainDetails } from "./terrain-details";
+import { ZoneOverlay } from "./zones";
 import { store } from "../state/store";
 import { initBrush } from "../tools/brush";
 import { initCableTool } from "../tools/cable-tool";
@@ -47,18 +49,10 @@ import { initRoadTool } from "../tools/road-tool";
 import { initRulerTool } from "../tools/ruler";
 import "./viewport.css";
 
-/** Grid extent in meters; divisions are 1 m (DESIGN.md §5 — modeling scale). */
+/** Default terrain size in meters — sizes the sun shadow box (the grid is drawn on the terrain, Fase 17). */
 const GRID_SIZE = 200;
 /** The minimap redraws every N frames (~6 per second at 60 fps). */
 const MINIMAP_EVERY = 10;
-
-/** Grid (1 m divisions) + axes at the origin, visible by default. */
-function addHelpers(scene: THREE.Scene): { grid: THREE.GridHelper; axes: THREE.AxesHelper } {
-  const grid = new THREE.GridHelper(GRID_SIZE, GRID_SIZE, 0x9a9aa0, 0xd4d4d8);
-  const axes = new THREE.AxesHelper(5);
-  scene.add(grid, axes);
-  return { grid, axes };
-}
 
 export interface ViewportHandles {
   /** `.viewport-canvas` host; attached to the DOM by `components/Viewport.tsx`. */
@@ -74,6 +68,8 @@ export interface ViewportHandles {
   environment: EnvironmentHandles;
   roads: RoadRegistry;
   vegetation: VegetationLayer;
+  /** Fase 17: material-brush details (grass, snow, rocks…). */
+  details: TerrainDetails;
   /** Fase 11: presentation mode (A22). */
   camera: THREE.PerspectiveCamera;
   controls: OrbitControls;
@@ -109,7 +105,9 @@ export function createViewport(): ViewportHandles {
   controls.screenSpacePanning = false; // Fase 16: pan slides along the ground, like a map
 
   // ---- Scene contents ----
-  const { grid, axes } = addHelpers(scene);
+  // Axes at the origin; the grid itself is drawn on the terrain (Fase 17).
+  const axes = new THREE.AxesHelper(5);
+  scene.add(axes);
 
   // Fase 3: the terrain replaces the Fase 2 test meshes and the shadow-only
   // ground plane — it casts and receives shadows itself.
@@ -132,8 +130,10 @@ export function createViewport(): ViewportHandles {
   // Fase 11: roads (Infraestruturas layer) and instanced vegetation (Terreno layer).
   const roads = new RoadRegistry(scene, terrain);
   const vegetation = new VegetationLayer(scene, terrain);
+  // Fase 17: grass tufts, snow, rocks… where the material brush painted.
+  const details = new TerrainDetails(scene, terrain);
   // Fase 10: layer visibility (A17 when a layer comes back).
-  initLayers({ registry, cables, terrain, roads, vegetation });
+  initLayers({ registry, cables, terrain, roads, vegetation, details });
   // Fase 4: the gizmo attaches to the selected entity; `isBusy` lets the
   // selection skip plain clicks that land on a gizmo handle.
   const gizmo = initGizmo({ canvas: renderer.domElement, camera, scene, controls, registry });
@@ -145,6 +145,7 @@ export function createViewport(): ViewportHandles {
     extraPickables: [cables.pickables, roads.pickables],
     isGizmoBusy: gizmo.isBusy,
     controls,
+    pickRoadPart: (raycaster, id) => roads.pickPart(raycaster, id), // Fase 18
   });
   initCameraShortcuts({
     camera,
@@ -165,10 +166,39 @@ export function createViewport(): ViewportHandles {
       if (tool === "brush") cables.rebuildAll(); // the relief changed
       store.markTerrainChanged(); // unsaved change + undo snapshot (Fases 8, 10)
     },
+    // Fase 17 eraser: elements by their origin, roads by any stretch inside the circle.
+    eraseTargets: (x, z, r) => {
+      const ids: string[] = [];
+      for (const root of registry.pickables) {
+        const id = root.userData.entityId as string;
+        if (store.isPickable(id) && Math.hypot(root.position.x - x, root.position.z - z) <= r)
+          ids.push(id);
+      }
+      for (const road of store.allRoads()) {
+        if (!store.isPickable(road.id)) continue;
+        const near = road.points.some(
+          (b, i) => i > 0 && onSegment({ x, z }, road.points[i - 1], b).d <= r + road.width / 2,
+        );
+        if (near) ids.push(road.id);
+      }
+      return ids;
+    },
+    setErasePreview: (id, hidden) => {
+      const object = registry.getObject(id) ?? roads.getObject(id);
+      if (object) object.visible = !hidden;
+    },
+    commitErase: (ids) => {
+      for (const id of ids) {
+        if (store.getRoadInfo(id)) roads.remove(id);
+        else registry.remove(id); // cables of the element go with it
+      }
+    },
   });
   initRoadTool({ canvas: renderer.domElement, camera, scene, terrain, roads });
   initRulerTool({ canvas: renderer.domElement, camera, scene, terrain }); // Fase 12
-  initEntityDragDrop({ canvas: renderer.domElement, camera, scene, terrain, registry });
+  // Fase 17: zone cells along the roads while a house/building is dragged.
+  const zones = new ZoneOverlay(scene, terrain);
+  initEntityDragDrop({ canvas: renderer.domElement, camera, scene, terrain, registry, zones });
   initCableTool({
     canvas: renderer.domElement,
     camera,
@@ -184,15 +214,23 @@ export function createViewport(): ViewportHandles {
     pickables: registry.pickables,
   });
 
-  // `G`: toggle grid + axes together (DESIGN.md §10).
+  // `G` (or View › Grid, Layers › Grid — Fase 17): grid + axes together (DESIGN.md §10).
+  const grid = terrain.grid;
   window.addEventListener("keydown", (e) => {
-    if ((e.key === "g" || e.key === "G") && !shouldIgnoreShortcut(e)) {
-      grid.visible = axes.visible = !grid.visible;
-    }
+    if ((e.key === "g" || e.key === "G") && !shouldIgnoreShortcut(e)) store.toggleGrid();
+  });
+  store.subscribe(() => {
+    grid.visible = axes.visible = store.gridVisible;
   });
 
   // Fase 9: minimap (UX.md §5).
-  const minimap = createMinimap({ scene, terrain, camera, controls, helpers: [grid, axes] });
+  const minimap = createMinimap({
+    scene,
+    terrain,
+    camera,
+    controls,
+    helpers: [grid, axes, roads.editHelpers], // Fase 18: no road handles in the minimap
+  });
 
   // ---- Render loop: damping + main view; minimap every few frames ----
   let frame = 0;
@@ -217,7 +255,7 @@ export function createViewport(): ViewportHandles {
    * task (the WebGL buffer is still intact), scaled down to an A4-friendly JPEG.
    */
   function snapshot(): Uint8Array | null {
-    const helpers = [grid, axes, gizmo.helper];
+    const helpers = [grid, axes, gizmo.helper, roads.editHelpers];
     const shown = helpers.map((h) => h.visible);
     for (const h of helpers) h.visible = false;
     renderer.render(scene, camera);
@@ -244,6 +282,7 @@ export function createViewport(): ViewportHandles {
     environment,
     roads,
     vegetation,
+    details,
     camera,
     controls,
   };

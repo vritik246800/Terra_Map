@@ -111,6 +111,16 @@ const platforms = [
   },
 ];
 
+// Fase 17: network gear in the "Made in Blender" cards (models from public/models/).
+const devices = [
+  { model: "antenna", name: "Antenna", text: "Three sector panels on a 6 m mast — coverage is simulated over the relief." },
+  { model: "olt", name: "OLT", text: "The fiber head end: line cards, status LEDs, vents." },
+  { model: "splitter", name: "Splitter", text: "One fiber in, four out — every split costs dB in the link budget." },
+  { model: "onu", name: "ONU", text: "The box in each home at the end of the optimal path." },
+  { model: "router", name: "Router", text: "Dual antennas and a status strip, at real scale." },
+  { model: "pole", name: "Pole", text: "7 m wooden pole with crossarm — the scale every building is measured against." },
+];
+
 const year = new Date().getFullYear();
 ---
 
@@ -145,6 +155,7 @@ const year = new Date().getFullYear();
         <nav class="top__nav" aria-label="Sections">
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
+          <a href="#models">Models</a>
           <a href="#download">Download</a>
           <a href={REPO}>GitHub</a>
         </nav>
@@ -243,6 +254,39 @@ const year = new Date().getFullYear();
         </div>
       </section>
 
+      <section class="section build" id="models" aria-labelledby="build-title">
+        <div class="wrap build__grid">
+          <div class="build__copy" data-reveal>
+            <p class="kicker">Made in Blender</p>
+            <h2 id="build-title">Every model, phase by phase</h2>
+            <p class="sub">
+              The houses, buildings, trees and network gear in Terra_Map are built in Blender by a script — the very
+              files the app loads. Scroll to raise a building; drag it to turn it around.
+            </p>
+            <ol class="phases">
+              <li class="phase glass" data-phase="0"><b>Foundations</b><span>Slab and footing</span></li>
+              <li class="phase glass" data-phase="1"><b>Structure</b><span>One storey at a time, 2.8 m each</span></li>
+              <li class="phase glass" data-phase="2"><b>Finishing</b><span>Glass bands, parapet, roof plant</span></li>
+            </ol>
+          </div>
+          <div class="build__stage glass">
+            <canvas id="build-canvas" role="img" aria-label="3D building from Terra_Map, assembled phase by phase — drag to rotate"></canvas>
+            <span class="build__hint">Drag to rotate</span>
+          </div>
+        </div>
+        <div class="wrap devices">
+          {
+            devices.map((d) => (
+              <article class="device glass spot" data-reveal>
+                <canvas data-model={d.model} role="img" aria-label={`3D ${d.name} model — drag to rotate`} />
+                <h3>{d.name}</h3>
+                <p>{d.text}</p>
+              </article>
+            ))
+          }
+        </div>
+      </section>
+
       <section class="section showcase" aria-labelledby="showcase-title">
         <div class="wrap">
           <div class="head" data-reveal>
@@ -314,7 +358,7 @@ const year = new Date().getFullYear();
 
     <script>
       import { initDownloads } from "../scripts/downloads";
-      import { initMotion } from "../scripts/motion";
+      import { initBuildScroll, initMotion } from "../scripts/motion";
 
       // three.js comes in its own chunk so the page and its motion start first
       let heroProgress: ((p: number) => void) | undefined;
@@ -322,6 +366,12 @@ const year = new Date().getFullYear();
       void initDownloads();
       void import("../scripts/hero").then(({ initHero }) => {
         heroProgress = initHero(document.querySelector<HTMLCanvasElement>("#hero-canvas"))?.setProgress;
+      });
+      // Fase 17: Blender models — the building rises with the scroll, the gear spins in its cards
+      void import("../scripts/models").then(async ({ initBuildShowcase, initDevices }) => {
+        const build = await initBuildShowcase(document.querySelector<HTMLCanvasElement>("#build-canvas"));
+        if (build) initBuildScroll((p) => build.setProgress(p));
+        await initDevices([...document.querySelectorAll<HTMLCanvasElement>(".device canvas")]);
       });
     </script>
 
@@ -331,9 +381,9 @@ const year = new Date().getFullYear();
         --bg: #06080b;
         --text: #f5f5f7;
         --text-muted: #a3a3ab;
-        --glass: rgba(28, 31, 36, 0.52);
+        --glass: rgba(26, 30, 36, 0.36); /* Fase 17: lighter, more blur, layered */
         --border: rgba(255, 255, 255, 0.11);
-        --blur: blur(20px) saturate(180%);
+        --blur: blur(36px) saturate(190%);
         --mint: #7cf5c4;
         --green: #34c759;
         --teal: #30d5c8;
@@ -395,12 +445,28 @@ const year = new Date().getFullYear();
       }
 
       .glass {
-        background: var(--glass);
+        background:
+          linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.015) 42%, rgba(124, 245, 196, 0.035)),
+          var(--glass);
         backdrop-filter: var(--blur);
-        -webkit-backdrop-filter: var(--blur);
         border: 1px solid var(--border);
+        border-top-color: rgba(255, 255, 255, 0.2);
         border-radius: var(--radius-lg);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow-2);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+          var(--shadow-2);
+      }
+
+      /* Fase 17 (ERRORS.md E54): Safari < 18 only knows the prefixed blur. It
+         lives in its own block — beside the unprefixed one the CSS minifier
+         keeps just one of the two and Chrome or Safari loses the glass. */
+      @supports (-webkit-backdrop-filter: none) and (not (backdrop-filter: none)) {
+        .glass,
+        .btn--glass,
+        .build__hint {
+          -webkit-backdrop-filter: var(--blur);
+        }
       }
 
       .skip {
@@ -493,7 +559,6 @@ const year = new Date().getFullYear();
         background: rgba(255, 255, 255, 0.06);
         border: 1px solid var(--border);
         backdrop-filter: var(--blur);
-        -webkit-backdrop-filter: var(--blur);
       }
 
       .btn--glass:hover {
@@ -892,6 +957,144 @@ const year = new Date().getFullYear();
 
         .step.is-active .step__n {
           color: var(--mint);
+        }
+      }
+
+      /* Fase 17: Made in Blender — building rising with the scroll + spinning gear */
+      .build__grid {
+        display: grid;
+        gap: 32px;
+        align-items: center;
+      }
+
+      .phases {
+        display: grid;
+        gap: 10px;
+        margin: 28px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .phase {
+        display: grid;
+        gap: 2px;
+        padding: 14px 18px;
+        border-radius: var(--radius-md);
+        opacity: 0.55;
+        transition:
+          opacity 0.35s ease,
+          transform 0.35s ease,
+          border-color 0.35s ease;
+      }
+
+      .phase b {
+        font-size: 17px;
+      }
+
+      .phase span {
+        color: var(--text-muted);
+        font-size: 15px;
+      }
+
+      .phase.is-active {
+        opacity: 1;
+        transform: translateX(6px);
+        border-color: rgba(124, 245, 196, 0.45);
+      }
+
+      .build__stage {
+        position: relative;
+        aspect-ratio: 4 / 5;
+        overflow: hidden;
+        background:
+          radial-gradient(ellipse at 50% 85%, rgba(124, 245, 196, 0.14), transparent 60%),
+          linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01)),
+          var(--glass);
+      }
+
+      .build__stage canvas {
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+        touch-action: pan-y;
+      }
+
+      .build__stage canvas:active {
+        cursor: grabbing;
+      }
+
+      .build__hint {
+        position: absolute;
+        left: 50%;
+        bottom: 16px;
+        padding: 6px 14px;
+        border-radius: var(--radius-full);
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: var(--blur);
+        color: var(--text-muted);
+        font-size: 13px;
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+
+      .devices {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+        gap: 16px;
+        margin-top: 56px;
+      }
+
+      .device {
+        position: relative;
+        overflow: hidden;
+        padding: 0 18px 20px;
+        transition: transform 0.35s ease;
+        transform-style: preserve-3d;
+      }
+
+      .device:hover {
+        transform: translateY(-4px);
+      }
+
+      .device canvas {
+        width: calc(100% + 36px);
+        height: 170px;
+        margin: 0 -18px 4px;
+        cursor: grab;
+        touch-action: pan-y;
+      }
+
+      .device h3 {
+        font-size: 18px;
+      }
+
+      .device p {
+        margin: 6px 0 0;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      @media (min-width: 900px) {
+        .build__grid {
+          grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+          gap: 64px;
+        }
+
+        .build__stage {
+          aspect-ratio: 1 / 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .phase {
+          opacity: 1;
+          transition: none;
+        }
+
+        .device,
+        .device:hover {
+          transform: none;
         }
       }
 

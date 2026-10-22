@@ -16,6 +16,10 @@
  *    and the brush stay out of the way; it returns to `select` on drop or
  *    cancel. `Esc` cancels the drag natively (the browser fires `dragend`
  *    on the source), and dropping outside the viewport is a no-op.
+ *  - Fase 17 (Q_LIST.md Q40): with «Snap buildings to roads» on, houses and
+ *    buildings only go next to a road — the zone cells show along the roads,
+ *    the ghost snaps beside the nearest road facing it, and turns red (drop
+ *    refused with a toast) when no road is within reach.
  */
 import * as THREE from "three";
 
@@ -24,6 +28,7 @@ import { buildContent, DEFAULT_FLOORS } from "../scene/buildings";
 import type { EntityRegistry } from "../scene/entities";
 import { buildNetworkContent } from "../scene/network-models";
 import type { Terrain } from "../scene/terrain";
+import { frontage, type ZoneOverlay } from "../scene/zones";
 import { t } from "../state/i18n";
 import { layerBlockReason } from "../state/labels";
 import {
@@ -36,12 +41,36 @@ import {
   type EntityInfo,
   type NetworkKind,
 } from "../state/store";
+import { prefs } from "../state/prefs";
 import { showToast } from "../state/toasts";
 
 const GHOST_OPACITY = 0.55; // semi-transparent preview (A4)
 const DROP_PHASE = 2; // entities drop finished (fundações → estrutura → acabamento)
 
 const BUILDING_KINDS = new Set<string>(["house", "building", "lot"]);
+/** Fase 17: kinds that need a road frontage (the lot is land, it goes anywhere). */
+const FRONTAGE_KINDS = new Set<string>(["house", "building"]);
+const INVALID_TINT = 0xff3b30; // --danger: no road within reach
+
+/** Does this kind snap to roads right now (preference on)? */
+function needsRoad(kind: DraggableKind): boolean {
+  return FRONTAGE_KINDS.has(kind) && prefs.snapToRoads;
+}
+
+/** Half of the model depth (local Z) — its distance from the road edge. */
+const halfDepths = new Map<string, number>();
+function halfDepth(kind: BuildingKind): number {
+  let d = halfDepths.get(kind);
+  if (d === undefined) {
+    const probe = new THREE.Group();
+    buildContent(probe, kind, DROP_PHASE, { floors: DEFAULT_FLOORS });
+    const size = new THREE.Box3().setFromObject(probe).getSize(new THREE.Vector3());
+    d = size.z / 2;
+    disposeGhost(probe);
+    halfDepths.set(kind, d);
+  }
+  return d;
+}
 
 /**
  * Kinds draggable from the catalog: procedural buildings, network elements
@@ -88,6 +117,8 @@ export interface EntityDragDropDeps {
   scene: THREE.Scene;
   terrain: Terrain;
   registry: EntityRegistry;
+  /** Fase 17: zone cells shown while a house/building is dragged. */
+  zones: ZoneOverlay;
 }
 
 interface Session {
@@ -125,7 +156,7 @@ function disposeGhost(root: THREE.Object3D): void {
  * Returns a cleanup function that removes the listeners and any live ghost.
  */
 export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
-  const { canvas, camera, scene, terrain, registry } = deps;
+  const { canvas, camera, scene, terrain, registry, zones } = deps;
   const raycaster = new THREE.Raycaster();
 
   let ghost: THREE.Group | null = null;
@@ -178,9 +209,18 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
     }
     scene.add(ghost);
     a4GhostIn(ghostMaterials, GHOST_OPACITY);
+    if (needsRoad(kind)) zones.show(); // Fase 17
+  }
+
+  /** Fase 17: red ghost = no road within reach. */
+  function tintGhost(invalid: boolean): void {
+    for (const m of ghostMaterials) {
+      if (m instanceof THREE.MeshStandardMaterial) m.emissive.setHex(invalid ? INVALID_TINT : 0);
+    }
   }
 
   function removeGhost(immediate = false): void {
+    zones.hide();
     const current = ghost;
     if (!current) return;
     ghost = null;
@@ -207,7 +247,14 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
     ensureGhost(draggedKind);
     if (!ghost) return;
     ghost.visible = true;
-    ghost.position.set(point.x, registry.snapY(point.x, point.z), point.z);
+    const kind = draggedKind;
+    const front = needsRoad(kind)
+      ? frontage(terrain, point, halfDepth(kind as BuildingKind))
+      : null;
+    const at = front ?? point;
+    ghost.position.set(at.x, registry.snapY(at.x, at.z), at.z);
+    ghost.rotation.y = front?.rotationY ?? 0;
+    tintGhost(needsRoad(kind) && !front);
   }
 
   function onDragLeave(): void {
@@ -248,11 +295,22 @@ export function initEntityDragDrop(deps: EntityDragDropDeps): () => void {
       return null;
     }
 
-    // Fase 10: grid snap on the drop position.
-    const x = store.snapToGrid(point.x);
-    const z = store.snapToGrid(point.z);
     const transform = identityTransform();
-    transform.position = { x, y: registry.snapY(x, z), z };
+    if (needsRoad(kind)) {
+      // Fase 17: beside the nearest road, facing it — or refused.
+      const front = frontage(terrain, point, halfDepth(kind as BuildingKind));
+      if (!front) {
+        showToast(t("catalog.needsRoad"), "info");
+        return null;
+      }
+      transform.position = { x: front.x, y: registry.snapY(front.x, front.z), z: front.z };
+      transform.rotation.y = THREE.MathUtils.radToDeg(front.rotationY);
+    } else {
+      // Fase 10: grid snap on the drop position.
+      const x = store.snapToGrid(point.x);
+      const z = store.snapToGrid(point.z);
+      transform.position = { x, y: registry.snapY(x, z), z };
+    }
     // Fase 5: the custom .glb spawns from the imported template.
     const info =
       kind === CUSTOM_GLB_KIND

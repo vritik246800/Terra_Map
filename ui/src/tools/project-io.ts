@@ -36,6 +36,7 @@ import type { RoadRegistry } from "../scene/roads";
 import {
   decodeBytes,
   decodeHeightmap,
+  DEFAULT_TERRAIN,
   encodeBytes,
   encodeHeightmap,
   type Terrain,
@@ -66,6 +67,12 @@ export interface ProjectActions {
   checkRecovery(): Promise<void>;
   resolveRecovery(choice: "recover" | "discard"): Promise<void>;
   resolveUnsaved(choice: "save" | "discard" | "cancel"): Promise<void>;
+  /**
+   * Fase 17 (Q_LIST.md Q45): History › Reset — removes every element, cable,
+   * road, plant and painted material and puts back the flat terrain, as one
+   * undoable entry (the clearing and the terrain mark share one tick).
+   */
+  resetMap(): Promise<void>;
 }
 
 export interface ProjectDeps {
@@ -115,9 +122,12 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
         fog: store.environment.fog,
         water: { ...store.environment.water },
       },
-      roads: store
-        .allRoads()
-        .map((r) => ({ id: r.id, points: r.points.map((p) => ({ ...p })), width: r.width })),
+      roads: store.allRoads().map((r) => ({
+        id: r.id,
+        points: r.points.map((p) => ({ ...p })), // Fase 18: with each point's lift
+        width: r.width,
+        elevation: Math.min(...r.points.map((p) => p.elevation)), // for older versions
+      })),
       vegetation: store.vegetation.map((p) => ({ ...p })),
       scenarios: store.scenarios.map((sc) => ({
         name: sc.name,
@@ -258,7 +268,16 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
     }
     // Fase 11: roads, vegetation, environment (defaults for older files).
     for (const r of project.roads ?? [])
-      roads.restore({ ...r, points: r.points.map((p) => ({ ...p })) });
+      roads.restore({
+        id: r.id,
+        width: r.width,
+        // Fase 18: lift per point; Fase 11–17 files only have the road's (or none).
+        points: r.points.map((p) => ({
+          x: p.x,
+          z: p.z,
+          elevation: p.elevation ?? r.elevation ?? 0,
+        })),
+      });
     store.setVegetation(
       (project.vegetation ?? []).map((p) => ({ ...p, kind: p.kind === "bush" ? "bush" : "tree" })),
     );
@@ -351,6 +370,17 @@ export function createProjectActions(deps: ProjectDeps): ProjectActions {
 
   return {
     save,
+
+    async resetMap() {
+      await terrain.regenerate({ ...DEFAULT_TERRAIN });
+      store.select(null);
+      registry.clear(); // cables go with their elements
+      roads.clear();
+      store.setVegetation([]);
+      store.setTerrainPreset("flat");
+      store.markTerrainChanged(); // same tick → one undo entry
+      showToast(t("toast.mapReset"), "success");
+    },
 
     async open() {
       if (store.dirty) {
